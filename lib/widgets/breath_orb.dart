@@ -8,7 +8,12 @@ import '../theme/tokens.dart';
 
 enum BreathPhase { inhale, hold, exhale, rest }
 
-const _labels = {BreathPhase.inhale: 'Breathe in', BreathPhase.hold: 'Hold', BreathPhase.exhale: 'Breathe out', BreathPhase.rest: 'Rest'};
+const _labels = {
+  BreathPhase.inhale: 'Breathe in',
+  BreathPhase.hold: 'Hold',
+  BreathPhase.exhale: 'Breathe out',
+  BreathPhase.rest: 'Rest',
+};
 
 /// Drives an [inhale, hold, exhale, hold] cycle once per second (web useBreathCycle).
 class BreathCycle extends ChangeNotifier {
@@ -51,7 +56,12 @@ class BreathCycle extends ChangeNotifier {
 }
 
 class BreathOrb extends StatelessWidget {
-  const BreathOrb({super.key, required this.cycle, required this.running, this.size = 260});
+  const BreathOrb({
+    super.key,
+    required this.cycle,
+    required this.running,
+    this.size = 260,
+  });
   final BreathCycle cycle;
   final bool running;
   final double size;
@@ -60,32 +70,68 @@ class BreathOrb extends StatelessWidget {
     return ListenableBuilder(
       listenable: cycle,
       builder: (_, _) {
-        final expanded = cycle.phase == BreathPhase.inhale || cycle.phase == BreathPhase.hold;
+        final expanded =
+            cycle.phase == BreathPhase.inhale ||
+            cycle.phase == BreathPhase.hold;
         final scale = running ? (expanded ? 1.0 : 0.62) : 0.8;
         return SizedBox(
           width: size,
           height: size,
-          child: Stack(alignment: Alignment.center, children: [
-            for (final (i, r) in [1.0, 0.82, 0.64].indexed) _PulseRing(size: size * r, period: 6 + i, running: running),
-            AnimatedScale(
-              scale: scale,
-              duration: Duration(milliseconds: running ? math.max(600, cycle.duration * 1000) : 800),
-              curve: Curves.easeInOut,
-              child: Container(
-                width: size * 0.62,
-                height: size * 0.62,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const RadialGradient(center: Alignment(-0.3, -0.4), colors: [Color(0xFFBBDBC0), Color(0xFF558F6E), Color(0xFF26523E)], stops: [0, 0.55, 1]),
-                  boxShadow: [BoxShadow(color: const Color(0xFF8FC29E).withValues(alpha: 0.6), blurRadius: 80, spreadRadius: -10)],
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              for (final (i, r) in [1.0, 0.82, 0.64].indexed)
+                _PulseRing(size: size * r, period: 6 + i, running: running),
+              AnimatedScale(
+                scale: scale,
+                duration: Duration(
+                  milliseconds: running
+                      ? math.max(600, cycle.duration * 1000)
+                      : 800,
+                ),
+                curve: Curves.easeInOut,
+                child: Container(
+                  width: size * 0.62,
+                  height: size * 0.62,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const RadialGradient(
+                      center: Alignment(-0.3, -0.4),
+                      colors: [
+                        Color(0xFFBBDBC0),
+                        Color(0xFF558F6E),
+                        Color(0xFF26523E),
+                      ],
+                      stops: [0, 0.55, 1],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF8FC29E).withValues(alpha: 0.6),
+                        blurRadius: 80,
+                        spreadRadius: -10,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(running ? cycle.label : 'Paused', style: T.title.c(C.ivory)),
-              if (running) Text('${cycle.left}', style: T.displayXl.copyWith(fontSize: 36, color: C.ivory, height: 1).tab),
-            ]),
-          ]),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    running ? cycle.label : 'Paused',
+                    style: T.title.c(C.ivory),
+                  ),
+                  if (running)
+                    Text(
+                      '${cycle.left}',
+                      style: T.displayXl
+                          .copyWith(fontSize: 36, color: C.ivory, height: 1)
+                          .tab,
+                    ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
@@ -93,7 +139,11 @@ class BreathOrb extends StatelessWidget {
 }
 
 class _PulseRing extends StatefulWidget {
-  const _PulseRing({required this.size, required this.period, required this.running});
+  const _PulseRing({
+    required this.size,
+    required this.period,
+    required this.running,
+  });
   final double size;
   final int period;
   final bool running;
@@ -101,8 +151,12 @@ class _PulseRing extends StatefulWidget {
   State<_PulseRing> createState() => _PulseRingState();
 }
 
-class _PulseRingState extends State<_PulseRing> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: Duration(seconds: widget.period));
+class _PulseRingState extends State<_PulseRing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: Duration(seconds: widget.period),
+  );
   @override
   void initState() {
     super.initState();
@@ -133,7 +187,12 @@ class _PulseRingState extends State<_PulseRing> with SingleTickerProviderStateMi
           child: Container(
             width: widget.size,
             height: widget.size,
-            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: C.ivory.withValues(alpha: 0.15 * (0.5 + 0.4 * t) / 0.7))),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: C.ivory.withValues(alpha: 0.15 * (0.5 + 0.4 * t) / 0.7),
+              ),
+            ),
           ),
         );
       },
@@ -151,7 +210,10 @@ class CalmOrb extends StatefulWidget {
 }
 
 class _CalmOrbState extends State<CalmOrb> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 10));
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 10),
+  );
   @override
   void initState() {
     super.initState();
@@ -177,29 +239,54 @@ class _CalmOrbState extends State<CalmOrb> with SingleTickerProviderStateMixin {
     return AnimatedBuilder(
       animation: _c,
       builder: (_, _) {
-        double wave(double offset) => 0.5 - 0.5 * math.cos(2 * math.pi * ((_c.value + offset) % 1));
+        double wave(double offset) =>
+            0.5 - 0.5 * math.cos(2 * math.pi * ((_c.value + offset) % 1));
         return SizedBox(
           width: s,
           height: s,
-          child: Stack(alignment: Alignment.center, children: [
-            for (final (i, r) in [1.0, 0.8, 0.6].indexed)
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              for (final (i, r) in [1.0, 0.8, 0.6].indexed)
+                Transform.scale(
+                  scale: widget.running ? 0.92 + 0.14 * wave(i * 0.08) : 0.95,
+                  child: Container(
+                    width: s * r,
+                    height: s * r,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: C.ivory.withValues(alpha: 0.06),
+                    ),
+                  ),
+                ),
               Transform.scale(
-                scale: widget.running ? 0.92 + 0.14 * wave(i * 0.08) : 0.95,
-                child: Container(width: s * r, height: s * r, decoration: BoxDecoration(shape: BoxShape.circle, color: C.ivory.withValues(alpha: 0.06))),
-              ),
-            Transform.scale(
-              scale: widget.running ? 0.88 + 0.17 * wave(0) : 0.9,
-              child: Container(
-                width: s * 0.5,
-                height: s * 0.5,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const RadialGradient(center: Alignment(-0.3, -0.4), colors: [Color(0xFFEADDC1), Color(0xFF6A9C7F), Color(0xFF284B3A)], stops: [0, 0.6, 1]),
-                  boxShadow: [BoxShadow(color: const Color(0xFFA6CBAF).withValues(alpha: 0.6), blurRadius: 90, spreadRadius: -10)],
+                scale: widget.running ? 0.88 + 0.17 * wave(0) : 0.9,
+                child: Container(
+                  width: s * 0.5,
+                  height: s * 0.5,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const RadialGradient(
+                      center: Alignment(-0.3, -0.4),
+                      colors: [
+                        Color(0xFFEADDC1),
+                        Color(0xFF6A9C7F),
+                        Color(0xFF284B3A),
+                      ],
+                      stops: [0, 0.6, 1],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFA6CBAF).withValues(alpha: 0.6),
+                        blurRadius: 90,
+                        spreadRadius: -10,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ]),
+            ],
+          ),
         );
       },
     );

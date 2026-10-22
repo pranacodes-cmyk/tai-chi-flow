@@ -46,3 +46,13 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Signing material and machine-local files never go in Git
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+*.p12
+*.p8
+*.mobileprovision
+*.cer

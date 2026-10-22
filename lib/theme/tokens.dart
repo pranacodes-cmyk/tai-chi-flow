@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Enso design tokens. Every value mirrors src/styles.css — keep both in sync.
+/// TaiChi Flow design tokens. Every value mirrors src/styles.css — keep both in sync.
 class C {
   C._();
   static const cream = Color(0xFFF7F3EC);
@@ -22,6 +22,9 @@ class C {
   static const forest2 = Color(0xFF16221C);
   static const danger = Color(0xFFC2543F);
   static const stage = Color(0xFFE7DED0);
+
+  /// Studio wall colour of the demo films (web `--studio`).
+  static const studio = Color(0xFFD8CFC1);
 }
 
 class G {
@@ -72,21 +75,54 @@ class G {
 class S {
   S._();
   static final soft = [
-    BoxShadow(color: C.ink.withValues(alpha: 0.04), blurRadius: 2, offset: const Offset(0, 1)),
-    BoxShadow(color: C.ink.withValues(alpha: 0.10), blurRadius: 20, spreadRadius: -8, offset: const Offset(0, 6)),
+    BoxShadow(
+      color: C.ink.withValues(alpha: 0.04),
+      blurRadius: 2,
+      offset: const Offset(0, 1),
+    ),
+    BoxShadow(
+      color: C.ink.withValues(alpha: 0.10),
+      blurRadius: 20,
+      spreadRadius: -8,
+      offset: const Offset(0, 6),
+    ),
   ];
   static final card = [
-    BoxShadow(color: C.ink.withValues(alpha: 0.03), blurRadius: 1, offset: const Offset(0, 1)),
-    BoxShadow(color: const Color(0xFF2F3D33).withValues(alpha: 0.22), blurRadius: 32, spreadRadius: -14, offset: const Offset(0, 12)),
+    BoxShadow(
+      color: C.ink.withValues(alpha: 0.03),
+      blurRadius: 1,
+      offset: const Offset(0, 1),
+    ),
+    BoxShadow(
+      color: const Color(0xFF2F3D33).withValues(alpha: 0.22),
+      blurRadius: 32,
+      spreadRadius: -14,
+      offset: const Offset(0, 12),
+    ),
   ];
   static final float = [
-    BoxShadow(color: C.jadeDeep.withValues(alpha: 0.45), blurRadius: 60, spreadRadius: -24, offset: const Offset(0, 24)),
+    BoxShadow(
+      color: C.jadeDeep.withValues(alpha: 0.45),
+      blurRadius: 60,
+      spreadRadius: -24,
+      offset: const Offset(0, 24),
+    ),
   ];
   static final glow = [
-    BoxShadow(color: C.jade.withValues(alpha: 0.55), blurRadius: 30, spreadRadius: -8, offset: const Offset(0, 10)),
+    BoxShadow(
+      color: C.jade.withValues(alpha: 0.55),
+      blurRadius: 30,
+      spreadRadius: -8,
+      offset: const Offset(0, 10),
+    ),
   ];
   static final goldGlow = [
-    BoxShadow(color: C.gold.withValues(alpha: 0.7), blurRadius: 30, spreadRadius: -10, offset: const Offset(0, 12)),
+    BoxShadow(
+      color: C.gold.withValues(alpha: 0.7),
+      blurRadius: 30,
+      spreadRadius: -10,
+      offset: const Offset(0, 12),
+    ),
   ];
 }
 

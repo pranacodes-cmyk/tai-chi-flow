@@ -12,8 +12,12 @@ class Confetti extends StatefulWidget {
   State<Confetti> createState() => _ConfettiState();
 }
 
-class _ConfettiState extends State<Confetti> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 3600))..forward();
+class _ConfettiState extends State<Confetti>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3600),
+  )..forward();
   @override
   void dispose() {
     _c.dispose();
@@ -25,7 +29,10 @@ class _ConfettiState extends State<Confetti> with SingleTickerProviderStateMixin
     return IgnorePointer(
       child: AnimatedBuilder(
         animation: _c,
-        builder: (_, _) => CustomPaint(size: Size.infinite, painter: _ConfettiPainter(_c.value * 3.6, widget.height)),
+        builder: (_, _) => CustomPaint(
+          size: Size.infinite,
+          painter: _ConfettiPainter(_c.value * 3.6, widget.height),
+        ),
       ),
     );
   }
@@ -50,7 +57,13 @@ class _ConfettiPainter extends CustomPainter {
       canvas.translate(x, y);
       canvas.rotate(rot);
       final paint = Paint()..color = colors[i % 4].withValues(alpha: 1 - p);
-      canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(-3, -5, 6, 10), const Radius.circular(2)), paint);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          const Rect.fromLTWH(-3, -5, 6, 10),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
       canvas.restore();
     }
   }

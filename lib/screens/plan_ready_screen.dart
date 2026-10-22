@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../data/content.dart';
+import '../data/models.dart';
 import '../logic/logic.dart';
 import '../state/app_state.dart';
 import '../theme/text.dart';
@@ -15,7 +16,12 @@ import '../theme/tokens.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
 
-const _checklist = ['Analyzing your goals', 'Adapting to your body', 'Choosing your movements', 'Building your daily schedule'];
+const _checklist = [
+  'Analyzing your goals',
+  'Adapting to your body',
+  'Choosing your movements',
+  'Building your daily schedule',
+];
 
 class PlanReadyScreen extends StatefulWidget {
   const PlanReadyScreen({super.key});
@@ -23,7 +29,8 @@ class PlanReadyScreen extends StatefulWidget {
   State<PlanReadyScreen> createState() => _PlanReadyScreenState();
 }
 
-class _PlanReadyScreenState extends State<PlanReadyScreen> with SingleTickerProviderStateMixin {
+class _PlanReadyScreenState extends State<PlanReadyScreen>
+    with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   double progress = 0;
 
@@ -34,8 +41,7 @@ class _PlanReadyScreenState extends State<PlanReadyScreen> with SingleTickerProv
       final p = (elapsed.inMilliseconds / 4800 * 100).clamp(0.0, 100.0);
       setState(() => progress = p);
       if (p >= 100) _ticker.stop();
-    })
-      ..start();
+    })..start();
   }
 
   @override
@@ -55,9 +61,17 @@ class _PlanReadyScreenState extends State<PlanReadyScreen> with SingleTickerProv
           switchInCurve: kEase,
           transitionBuilder: (c, a) => FadeTransition(
             opacity: a,
-            child: SlideTransition(position: Tween(begin: const Offset(0, 0.02), end: Offset.zero).animate(a), child: c),
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 0.02),
+                end: Offset.zero,
+              ).animate(a),
+              child: c,
+            ),
           ),
-          child: done ? const _Result(key: ValueKey('res')) : _Generating(key: const ValueKey('gen'), progress: progress),
+          child: done
+              ? const _Result(key: ValueKey('res'))
+              : _Generating(key: const ValueKey('gen'), progress: progress),
         ),
       ),
     );
@@ -70,61 +84,240 @@ class _Generating extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final list = Content.i.testimonials;
-    final t = list[math.max(0, (progress / 34).floor()) % list.length];
-    return Padding(
-      padding: EdgeInsets.fromLTRB(28, topInset(context) + 70, 28, bottomInset(context) + 28),
-      child: Column(children: [
-        Stack(alignment: Alignment.center, children: [
-          const _Ripple(size: 196),
-          Ring(
-            value: progress / 100,
-            size: 196,
-            stroke: 10,
-            child: Text('${progress.round()}%', style: T.displayXl.tab),
-          ),
-        ]),
-        const SizedBox(height: 40),
-        Text('Creating your personal plan', textAlign: TextAlign.center, style: T.displayMd),
-        const SizedBox(height: 32),
-        for (final (i, c) in _checklist.indexed)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Row(children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 500),
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: progress > (i + 1) * 23 ? C.jade : C.sand),
-                child: progress > (i + 1) * 23 ? const Icon(LucideIcons.check, size: 16, color: C.ivory) : null,
+    final t = list[math.max(0, (progress / 26).floor()) % list.length];
+    final active = math.min(_checklist.length - 1, (progress / 25).floor());
+    return Stack(
+      children: [
+        Positioned(
+          top: -100,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    C.jade.withValues(alpha: 0.16),
+                    C.jade.withValues(alpha: 0),
+                  ],
+                ),
               ),
-              const SizedBox(width: 12),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 500),
-                style: T.body.copyWith(fontWeight: FontWeight.w500, color: progress > (i + 1) * 23 ? C.ink : C.muted),
-                child: Text(c),
-              ),
-            ]),
-          ),
-        const Spacer(),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 400),
-          child: Container(
-            key: ValueKey(t.name),
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: C.ivory, borderRadius: BorderRadius.circular(26), boxShadow: S.soft),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [for (var i = 0; i < t.rating; i++) const Icon(Icons.star_rounded, size: 18, color: C.gold)]),
-              const SizedBox(height: 8),
-              Text('“${t.text}”', style: T.bodySm),
-              const SizedBox(height: 8),
-              Text(t.name, style: T.caption.w(FontWeight.w600)),
-            ]),
+            ),
           ),
         ),
-      ]),
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            28,
+            topInset(context) + 56,
+            28,
+            bottomInset(context) + 24,
+          ),
+          child: Column(
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  const _Ripple(size: 164),
+                  const _SpinningDash(size: 216),
+                  Ring(
+                    value: progress / 100,
+                    size: 188,
+                    stroke: 10,
+                    child: Text('${progress.round()}%', style: T.displayXl.tab),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
+              Text(
+                'Creating your personal plan',
+                textAlign: TextAlign.center,
+                style: T.displayMd,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Matching 310 movements to your answers…',
+                textAlign: TextAlign.center,
+                style: T.bodySm.c(C.muted),
+              ),
+              const SizedBox(height: 28),
+              for (final (i, c) in _checklist.indexed)
+                Builder(
+                  builder: (context) {
+                    final on = progress > (i + 1) * 24;
+                    final current = !on && i == active;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Reveal(
+                        delay: 0.1 + i * 0.12,
+                        dy: 8,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 500),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: on
+                                ? C.ivory
+                                : (current
+                                      ? C.ivory.withValues(alpha: 0.6)
+                                      : Colors.transparent),
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: on ? S.soft : null,
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 500,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: on ? C.jade : C.sand,
+                                      ),
+                                      child: on
+                                          ? const Center(
+                                              child: Icon(
+                                                LucideIcons.check,
+                                                size: 16,
+                                                color: C.ivory,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                    if (current)
+                                      const SizedBox(
+                                        width: 28,
+                                        height: 28,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: C.jade,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 500),
+                                style: T.body.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: on || current ? C.ink : C.muted,
+                                ),
+                                child: Text(c),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              const Spacer(),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                child: Container(
+                  key: ValueKey(t.name),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: C.ivory,
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: S.card,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Avatar(t.avatar ?? 'onb-age-f-50', size: 40),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t.name,
+                                style: T.label.copyWith(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Stars(count: t.rating, size: 13),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text('“${t.text}”', style: T.bodySm),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
+}
+
+class _SpinningDash extends StatefulWidget {
+  const _SpinningDash({required this.size});
+  final double size;
+  @override
+  State<_SpinningDash> createState() => _SpinningDashState();
+}
+
+class _SpinningDashState extends State<_SpinningDash>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 14),
+  )..repeat();
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => RotationTransition(
+    turns: _c,
+    child: CustomPaint(size: Size.square(widget.size), painter: _DashPainter()),
+  );
+}
+
+class _DashPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.width / 2;
+    final p = Paint()
+      ..color = C.jade.withValues(alpha: 0.25)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+    const n = 72;
+    for (var i = 0; i < n; i += 2) {
+      canvas.drawArc(
+        Rect.fromCircle(center: size.center(Offset.zero), radius: r),
+        i * 2 * math.pi / n,
+        2 * math.pi / n,
+        false,
+        p,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _Ripple extends StatefulWidget {
@@ -135,7 +328,10 @@ class _Ripple extends StatefulWidget {
 }
 
 class _RippleState extends State<_Ripple> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))..repeat();
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  )..repeat();
   @override
   void dispose() {
     _c.dispose();
@@ -144,16 +340,19 @@ class _RippleState extends State<_Ripple> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _c,
-        builder: (_, _) => Transform.scale(
-          scale: 0.9 + 0.5 * _c.value,
-          child: Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: C.jade.withValues(alpha: 0.2 * (1 - _c.value))),
-          ),
+    animation: _c,
+    builder: (_, _) => Transform.scale(
+      scale: 0.9 + 0.5 * _c.value,
+      child: Container(
+        width: widget.size,
+        height: widget.size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: C.jade.withValues(alpha: 0.2 * (1 - _c.value)),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _Result extends StatelessWidget {
@@ -165,126 +364,467 @@ class _Result extends StatelessWidget {
     final planId = recommendFor(p);
     final plan = Content.i.plan(planId)!;
     final losing = p.goals.contains('weight') && p.targetWeightKg < p.weightKg;
-    final targetDate = predictTargetDate(p.weightKg, p.targetWeightKg, DateTime.now());
-    final curve = losing ? predictionCurve(p.weightKg, p.targetWeightKg) : const [30.0, 52.0, 66.0, 76.0, 83.0, 88.0];
+    final targetDate = predictTargetDate(
+      p.weightKg,
+      p.targetWeightKg,
+      DateTime.now(),
+    );
+    final curve = losing
+        ? predictionCurve(p.weightKg, p.targetWeightKg)
+        : const [30.0, 52.0, 66.0, 76.0, 83.0, 88.0];
+    final goalLabels = {
+      for (final o in Content.i.step('goals')?.options ?? const <OnbOption>[])
+        o.id: o.label,
+    };
+    final zoneLabels = {
+      for (final o in Content.i.step('zones')?.options ?? const <OnbOption>[])
+        o.id: o.label,
+    };
+    final summary = [
+      (
+        'Main goal',
+        (goalLabels[p.goals.firstOrNull ?? ''] ?? 'Overall wellbeing')
+            .replaceFirst(RegExp(r'^Improve '), ''),
+      ),
+      ('Focus area', zoneLabels[p.zones.firstOrNull ?? ''] ?? 'Full body'),
+      ('Daily time', '${p.dailyMinutes} minutes'),
+      ('Level', plan.level),
+    ];
+    final week = plan.days.take(7).toList();
 
-    return Stack(children: [
-      SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(24, topInset(context) + 24, 24, 160),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: C.jadeSoft, borderRadius: BorderRadius.circular(99)),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(LucideIcons.sparkles, size: 14, color: C.jadeDeep),
-              const SizedBox(width: 6),
-              Text('Plan ready', style: T.tiny.copyWith(fontWeight: FontWeight.w700, color: C.jadeDeep)),
-            ]),
-          ),
-          const SizedBox(height: 16),
-          Text.rich(
-            TextSpan(children: [
-              TextSpan(text: '${p.name.isNotEmpty ? '${p.name}, your' : 'Your'} plan is '),
-              TextSpan(text: 'ready', style: T.serifAccent.copyWith(fontSize: 36, color: C.jade)),
-            ]),
-            style: T.displayLg,
-          ),
-          const SizedBox(height: 10),
-          if (losing)
-            Text.rich(
-              TextSpan(children: [
-                const TextSpan(text: 'Based on your answers, you could reach '),
-                TextSpan(text: formatWeight(p.targetWeightKg, p.units), style: const TextStyle(fontWeight: FontWeight.w700, color: C.ink)),
-                const TextSpan(text: ' by '),
-                TextSpan(text: DateFormat('MMMM d').format(targetDate), style: const TextStyle(fontWeight: FontWeight.w700, color: C.ink)),
-                const TextSpan(text: '.'),
-              ]),
-              style: T.body.c(C.muted),
-            )
-          else
-            Text('Expect noticeably better balance and flexibility within 4 weeks of gentle daily practice.', style: T.body.c(C.muted)),
-          const SizedBox(height: 24),
-          _PredictionChart(curve: curve, losing: losing, imperial: p.imperial, endLabel: DateFormat('MMM d').format(targetDate)),
-          const SizedBox(height: 24),
-          ECard(
-            padding: EdgeInsets.zero,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: Column(children: [
-                SizedBox(
-                  height: 160,
-                  child: Stack(fit: StackFit.expand, children: [
-                    EImage(img(plan.image)),
-                    DecoratedBox(decoration: BoxDecoration(gradient: G.scrim)),
-                    Positioned(
-                      left: 20,
-                      right: 20,
-                      bottom: 16,
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Eyebrow('Your program', color: C.ivory.withValues(alpha: 0.75)),
-                        const SizedBox(height: 4),
-                        Text(plan.title, style: T.displayMd.c(C.ivory)),
-                      ]),
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(24, topInset(context) + 24, 24, 170),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: C.jadeSoft,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      LucideIcons.sparkles,
+                      size: 14,
+                      color: C.jadeDeep,
                     ),
-                  ]),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Plan ready',
+                      style: T.tiny.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: C.jadeDeep,
+                      ),
+                    ),
+                  ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: IntrinsicHeight(
-                    child: Row(children: [
-                      for (final (i, x) in [(LucideIcons.calendarDays, '${plan.days.length} days'), (LucideIcons.clock, '${plan.minutesPerDay} min/day'), (LucideIcons.target, plan.level)].indexed) ...[
-                        if (i > 0) const VerticalDivider(width: 1, color: C.line),
-                        Expanded(
-                          child: Column(children: [
-                            Icon(x.$1, size: 20, color: C.jade),
-                            const SizedBox(height: 6),
-                            Text(x.$2, style: T.caption.copyWith(fontWeight: FontWeight.w600, color: C.ink)),
-                          ]),
+              ),
+              const SizedBox(height: 16),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text:
+                          '${p.name.isNotEmpty ? '${p.name}, your' : 'Your'} plan is ',
+                    ),
+                    TextSpan(
+                      text: 'ready',
+                      style: T.serifAccent.copyWith(
+                        fontSize: 36,
+                        color: C.jade,
+                      ),
+                    ),
+                  ],
+                ),
+                style: T.displayLg,
+              ),
+              const SizedBox(height: 10),
+              if (losing)
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      const TextSpan(
+                        text: 'Based on your answers, you could reach ',
+                      ),
+                      TextSpan(
+                        text: formatWeight(p.targetWeightKg, p.units),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: C.ink,
                         ),
-                      ],
-                    ]),
+                      ),
+                      const TextSpan(text: ' by '),
+                      TextSpan(
+                        text: DateFormat('MMMM d').format(targetDate),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: C.ink,
+                        ),
+                      ),
+                      const TextSpan(text: '.'),
+                    ],
+                  ),
+                  style: T.body.c(C.muted),
+                )
+              else
+                Text(
+                  'Expect noticeably better balance and flexibility within 4 weeks of gentle daily practice.',
+                  style: T.body.c(C.muted),
+                ),
+              const SizedBox(height: 24),
+              _PredictionChart(
+                curve: curve,
+                losing: losing,
+                imperial: p.imperial,
+                endLabel: DateFormat('MMM d').format(targetDate),
+              ),
+              const SizedBox(height: 20),
+              LayoutBuilder(
+                builder: (context, c) {
+                  final w = (c.maxWidth - 10) / 2;
+                  return Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      for (final (label, value) in summary)
+                        Container(
+                          width: w,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: C.ivory,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: S.soft,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                label.toUpperCase(),
+                                style: T.tiny.copyWith(
+                                  fontSize: 11,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                value,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: T.label.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              ECard(
+                padding: EdgeInsets.zero,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 176,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            EImage(img(plan.image)),
+                            DecoratedBox(
+                              decoration: BoxDecoration(gradient: G.scrim),
+                            ),
+                            Positioned(
+                              left: 20,
+                              right: 20,
+                              bottom: 16,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Eyebrow(
+                                    'Your program',
+                                    color: C.ivory.withValues(alpha: 0.75),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    plan.title,
+                                    style: T.displayMd.c(C.ivory),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    plan.subtitle,
+                                    style: T.caption.c(
+                                      C.ivory.withValues(alpha: 0.8),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: IntrinsicHeight(
+                          child: Row(
+                            children: [
+                              for (final (i, x) in [
+                                (
+                                  LucideIcons.calendarDays,
+                                  '${plan.days.length} days',
+                                ),
+                                (
+                                  LucideIcons.clock,
+                                  '${plan.minutesPerDay} min/day',
+                                ),
+                                (LucideIcons.target, plan.level),
+                              ].indexed) ...[
+                                if (i > 0)
+                                  const VerticalDivider(
+                                    width: 1,
+                                    color: C.line,
+                                  ),
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      Icon(x.$1, size: 20, color: C.jade),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        x.$2,
+                                        style: T.caption.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: C.ink,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ]),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Text('Your first week', style: T.title.s(20)),
+                  ),
+                  Text(
+                    '${plan.minutesPerDay} min a day',
+                    style: T.caption.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: C.jade,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Stack(
+                children: [
+                  Positioned(
+                    left: 26,
+                    top: 24,
+                    bottom: 24,
+                    child: Container(
+                      width: 2,
+                      decoration: BoxDecoration(
+                        color: C.sandDeep.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      for (final (i, d) in week.indexed)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Reveal(
+                            delay: 0.25 + i * 0.06,
+                            dy: 10,
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(
+                                10,
+                                10,
+                                16,
+                                10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: C.ivory,
+                                borderRadius: BorderRadius.circular(22),
+                                boxShadow: S.soft,
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 52,
+                                    height: 52,
+                                    child: Stack(
+                                      children: [
+                                        RoundedImage(
+                                          img(
+                                            Content.i
+                                                    .exercise(
+                                                      d.items.firstOrNull?.e ??
+                                                          '',
+                                                    )
+                                                    ?.image ??
+                                                plan.image,
+                                          ),
+                                          size: 52,
+                                          radius: 16,
+                                        ),
+                                        Positioned(
+                                          left: 4,
+                                          top: 4,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: C.ink.withValues(
+                                                alpha: 0.7,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '${d.day}',
+                                              style: T.tiny.copyWith(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: C.ivory,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          d.title,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: T.label,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${d.restore ? 'Restore day · ' : ''}${math.max(1, (totalSeconds(d.items) / 60).round())} min · ${d.items.length} moves',
+                                          style: T.tiny.w(FontWeight.w500),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (i == 0)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: C.jadeSoft,
+                                        borderRadius: BorderRadius.circular(99),
+                                      ),
+                                      child: Text(
+                                        'Today',
+                                        style: T.tiny.copyWith(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: C.jadeDeep,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text("What you'll feel", style: T.title.s(20)),
+              const SizedBox(height: 14),
+              for (final (i, b) in plan.benefits.indexed)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Reveal(
+                    delay: 0.3 + i * 0.08,
+                    dy: 0,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: const BoxDecoration(
+                            color: C.jade,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            LucideIcons.check,
+                            size: 16,
+                            color: C.ivory,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(b, style: T.body.w(FontWeight.w500)),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        BottomCta(
+          child: Shimmer(
+            child: EnsoButton(
+              label: 'Get my plan',
+              onTap: () {
+                app.completeOnboarding(planId);
+                context.go('/paywall?from=onboarding');
+              },
             ),
           ),
-          const SizedBox(height: 24),
-          for (final (i, b) in plan.benefits.indexed)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Reveal(
-                delay: 0.3 + i * 0.08,
-                dy: 0,
-                child: Row(children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: const BoxDecoration(color: C.jade, shape: BoxShape.circle),
-                    child: const Icon(LucideIcons.check, size: 16, color: C.ivory),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(b, style: T.body.w(FontWeight.w500)),
-                ]),
-              ),
-            ),
-        ]),
-      ),
-      BottomCta(
-        child: EnsoButton(
-          label: 'Get my plan',
-          onTap: () {
-            app.completeOnboarding(planId);
-            context.go('/paywall?from=onboarding');
-          },
         ),
-      ),
-    ]);
+      ],
+    );
   }
 }
 
 class _PredictionChart extends StatefulWidget {
-  const _PredictionChart({required this.curve, required this.losing, required this.imperial, required this.endLabel});
+  const _PredictionChart({
+    required this.curve,
+    required this.losing,
+    required this.imperial,
+    required this.endLabel,
+  });
   final List<double> curve;
   final bool losing, imperial;
   final String endLabel;
@@ -292,8 +832,12 @@ class _PredictionChart extends StatefulWidget {
   State<_PredictionChart> createState() => _PredictionChartState();
 }
 
-class _PredictionChartState extends State<_PredictionChart> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200))..forward();
+class _PredictionChartState extends State<_PredictionChart>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2200),
+  )..forward();
   @override
   void dispose() {
     _c.dispose();
@@ -303,26 +847,55 @@ class _PredictionChartState extends State<_PredictionChart> with SingleTickerPro
   @override
   Widget build(BuildContext context) {
     return ECard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: Text(widget.losing ? 'Your weight forecast' : 'Balance & flexibility', style: T.title)),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: C.jadeSoft, borderRadius: BorderRadius.circular(99)),
-            child: Text('Personalized', style: T.tiny.copyWith(fontSize: 11, fontWeight: FontWeight.w700, color: C.jadeDeep)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.losing
+                      ? 'Your weight forecast'
+                      : 'Balance & flexibility',
+                  style: T.title,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: C.jadeSoft,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  'Personalized',
+                  style: T.tiny.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: C.jadeDeep,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ]),
-        const SizedBox(height: 12),
-        AspectRatio(
-          aspectRatio: 320 / 170,
-          child: AnimatedBuilder(
-            animation: _c,
-            builder: (_, _) => CustomPaint(painter: _ChartPainter(widget, _c.value)),
+          const SizedBox(height: 12),
+          AspectRatio(
+            aspectRatio: 320 / 170,
+            child: AnimatedBuilder(
+              animation: _c,
+              builder: (_, _) =>
+                  CustomPaint(painter: _ChartPainter(widget, _c.value)),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text('Forecast based on members with similar goals practicing daily. Individual results vary.', style: T.tiny.w(FontWeight.w400)),
-      ]),
+          const SizedBox(height: 8),
+          Text(
+            'Forecast based on members with similar goals practicing daily. Individual results vary.',
+            style: T.tiny.w(FontWeight.w400),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -341,7 +914,11 @@ class _ChartPainter extends CustomPainter {
     final mn = curve.reduce(math.min), mx = curve.reduce(math.max);
     final range = (mx - mn) == 0 ? 1 : mx - mn;
     final pts = [
-      for (var i = 0; i < curve.length; i++) Offset(l + i / (curve.length - 1) * (W - l - r), top + (mx - curve[i]) / range * (H - top - b)),
+      for (var i = 0; i < curve.length; i++)
+        Offset(
+          l + i / (curve.length - 1) * (W - l - r),
+          top + (mx - curve[i]) / range * (H - top - b),
+        ),
     ];
     final path = Path()..moveTo(pts[0].dx, pts[0].dy);
     for (var i = 1; i < pts.length; i++) {
@@ -366,8 +943,14 @@ class _ChartPainter extends CustomPainter {
     canvas.drawPath(
       area,
       Paint()
-        ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [C.jade.withValues(alpha: 0.28 * areaT), C.jade.withValues(alpha: 0)])
-            .createShader(const Rect.fromLTWH(0, 0, W, H)),
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            C.jade.withValues(alpha: 0.28 * areaT),
+            C.jade.withValues(alpha: 0),
+          ],
+        ).createShader(const Rect.fromLTWH(0, 0, W, H)),
     );
     final metric = path.computeMetrics().first;
     final partial = metric.extractPath(0, metric.length * lineT);
@@ -377,7 +960,8 @@ class _ChartPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4
         ..strokeCap = StrokeCap.round
-        ..shader = const LinearGradient(colors: [C.terracotta, C.gold, C.jade]).createShader(const Rect.fromLTWH(0, 0, W, H)),
+        ..shader = const LinearGradient(colors: [C.terracotta, C.gold, C.jade])
+            .createShader(const Rect.fromLTWH(0, 0, W, H)),
     );
     void dot(Offset o, double rad, Color c) {
       canvas.drawCircle(o, rad + 3, Paint()..color = C.ivory);
@@ -387,16 +971,63 @@ class _ChartPainter extends CustomPainter {
     dot(pts.first, 6, C.terracotta);
     final endT = ((t - 0.63) / 0.2).clamp(0.0, 1.0);
     if (endT > 0) dot(pts.last, 8 * Curves.easeOutBack.transform(endT), C.jade);
-    String fmt(double v) => w.imperial ? '${(v * 2.20462).round()} lb' : '${v == v.roundToDouble() ? v.toInt() : v} kg';
-    void text(String s, Offset o, {bool end = false, Color color = C.ink, double size = 12, FontWeight weight = FontWeight.w700}) {
-      final tp = TextPainter(text: TextSpan(text: s, style: TextStyle(fontFamily: T.family, fontSize: size, fontWeight: weight, color: color)), textDirection: TextDirection.ltr)..layout();
-      tp.paint(canvas, Offset(end ? o.dx - tp.width : o.dx, o.dy - tp.height + 3));
+    String fmt(double v) => w.imperial
+        ? '${(v * 2.20462).round()} lb'
+        : '${v == v.roundToDouble() ? v.toInt() : v} kg';
+    void text(
+      String s,
+      Offset o, {
+      bool end = false,
+      Color color = C.ink,
+      double size = 12,
+      FontWeight weight = FontWeight.w700,
+    }) {
+      final tp = TextPainter(
+        text: TextSpan(
+          text: s,
+          style: TextStyle(
+            fontFamily: T.family,
+            fontSize: size,
+            fontWeight: weight,
+            color: color,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(
+        canvas,
+        Offset(end ? o.dx - tp.width : o.dx, o.dy - tp.height + 3),
+      );
     }
 
-    text(w.losing ? fmt(curve.first) : 'Today', Offset(pts.first.dx + 4, pts.first.dy - 14));
-    if (endT > 0) text(w.losing ? fmt(curve.last) : '+58%', Offset(pts.last.dx, pts.last.dy - 16), end: true, color: C.jadeDeep);
-    text('Now', const Offset(l, H - 6), color: C.muted, size: 11, weight: FontWeight.w500);
-    text(w.losing ? w.endLabel : 'Week 4', const Offset(W - r, H - 6), end: true, color: C.muted, size: 11, weight: FontWeight.w500);
+    // A rising curve leaves the start dot steeply, so a label above it would sit on
+    // the line: the balance chart names the start on the axis instead.
+    if (w.losing) {
+      text(fmt(curve.first), Offset(pts.first.dx + 4, pts.first.dy - 14));
+    }
+    if (endT > 0) {
+      text(
+        w.losing ? fmt(curve.last) : '+58%',
+        Offset(pts.last.dx, pts.last.dy - 16),
+        end: true,
+        color: C.jadeDeep,
+      );
+    }
+    text(
+      w.losing ? 'Now' : 'Today',
+      const Offset(l, H - 6),
+      color: w.losing ? C.muted : C.terracotta,
+      size: w.losing ? 11 : 12,
+      weight: w.losing ? FontWeight.w500 : FontWeight.w700,
+    );
+    text(
+      w.losing ? w.endLabel : 'Week 4',
+      const Offset(W - r, H - 6),
+      end: true,
+      color: C.muted,
+      size: 11,
+      weight: FontWeight.w500,
+    );
   }
 
   @override

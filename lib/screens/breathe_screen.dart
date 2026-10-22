@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../logic/logic.dart';
+import '../logic/coach.dart';
 import '../services/audio_service.dart';
 import '../state/app_state.dart';
 import '../theme/text.dart';
@@ -16,9 +17,19 @@ import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
 
 const _patterns = [
-  (id: 'box', name: 'Box', desc: '4 · 4 · 4 · 4 — focus & calm', p: [4, 4, 4, 4]),
+  (
+    id: 'box',
+    name: 'Box',
+    desc: '4 · 4 · 4 · 4 — focus & calm',
+    p: [4, 4, 4, 4],
+  ),
   (id: '478', name: '4-7-8', desc: 'Deep relaxation & sleep', p: [4, 7, 8, 0]),
-  (id: 'calm', name: 'Calm', desc: '4 in · 6 out — reset stress', p: [4, 0, 6, 0]),
+  (
+    id: 'calm',
+    name: 'Calm',
+    desc: '4 in · 6 out — reset stress',
+    p: [4, 0, 6, 0],
+  ),
 ];
 const _durations = [1, 3, 5];
 
@@ -37,12 +48,26 @@ class _BreatheScreenState extends State<BreatheScreen> {
   late BreathCycle cycle = _makeCycle();
   late final AppState app = context.read<AppState>();
 
-  ({String id, String name, String desc, List<int> p}) get pattern => _patterns.firstWhere((x) => x.id == pid);
+  ({String id, String name, String desc, List<int> p}) get pattern =>
+      _patterns.firstWhere((x) => x.id == pid);
 
-  BreathCycle _makeCycle() => BreathCycle(_patterns.firstWhere((x) => x.id == pid).p, onPhase: (ph) {
-        Haptics.light();
-        if (app.audio.voice) Voice.speak(ph == BreathPhase.inhale ? 'Breathe in' : (ph == BreathPhase.exhale ? 'Breathe out' : 'Hold'), 0.9);
-      });
+  BreathCycle _makeCycle() => BreathCycle(
+    _patterns.firstWhere((x) => x.id == pid).p,
+    onPhase: (ph) {
+      Haptics.light();
+      if (app.audio.voice) {
+        Voice.say(
+          CoachLines.breath(
+            ph == BreathPhase.inhale
+                ? CoachBreath.inhale
+                : (ph == BreathPhase.exhale
+                      ? CoachBreath.exhale
+                      : CoachBreath.hold),
+          ),
+        );
+      }
+    },
+  );
 
   @override
   void dispose() {
@@ -109,66 +134,175 @@ class _BreatheScreenState extends State<BreatheScreen> {
       background: C.forest,
       lightIcons: true,
       gradient: G.forest,
-      body: Padding(
-        padding: EdgeInsets.fromLTRB(24, topInset(context) + 10, 24, bottomInset(context) + 22),
-        child: Column(children: [
-          Row(children: [
-            CircleBtn(icon: LucideIcons.x, tone: Tone.dark, label: 'Close', onTap: () => context.canPop() ? context.pop() : context.go('/meditate')),
-            const Spacer(),
-            if (running)
-              Glass(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: Text(formatClock(left), style: T.label.copyWith(fontWeight: FontWeight.w700, color: C.ivory).tab),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxHeight < 680;
+            final orbSize = math.min(
+              290.0,
+              compact
+                  ? constraints.maxHeight * 0.34
+                  : constraints.maxWidth - 48,
+            );
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(
+                24,
+                10,
+                24,
+                bottomInset(context) + 22,
               ),
-            const Spacer(),
-            const SizedBox(width: 44),
-          ]),
-          const SizedBox(height: 16),
-          Text('Breathe', style: T.displayLg.c(C.ivory)),
-          const SizedBox(height: 4),
-          Text(pattern.desc, style: T.bodySm.c(C.ivory.withValues(alpha: 0.65))),
-          Expanded(child: Center(child: BreathOrb(cycle: cycle, running: running, size: 290))),
-          if (!running) ...[
-            Row(children: [
-              for (final (i, x) in _patterns.indexed) ...[
-                if (i > 0) const SizedBox(width: 8),
-                Expanded(
-                  child: Pressable(
-                    onTap: () => _select(x.id),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      height: 64,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(color: pid == x.id ? C.ivory : C.ivory.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                      child: Text(x.name, style: T.label.copyWith(fontWeight: FontWeight.w700, color: pid == x.id ? C.ink : C.ivory)),
-                    ),
-                  ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - bottomInset(context) - 32,
                 ),
-              ],
-            ]),
-            const SizedBox(height: 8),
-            Row(children: [
-              for (final (i, d) in _durations.indexed) ...[
-                if (i > 0) const SizedBox(width: 8),
-                Expanded(
-                  child: Pressable(
-                    onTap: () => setState(() => mins = d),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      height: 48,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(color: mins == d ? C.jade : C.ivory.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(48)),
-                      child: Text('$d min', style: T.label.copyWith(fontSize: 14, color: mins == d ? C.ivory : C.ivory.withValues(alpha: 0.8))),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        CircleBtn(
+                          icon: LucideIcons.x,
+                          tone: Tone.dark,
+                          label: 'Close',
+                          onTap: () => context.canPop()
+                              ? context.pop()
+                              : context.go('/meditate'),
+                        ),
+                        const Spacer(),
+                        if (running)
+                          Glass(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            child: Text(
+                              formatClock(left),
+                              style: T.label
+                                  .copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: C.ivory,
+                                  )
+                                  .tab,
+                            ),
+                          ),
+                        const Spacer(),
+                        const SizedBox(width: 44),
+                      ],
                     ),
-                  ),
+                    SizedBox(height: compact ? 8 : 16),
+                    Text('Breathe', style: T.displayLg.c(C.ivory)),
+                    const SizedBox(height: 4),
+                    Text(
+                      pattern.desc,
+                      textAlign: TextAlign.center,
+                      style: T.bodySm.c(C.ivory.withValues(alpha: 0.65)),
+                    ),
+                    SizedBox(
+                      height: compact
+                          ? orbSize + 20
+                          : math.max(orbSize + 36, constraints.maxHeight - 374),
+                      child: Center(
+                        child: BreathOrb(
+                          cycle: cycle,
+                          running: running,
+                          size: orbSize,
+                        ),
+                      ),
+                    ),
+                    if (!running) ...[
+                      Row(
+                        children: [
+                          for (final (i, x) in _patterns.indexed) ...[
+                            if (i > 0) const SizedBox(width: 8),
+                            Expanded(
+                              child: Pressable(
+                                onTap: () => _select(x.id),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 250),
+                                  constraints: const BoxConstraints(
+                                    minHeight: 58,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 12,
+                                  ),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: pid == x.id
+                                        ? C.ivory
+                                        : C.ivory.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    x.name,
+                                    textAlign: TextAlign.center,
+                                    style: T.label.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: pid == x.id ? C.ink : C.ivory,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          for (final (i, d) in _durations.indexed) ...[
+                            if (i > 0) const SizedBox(width: 8),
+                            Expanded(
+                              child: Pressable(
+                                onTap: () => setState(() => mins = d),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 250),
+                                  constraints: const BoxConstraints(
+                                    minHeight: 48,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: mins == d
+                                        ? C.jade
+                                        : C.ivory.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(48),
+                                  ),
+                                  child: Text(
+                                    '$d min',
+                                    style: T.label.copyWith(
+                                      fontSize: 14,
+                                      color: mins == d
+                                          ? C.ivory
+                                          : C.ivory.withValues(alpha: 0.8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      EnsoButton(
+                        label: 'Begin',
+                        variant: BtnVariant.ivory,
+                        onTap: _start,
+                      ),
+                    ] else
+                      EnsoButton(
+                        label: 'Stop',
+                        variant: BtnVariant.glass,
+                        onTap: _stop,
+                      ),
+                  ],
                 ),
-              ],
-            ]),
-            const SizedBox(height: 20),
-            EnsoButton(label: 'Begin', variant: BtnVariant.ivory, onTap: _start),
-          ] else
-            EnsoButton(label: 'Stop', variant: BtnVariant.glass, onTap: _stop),
-        ]),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

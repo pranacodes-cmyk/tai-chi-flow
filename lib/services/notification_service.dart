@@ -30,20 +30,24 @@ class NotificationService {
       final info = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(info.identifier));
     } catch (e) {
-      debugPrint('Enso tz: $e');
+      debugPrint('TaiChi Flow tz: $e');
     }
     try {
       await _plugin.initialize(
-        settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
+        settings: const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        ),
       );
       _ready = true;
     } catch (e) {
-      debugPrint('Enso notifications init: $e');
+      debugPrint('TaiChi Flow notifications init: $e');
     }
   }
 
-  static AndroidFlutterLocalNotificationsPlugin? get _android =>
-      _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  static AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
 
   static Future<bool> requestPermission() async {
     await init();
@@ -52,26 +56,38 @@ class NotificationService {
   }
 
   /// Re-schedules one weekly notification per selected weekday.
-  static Future<void> schedule(Reminders r, {required String name, required int minutes}) async {
+  static Future<void> schedule(
+    Reminders r, {
+    required String name,
+    required int minutes,
+  }) async {
     await init();
     if (!_ready) return;
     for (var d = 0; d < 7; d++) {
       await _plugin.cancel(id: 100 + d);
     }
     if (!r.enabled) return;
-    final body = '${name.isNotEmpty ? '$name, your' : 'Your'} $minutes-minute practice is ready 🌿';
+    final body =
+        '${name.isNotEmpty ? '$name, your' : 'Your'} $minutes-minute practice is ready 🌿';
     final now = tz.TZDateTime.now(tz.local);
     for (final weekday in r.days) {
       // weekday: 0 = Sunday … 6 = Saturday; Dart: 1 = Monday … 7 = Sunday
       final dartWeekday = weekday == 0 ? 7 : weekday;
-      var when = tz.TZDateTime(tz.local, now.year, now.month, now.day, r.hour, r.minute);
+      var when = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        r.hour,
+        r.minute,
+      );
       while (when.weekday != dartWeekday || !when.isAfter(now)) {
         when = when.add(const Duration(days: 1));
       }
       try {
         await _plugin.zonedSchedule(
           id: 100 + weekday,
-          title: 'Enso',
+          title: 'TaiChi Flow',
           body: body,
           scheduledDate: when,
           notificationDetails: const NotificationDetails(android: _channel),
@@ -79,18 +95,22 @@ class NotificationService {
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
         );
       } catch (e) {
-        debugPrint('Enso schedule: $e');
+        debugPrint('TaiChi Flow schedule: $e');
       }
     }
   }
 
-  static Future<void> showTest({required String name, required int minutes}) async {
+  static Future<void> showTest({
+    required String name,
+    required int minutes,
+  }) async {
     await init();
     await requestPermission();
     await _plugin.show(
       id: 1,
-      title: 'Enso',
-      body: '${name.isNotEmpty ? '$name, your' : 'Your'} $minutes-minute practice is ready 🌿',
+      title: 'TaiChi Flow',
+      body:
+          '${name.isNotEmpty ? '$name, your' : 'Your'} $minutes-minute practice is ready 🌿',
       notificationDetails: const NotificationDetails(android: _channel),
     );
   }

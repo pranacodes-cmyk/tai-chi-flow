@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import '../theme/tokens.dart';
 
 /// Bottom sheet matching the web `Sheet` (34px top radius, grab handle, drag to dismiss).
-Future<T?> showEnsoSheet<T>(BuildContext context, {required WidgetBuilder builder, bool dark = false}) {
+Future<T?> showEnsoSheet<T>(
+  BuildContext context, {
+  required WidgetBuilder builder,
+  bool dark = false,
+}) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
@@ -17,11 +21,15 @@ Future<T?> showEnsoSheet<T>(BuildContext context, {required WidgetBuilder builde
       return Padding(
         padding: EdgeInsets.only(bottom: kb),
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.92),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(ctx).height * 0.92,
+          ),
           child: Container(
             decoration: BoxDecoration(
               color: dark ? C.forest2 : C.cream,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(34)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(34),
+              ),
               boxShadow: S.float,
             ),
             padding: EdgeInsets.only(bottom: bottom + 16),
@@ -33,7 +41,12 @@ Future<T?> showEnsoSheet<T>(BuildContext context, {required WidgetBuilder builde
                   child: Container(
                     width: 40,
                     height: 6,
-                    decoration: BoxDecoration(color: dark ? C.ivory.withValues(alpha: 0.25) : C.ink.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
+                    decoration: BoxDecoration(
+                      color: dark
+                          ? C.ivory.withValues(alpha: 0.25)
+                          : C.ink.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                   ),
                 ),
                 Flexible(

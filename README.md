@@ -1,4 +1,4 @@
-# Enso — Android app (Flutter)
+# TaiChi Flow — Android app (Flutter)
 
 Tai Chi, Qigong, chair yoga, mindful walking and meditation. This Flutter app is the
 production Android client; the web project at the repository root is its pixel-matched

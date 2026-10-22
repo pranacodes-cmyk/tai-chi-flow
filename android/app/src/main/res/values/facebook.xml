@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Meta app events identifiers. These are client identifiers that ship inside every
+     build (not secrets); the SDK stays dormant until the in-app privacy choice allows it. -->
+<resources>
+    <string name="facebook_app_id" translatable="false">2567147137043930</string>
+    <string name="facebook_client_token" translatable="false">0ca36356ac1535ffb3efacefbfff5721</string>
+</resources>

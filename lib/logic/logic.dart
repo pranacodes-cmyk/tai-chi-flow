@@ -5,11 +5,21 @@ import '../data/content.dart';
 import '../data/models.dart';
 
 const restBetweenSec = 10;
-const defaultPlanId = 'standing-tai-chi';
+
+/// Tai Chi Foundations: the course every standing newcomer starts with.
+const defaultPlanId = 'tai-chi-beginner';
 const baseWeightKg = 70.0;
 
 class Profile {
-  String name, gender, ageGroup, bodyType, activity, flexibilityCheck, balanceCheck, units, style;
+  String name,
+      gender,
+      ageGroup,
+      bodyType,
+      activity,
+      flexibilityCheck,
+      balanceCheck,
+      units,
+      style;
   List<String> goals, zones, limitations;
   double heightCm, weightKg, targetWeightKg;
   int stress, dailyMinutes;
@@ -32,56 +42,57 @@ class Profile {
     this.targetWeightKg = 66,
     this.stress = 3,
     this.dailyMinutes = 10,
-  })  : goals = goals ?? [],
-        zones = zones ?? [],
-        limitations = limitations ?? [];
+  }) : goals = goals ?? [],
+       zones = zones ?? [],
+       limitations = limitations ?? [];
 
   bool get imperial => units == 'imperial';
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'gender': gender,
-        'ageGroup': ageGroup,
-        'goals': goals,
-        'bodyType': bodyType,
-        'zones': zones,
-        'activity': activity,
-        'flexibilityCheck': flexibilityCheck,
-        'balanceCheck': balanceCheck,
-        'limitations': limitations,
-        'heightCm': heightCm,
-        'weightKg': weightKg,
-        'targetWeightKg': targetWeightKg,
-        'units': units,
-        'style': style,
-        'stress': stress,
-        'dailyMinutes': dailyMinutes,
-      };
+    'name': name,
+    'gender': gender,
+    'ageGroup': ageGroup,
+    'goals': goals,
+    'bodyType': bodyType,
+    'zones': zones,
+    'activity': activity,
+    'flexibilityCheck': flexibilityCheck,
+    'balanceCheck': balanceCheck,
+    'limitations': limitations,
+    'heightCm': heightCm,
+    'weightKg': weightKg,
+    'targetWeightKg': targetWeightKg,
+    'units': units,
+    'style': style,
+    'stress': stress,
+    'dailyMinutes': dailyMinutes,
+  };
 
   factory Profile.fromJson(Map<String, dynamic> j) => Profile(
-        name: j['name'] ?? '',
-        gender: j['gender'] ?? '',
-        ageGroup: j['ageGroup'] ?? '',
-        goals: (j['goals'] as List? ?? []).cast<String>().toList(),
-        bodyType: j['bodyType'] ?? '',
-        zones: (j['zones'] as List? ?? []).cast<String>().toList(),
-        activity: j['activity'] ?? '',
-        flexibilityCheck: j['flexibilityCheck'] ?? '',
-        balanceCheck: j['balanceCheck'] ?? '',
-        limitations: (j['limitations'] as List? ?? []).cast<String>().toList(),
-        heightCm: (j['heightCm'] as num? ?? 168).toDouble(),
-        weightKg: (j['weightKg'] as num? ?? 72).toDouble(),
-        targetWeightKg: (j['targetWeightKg'] as num? ?? 66).toDouble(),
-        units: j['units'] ?? 'metric',
-        style: j['style'] ?? '',
-        stress: (j['stress'] as num? ?? 3).toInt(),
-        dailyMinutes: (j['dailyMinutes'] as num? ?? 10).toInt(),
-      );
+    name: j['name'] ?? '',
+    gender: j['gender'] ?? '',
+    ageGroup: j['ageGroup'] ?? '',
+    goals: (j['goals'] as List? ?? []).cast<String>().toList(),
+    bodyType: j['bodyType'] ?? '',
+    zones: (j['zones'] as List? ?? []).cast<String>().toList(),
+    activity: j['activity'] ?? '',
+    flexibilityCheck: j['flexibilityCheck'] ?? '',
+    balanceCheck: j['balanceCheck'] ?? '',
+    limitations: (j['limitations'] as List? ?? []).cast<String>().toList(),
+    heightCm: (j['heightCm'] as num? ?? 168).toDouble(),
+    weightKg: (j['weightKg'] as num? ?? 72).toDouble(),
+    targetWeightKg: (j['targetWeightKg'] as num? ?? 66).toDouble(),
+    units: j['units'] ?? 'metric',
+    style: j['style'] ?? '',
+    stress: (j['stress'] as num? ?? 3).toInt(),
+    dailyMinutes: (j['dailyMinutes'] as num? ?? 10).toInt(),
+  );
 
   Profile copy() => Profile.fromJson(toJson());
 
   String getString(String field) => (toJson()[field] ?? '').toString();
-  List<String> getList(String field) => (toJson()[field] as List? ?? []).cast<String>();
+  List<String> getList(String field) =>
+      (toJson()[field] as List? ?? []).cast<String>();
 }
 
 class HistoryEntry {
@@ -107,32 +118,32 @@ class HistoryEntry {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'sessionId': sessionId,
-        'title': title,
-        'kind': kind,
-        'image': image,
-        if (planId != null) 'planId': planId,
-        if (day != null) 'day': day,
-        'completedAt': completedAt.toIso8601String(),
-        'durationSec': durationSec,
-        'kcal': kcal,
-        if (feeling != null) 'feeling': feeling,
-      };
+    'id': id,
+    'sessionId': sessionId,
+    'title': title,
+    'kind': kind,
+    'image': image,
+    if (planId != null) 'planId': planId,
+    if (day != null) 'day': day,
+    'completedAt': completedAt.toIso8601String(),
+    'durationSec': durationSec,
+    'kcal': kcal,
+    if (feeling != null) 'feeling': feeling,
+  };
 
   factory HistoryEntry.fromJson(Map<String, dynamic> j) => HistoryEntry(
-        id: j['id'],
-        sessionId: j['sessionId'],
-        title: j['title'],
-        kind: j['kind'],
-        image: j['image'],
-        planId: j['planId'],
-        day: (j['day'] as num?)?.toInt(),
-        completedAt: DateTime.parse(j['completedAt']).toLocal(),
-        durationSec: (j['durationSec'] as num).toInt(),
-        kcal: (j['kcal'] as num).toInt(),
-        feeling: (j['feeling'] as num?)?.toInt(),
-      );
+    id: j['id'],
+    sessionId: j['sessionId'],
+    title: j['title'],
+    kind: j['kind'],
+    image: j['image'],
+    planId: j['planId'],
+    day: (j['day'] as num?)?.toInt(),
+    completedAt: DateTime.parse(j['completedAt']).toLocal(),
+    durationSec: (j['durationSec'] as num).toInt(),
+    kcal: (j['kcal'] as num).toInt(),
+    feeling: (j['feeling'] as num?)?.toInt(),
+  );
 }
 
 class Session {
@@ -157,9 +168,13 @@ class Session {
 
 // ------------------------------------------------------------ dates
 
-String dateKey(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-DateTime addDays(DateTime d, int n) => DateTime(d.year, d.month, d.day + n, d.hour, d.minute);
-int dayOfYear(DateTime d) => DateTime(d.year, d.month, d.day).difference(DateTime(d.year, 1, 1)).inDays + 1;
+String dateKey(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+DateTime addDays(DateTime d, int n) =>
+    DateTime(d.year, d.month, d.day + n, d.hour, d.minute);
+int dayOfYear(DateTime d) =>
+    DateTime(d.year, d.month, d.day).difference(DateTime(d.year, 1, 1)).inDays +
+    1;
 
 String greeting(int hour) {
   if (hour < 5) return 'Good evening';
@@ -192,8 +207,11 @@ double lbToKg(num lb) => (lb / 2.20462 * 10).round() / 10;
 
 int ftInToCm(int ft, int inch) => ((ft * 12 + inch) * 2.54).round();
 
-String _trim(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
-String formatWeight(double kg, String units) => units == 'imperial' ? '${kgToLb(kg)} lb' : '${_trim((kg * 10).round() / 10)} kg';
+String _trim(double v) =>
+    v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+String formatWeight(double kg, String units) => units == 'imperial'
+    ? '${kgToLb(kg)} lb'
+    : '${_trim((kg * 10).round() / 10)} kg';
 String formatHeight(double cm, String units) {
   if (units == 'imperial') {
     final r = cmToFtIn(cm);
@@ -207,9 +225,14 @@ int predictWeeks(double currentKg, double targetKg) {
   return math.min(26, math.max(4, (diff / 0.5).ceil()));
 }
 
-DateTime predictTargetDate(double currentKg, double targetKg, DateTime from) => addDays(from, predictWeeks(currentKg, targetKg) * 7);
+DateTime predictTargetDate(double currentKg, double targetKg, DateTime from) =>
+    addDays(from, predictWeeks(currentKg, targetKg) * 7);
 
-List<double> predictionCurve(double currentKg, double targetKg, [int points = 6]) {
+List<double> predictionCurve(
+  double currentKg,
+  double targetKg, [
+  int points = 6,
+]) {
   return List.generate(points, (i) {
     final t = i / (points - 1);
     final eased = 1 - math.pow(1 - t, 2.2).toDouble();
@@ -219,22 +242,37 @@ List<double> predictionCurve(double currentKg, double targetKg, [int points = 6]
 
 // ------------------------------------------------------------ personalization
 
-String recommendPlanId({required List<String> goals, required String style, required List<String> limitations, required String ageGroup}) {
+String recommendPlanId({
+  required List<String> goals,
+  required String style,
+  required List<String> limitations,
+  required String ageGroup,
+}) {
   final g = goals.toSet();
   final seated = limitations.contains('mobility') || style == 'chair';
-  if (seated) return g.contains('weight') ? 'chair-yoga-weight-loss' : 'seated-tai-chi';
+  if (seated) {
+    return g.contains('weight') ? 'chair-yoga-weight-loss' : 'seated-tai-chi';
+  }
   if (g.contains('weight')) return 'weight-loss-walking';
   if (style == 'walking') return 'tai-chi-walking-30';
-  if ((g.contains('balance') || g.contains('bones')) && ageGroup == '50+') return 'tai-chi-beginner';
-  if (style == 'qigong') return 'qi-mastery-14';
+  if (style == 'qigong') return 'standing-qigong-14';
   return defaultPlanId;
 }
 
 /// Which 60-day daily practice suits this person: seated for limited mobility or chair lovers.
-String dailyPlanId({required List<String> limitations, required String style}) =>
-    limitations.contains('mobility') || style == 'chair' ? 'seated-tai-chi' : 'standing-tai-chi';
+String dailyPlanId({
+  required List<String> limitations,
+  required String style,
+}) => limitations.contains('mobility') || style == 'chair'
+    ? 'seated-tai-chi'
+    : 'standing-tai-chi';
 
-String recommendFor(Profile p) => recommendPlanId(goals: p.goals, style: p.style, limitations: p.limitations, ageGroup: p.ageGroup);
+String recommendFor(Profile p) => recommendPlanId(
+  goals: p.goals,
+  style: p.style,
+  limitations: p.limitations,
+  ageGroup: p.ageGroup,
+);
 
 // ------------------------------------------------------------ sessions
 
@@ -243,10 +281,15 @@ int totalSeconds(List<SessionItem> items, [int restSec = restBetweenSec]) {
   return work + restSec * math.max(0, items.length - 1);
 }
 
-int kcalForWeight(int baseKcal, double weightKg) => math.max(1, (baseKcal * weightKg / baseWeightKg).round());
+int kcalForWeight(int baseKcal, double weightKg) =>
+    math.max(1, (baseKcal * weightKg / baseWeightKg).round());
 
-int itemsKcal(List<SessionItem> items) =>
-    items.fold<double>(0, (s, it) => s + (Content.i.exercise(it.e)?.kcalPerMin ?? 3) * (it.s / 60)).round();
+int itemsKcal(List<SessionItem> items) => items
+    .fold<double>(
+      0,
+      (s, it) => s + (Content.i.exercise(it.e)?.kcalPerMin ?? 3) * (it.s / 60),
+    )
+    .round();
 
 String planSessionId(String planId, int day) => 'plan:$planId:$day';
 
@@ -259,7 +302,16 @@ Session? resolveSession(String id) {
   if (kind == 'quick' && a != null) {
     final q = c.quick(a);
     if (q == null) return null;
-    return Session(id: id, kind: 'quick', title: q.title, subtitle: q.subtitle, image: q.image, items: q.items, restSec: restBetweenSec, baseKcal: q.kcal);
+    return Session(
+      id: id,
+      kind: 'quick',
+      title: q.title,
+      subtitle: q.subtitle,
+      image: q.image,
+      items: q.items,
+      restSec: restBetweenSec,
+      baseKcal: q.kcal,
+    );
   }
   if (kind == 'plan' && a != null && b != null) {
     final plan = c.plan(a);
@@ -269,7 +321,9 @@ Session? resolveSession(String id) {
     return Session(
       id: id,
       kind: 'plan',
-      title: plan.isSingleSession ? plan.title : 'Day ${day.day} · ${day.title}',
+      title: plan.isSingleSession
+          ? plan.title
+          : 'Day ${day.day} · ${day.title}',
       subtitle: plan.isSingleSession ? plan.group : plan.title,
       image: plan.image,
       items: day.items,
@@ -282,13 +336,31 @@ Session? resolveSession(String id) {
   if (kind == 'cat' && a != null) {
     final cat = c.category(a);
     if (cat == null) return null;
-    return Session(id: id, kind: 'category', title: cat.name, subtitle: cat.tagline, image: cat.image, items: cat.items, restSec: restBetweenSec, baseKcal: cat.kcal);
+    return Session(
+      id: id,
+      kind: 'category',
+      title: cat.name,
+      subtitle: cat.tagline,
+      image: cat.image,
+      items: cat.items,
+      restSec: restBetweenSec,
+      baseKcal: cat.kcal,
+    );
   }
   if (kind == 'ex' && a != null) {
     final ex = c.exercise(a);
     if (ex == null) return null;
     final items = [SessionItem(ex.id, ex.durationSec * 2)];
-    return Session(id: id, kind: 'exercise', title: ex.name, subtitle: 'Single practice', image: ex.image, items: items, restSec: 0, baseKcal: itemsKcal(items));
+    return Session(
+      id: id,
+      kind: 'exercise',
+      title: ex.name,
+      subtitle: 'Single practice',
+      image: ex.image,
+      items: items,
+      restSec: 0,
+      baseKcal: itemsKcal(items),
+    );
   }
   return null;
 }
@@ -302,9 +374,10 @@ int nextPlanDay(int totalDays, List<int> completed) {
 }
 
 /// Free programs are fully open; premium programs open their first `freeDays` days.
-bool isDayLocked(Plan plan, int day, bool premium) => !premium && plan.premium && day > plan.freeDays;
+bool isDayLocked(Plan plan, int day, bool premium) =>
+    !premium && plan.premium && day > plan.freeDays;
 
-/// A program that cannot be started at all without Enso Plus.
+/// A program that cannot be started at all without TaiChi Flow Plus.
 bool isPlanLocked(Plan plan, bool premium) => isDayLocked(plan, 1, premium);
 
 bool isMeditationLocked(String id, bool premium) {
@@ -312,9 +385,19 @@ bool isMeditationLocked(String id, bool premium) {
   return m != null && m.premium && !premium;
 }
 
+/// Player-entry guard: direct routes obey the same day gate as program screens.
+bool isSessionLocked(String sessionId, bool premium) {
+  final parts = sessionId.split(':');
+  if (parts.length != 3 || parts[0] != 'plan') return false;
+  final plan = Content.i.plan(parts[1]);
+  final day = int.tryParse(parts[2]);
+  return plan != null && day != null && isDayLocked(plan, day, premium);
+}
+
 // ------------------------------------------------------------ progress
 
-List<String> uniqueDays(List<HistoryEntry> history) => (history.map((h) => dateKey(h.completedAt)).toSet().toList()..sort());
+List<String> uniqueDays(List<HistoryEntry> history) =>
+    (history.map((h) => dateKey(h.completedAt)).toSet().toList()..sort());
 
 int currentStreak(List<HistoryEntry> history, DateTime today) {
   final days = uniqueDays(history).toSet();
@@ -350,7 +433,16 @@ int bestStreak(List<HistoryEntry> history) {
 }
 
 class Stats {
-  final int sessions, workouts, meditations, minutes, kcal, streak, best, plansCompleted, earlyBird, nightOwl;
+  final int sessions,
+      workouts,
+      meditations,
+      minutes,
+      kcal,
+      streak,
+      best,
+      plansCompleted,
+      earlyBird,
+      nightOwl;
   const Stats({
     required this.sessions,
     required this.workouts,
@@ -365,7 +457,11 @@ class Stats {
   });
 }
 
-Stats computeStats(List<HistoryEntry> history, DateTime today, int plansCompleted) {
+Stats computeStats(
+  List<HistoryEntry> history,
+  DateTime today,
+  int plansCompleted,
+) {
   final workouts = history.where((h) => h.kind == 'workout').toList();
   return Stats(
     sessions: history.length,
@@ -404,8 +500,10 @@ int achievementValue(Achievement a, Stats s) {
   }
 }
 
-List<String> unlockedAchievements(Stats s) =>
-    Content.i.achievements.where((a) => achievementValue(a, s) >= a.threshold).map((a) => a.id).toList();
+List<String> unlockedAchievements(Stats s) => Content.i.achievements
+    .where((a) => achievementValue(a, s) >= a.threshold)
+    .map((a) => a.id)
+    .toList();
 
 class DayMinutes {
   final String key, label;
@@ -420,7 +518,9 @@ List<DayMinutes> weekMinutes(List<HistoryEntry> history, DateTime today) {
     final i = 6 - idx;
     final d = addDays(today, -i);
     final key = dateKey(d);
-    final secs = history.where((h) => dateKey(h.completedAt) == key).fold<int>(0, (s, h) => s + h.durationSec);
+    final secs = history
+        .where((h) => dateKey(h.completedAt) == key)
+        .fold<int>(0, (s, h) => s + h.durationSec);
     return DayMinutes(key, weekLetters[d.weekday % 7], (secs / 60).round());
   });
 }
@@ -434,4 +534,55 @@ String formatClock(num sec) {
   return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
 }
 
-T dailyPick<T>(List<T> list, DateTime date, [int salt = 0]) => list[(dayOfYear(date) + salt) % list.length];
+T dailyPick<T>(List<T> list, DateTime date, [int salt = 0]) =>
+    list[(dayOfYear(date) + salt) % list.length];
+
+// ------------------------------------------------------------ onboarding imagery
+
+/// Gender variant used by onboarding photos: men see "m" imagery, everyone else "f".
+String genderVariant(String gender) => gender == 'male' ? 'm' : 'f';
+
+/// Resolves an onboarding image template (`onb-age-{g}-18`) for the person's gender.
+String onbImage(String template, String gender) =>
+    template.replaceAll('{g}', genderVariant(gender));
+
+/// Option label, using the male wording when one exists and the person identifies as male.
+String onbLabel(String label, String? labelM, String gender) =>
+    gender == 'male' && labelM != null ? labelM : label;
+
+// ------------------------------------------------------------ ads privacy
+
+/// Version of the privacy notice shown in the consent sheet. Bump it when the
+/// notice wording, shared data or recipients change so people are asked again.
+const privacyNoticeVersion = 1;
+
+/// Countries where ad measurement needs an explicit opt-in first
+/// (EU + EEA, United Kingdom and Switzerland).
+const consentCountries = {
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU',
+  'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES',
+  'SE', 'IS', 'LI', 'NO', 'GB', 'CH',
+};
+
+/// Consent regions — and unknown regions, to be safe — get the opt-in sheet.
+bool isConsentRegion(String? country) {
+  final c = country?.trim().toUpperCase() ?? '';
+  return c.isEmpty || c.length != 2 || consentCountries.contains(c);
+}
+
+/// May app activity (installs, onboarding finished, purchases) be shared with
+/// Meta for ad measurement? An explicit choice always wins; without one, consent
+/// regions stay off and everyone else is on until they opt out in Profile.
+/// A choice made on an older notice version counts as no choice.
+bool adsMeasurementAllowed(String choice, int noticeVersion, String? country) {
+  final decided = noticeVersion == privacyNoticeVersion;
+  if (decided && choice == 'denied') return false;
+  if (decided && choice == 'granted') return true;
+  return !isConsentRegion(country);
+}
+
+/// Should the opt-in sheet be shown? Only in consent regions, and only until
+/// the person has answered the current notice.
+bool needsPrivacyChoice(String choice, int noticeVersion, String? country) =>
+    isConsentRegion(country) &&
+    (noticeVersion != privacyNoticeVersion || choice == 'unset');
