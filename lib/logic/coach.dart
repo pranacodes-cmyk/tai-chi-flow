@@ -65,6 +65,13 @@ class CoachLines {
   static List<String> onbChapter(OnbChapter c) =>
       c.breath ? const [] : [c.line];
 
+  /// Onboarding: the host's cues during the opening breath (his own voice, not the workout coach's).
+  static List<String> onbBreath(CoachBreath phase) => [
+    phase == CoachBreath.inhale
+        ? 'Breathe in slowly, through your nose.'
+        : 'And gently, let it all go.',
+  ];
+
   /// Onboarding: after the opening breath.
   static List<String> onbArrived() => [
     'Beautiful. Now, tell me a little about you.',

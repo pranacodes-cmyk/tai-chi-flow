@@ -6,19 +6,21 @@ import 'package:video_player/video_player.dart';
 
 import '../data/content.dart';
 import '../data/models.dart';
+import '../services/audio_service.dart';
 import '../theme/text.dart';
 import '../theme/tokens.dart';
 import 'demo_film.dart';
 import 'ui.dart';
 import 'voice_bars.dart';
 
-/// The cinematic layer of the onboarding quiz: chapter cards with looping films, the opening
-/// guided breath, the coach's spoken replies and film heroes above some questions.
+/// The cinematic layer of the onboarding quiz: the host's spoken intro, chapter cards with looping
+/// films, the opening guided breath, the coach's spoken replies and film heroes above some questions.
 /// Mirrors src/components/enso/OnboardingExperience.tsx.
 
-/// Name the films' instructor uses when she talks to you (web `COACH_NAME`).
-const coachName = 'Coach Mei';
-const coachAvatar = 'assets/images/coach-mei.jpg';
+/// The onboarding host (chapter 1's `host` in content): his name and portrait sit on every
+/// spoken reply (web `COACH_NAME` / `coachUrl`).
+String get coachName => Content.i.onboardingHost?.name ?? 'Your coach';
+String get coachAvatar => img(Content.i.onboardingHost?.avatar ?? 'logo-taichi');
 
 /// Seconds of the opening breath (web `BREATH_IN` / `BREATH_OUT`).
 const breathIn = 4;
@@ -127,6 +129,189 @@ class _LoopFilmState extends State<LoopFilm> {
   }
 }
 
+// ------------------------------------------------------------ host film
+
+/// The host's spoken introduction: plays once with his own voice (muted when sound is off),
+/// shows timed subtitles and reports when it ends; the poster stays if the film can't play
+/// (web `HostFilm`).
+class HostFilm extends StatefulWidget {
+  const HostFilm({
+    super.key,
+    required this.host,
+    required this.sound,
+    required this.onEnded,
+  });
+  final OnbHost host;
+  final bool sound;
+  final VoidCallback onEnded;
+  @override
+  State<HostFilm> createState() => _HostFilmState();
+}
+
+class _HostFilmState extends State<HostFilm> {
+  VideoPlayerController? _c;
+  bool _ready = false;
+  bool _ended = false;
+  String _caption = '';
+  Timer? _guard;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = VideoPlayerController.asset(
+      filmAsset(widget.host.video),
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
+    _c = c;
+    c.addListener(_tick);
+    c
+        .initialize()
+        .then((_) {
+          if (!mounted) return;
+          c.setVolume(widget.sound ? 1 : 0);
+          setState(() => _ready = true);
+          Voice.stop();
+          Ambient.duck(true);
+          c.play();
+          // never strand the card if the platform misses the end of playback
+          _guard = Timer(
+            c.value.duration + const Duration(seconds: 2),
+            _end,
+          );
+        })
+        .catchError((Object _) => _end());
+  }
+
+  void _tick() {
+    final c = _c;
+    if (c == null || !c.value.isInitialized) return;
+    final pos = c.value.position;
+    final caption = widget.host.captionAt(pos.inMilliseconds / 1000);
+    if (caption != _caption && mounted) setState(() => _caption = caption);
+    final dur = c.value.duration;
+    if (dur > Duration.zero &&
+        pos >= dur - const Duration(milliseconds: 120) &&
+        !c.value.isPlaying) {
+      _end();
+    }
+  }
+
+  void _end() {
+    if (_ended || !mounted) return;
+    _ended = true;
+    _guard?.cancel();
+    Ambient.duck(false);
+    widget.onEnded();
+  }
+
+  @override
+  void didUpdateWidget(covariant HostFilm old) {
+    super.didUpdateWidget(old);
+    if (old.sound != widget.sound && _ready) {
+      _c?.setVolume(widget.sound ? 1 : 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _guard?.cancel();
+    _c?.removeListener(_tick);
+    _c?.dispose();
+    if (!_ended) Ambient.duck(false);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _c;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          img(widget.host.video),
+          fit: BoxFit.cover,
+          alignment: const Alignment(0, -0.4),
+          gaplessPlayback: true,
+          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+        ),
+        if (c != null)
+          AnimatedOpacity(
+            opacity: _ready ? 1 : 0,
+            duration: const Duration(milliseconds: 500),
+            child: _ready
+                ? ClipRect(
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      alignment: const Alignment(0, -0.4),
+                      child: SizedBox.fromSize(
+                        size: filmBox(c, square: true),
+                        child: VideoPlayer(c),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 200,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  C.ink.withValues(alpha: 0.45),
+                  C.ink.withValues(alpha: 0),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 20,
+          right: 20,
+          bottom: 20,
+          child: Semantics(
+            liveRegion: true,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: kEase,
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween(
+                    begin: const Offset(0, 0.2),
+                    end: Offset.zero,
+                  ).animate(anim),
+                  child: child,
+                ),
+              ),
+              child: _caption.isEmpty
+                  ? const SizedBox(key: ValueKey(''), height: 1)
+                  : Text(
+                      _caption,
+                      key: ValueKey(_caption),
+                      textAlign: TextAlign.center,
+                      style: T.title.s(19).c(C.ivory).copyWith(
+                        height: 1.35,
+                        shadows: [
+                          Shadow(
+                            color: C.ink.withValues(alpha: 0.5),
+                            blurRadius: 12,
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ------------------------------------------------------------ chapter card
 
 class ChapterCard extends StatefulWidget {
@@ -137,6 +322,8 @@ class ChapterCard extends StatefulWidget {
     required this.total,
     required this.onDone,
     this.onBreath,
+    this.sound = true,
+    this.onToggleSound,
   });
   final OnbChapter chapter;
   final int number;
@@ -145,11 +332,16 @@ class ChapterCard extends StatefulWidget {
 
   /// Called as the opening breath moves through its phases (the screen speaks the cue).
   final ValueChanged<BreathPhase>? onBreath;
+
+  /// Whether music and voice are on; the host film follows it.
+  final bool sound;
+  final VoidCallback? onToggleSound;
   @override
   State<ChapterCard> createState() => _ChapterCardState();
 }
 
 class _ChapterCardState extends State<ChapterCard> {
+  late bool intro = widget.chapter.host != null;
   late BreathPhase phase = widget.chapter.breath
       ? BreathPhase.inhale
       : BreathPhase.done;
@@ -158,6 +350,17 @@ class _ChapterCardState extends State<ChapterCard> {
   @override
   void initState() {
     super.initState();
+    if (!intro) _startBreath();
+  }
+
+  /// The host finished (or was skipped): the instructor's film and the guided breath take over.
+  void _endIntro() {
+    if (!intro || !mounted) return;
+    setState(() => intro = false);
+    _startBreath();
+  }
+
+  void _startBreath() {
     if (!widget.chapter.breath) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) widget.onBreath?.call(BreathPhase.inhale);
@@ -189,13 +392,18 @@ class _ChapterCardState extends State<ChapterCard> {
   @override
   Widget build(BuildContext context) {
     final ch = widget.chapter;
+    final host = ch.host;
     final top = MediaQuery.paddingOf(context).top;
     final bottom = MediaQuery.paddingOf(context).bottom;
-    final cta = ch.breath
+    final cta = intro
+        ? 'Skip intro'
+        : ch.breath
         ? (phase == BreathPhase.done ? "Let's begin" : 'Skip & begin')
         : (widget.number == widget.total ? 'Almost there' : 'Continue');
+    final title = intro && host != null ? host.title : ch.title;
+    final line = intro && host != null ? host.line : ch.line;
     return Semantics(
-      label: 'Chapter ${widget.number}: ${ch.title}',
+      label: 'Chapter ${widget.number}: $title',
       child: ColoredBox(
         color: C.cream,
         child: Column(
@@ -216,27 +424,45 @@ class _ChapterCardState extends State<ChapterCard> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        LoopFilm(
-                          film: ch.video,
-                          alignment: const Alignment(0, -0.2),
-                        ),
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          height: 180,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  C.ink.withValues(alpha: 0.25),
-                                  C.ink.withValues(alpha: 0),
-                                ],
-                              ),
-                            ),
-                          ),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 700),
+                          switchInCurve: kEase,
+                          child: intro && host != null
+                              ? HostFilm(
+                                  key: const ValueKey('host'),
+                                  host: host,
+                                  sound: widget.sound,
+                                  onEnded: _endIntro,
+                                )
+                              : Stack(
+                                  key: const ValueKey('film'),
+                                  fit: StackFit.expand,
+                                  children: [
+                                    LoopFilm(
+                                      film: ch.video,
+                                      alignment: const Alignment(0, -0.2),
+                                    ),
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 0,
+                                      height: 180,
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.bottomCenter,
+                                            end: Alignment.topCenter,
+                                            colors: [
+                                              C.ink.withValues(alpha: 0.25),
+                                              C.ink.withValues(alpha: 0),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    if (ch.breath) _BreathHalo(phase: phase),
+                                  ],
+                                ),
                         ),
                         Positioned(
                           left: 16,
@@ -248,12 +474,39 @@ class _ChapterCardState extends State<ChapterCard> {
                               vertical: 6,
                             ),
                             child: Text(
-                              'Chapter ${widget.number} of ${widget.total}',
+                              intro && host != null
+                                  ? '${host.name} · Your coach'
+                                  : 'Chapter ${widget.number} of ${widget.total}',
                               style: T.caption.w(FontWeight.w600).c(C.ink),
                             ),
                           ),
                         ),
-                        if (ch.breath) _BreathHalo(phase: phase),
+                        if (intro && widget.onToggleSound != null)
+                          Positioned(
+                            right: 12,
+                            top: 12,
+                            child: Semantics(
+                              button: true,
+                              label: widget.sound
+                                  ? 'Mute Ethan'
+                                  : 'Turn on sound',
+                              child: GestureDetector(
+                                onTap: widget.onToggleSound,
+                                child: Glass(
+                                  dark: false,
+                                  radius: 22,
+                                  padding: const EdgeInsets.all(11),
+                                  child: Icon(
+                                    widget.sound
+                                        ? LucideIcons.volume2
+                                        : LucideIcons.volumeX,
+                                    size: 18,
+                                    color: widget.sound ? C.jadeDeep : C.muted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -274,16 +527,30 @@ class _ChapterCardState extends State<ChapterCard> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Reveal(
-                    delay: 0.32,
-                    dy: 10,
-                    child: Text(ch.title, style: T.displayLg),
-                  ),
-                  const SizedBox(height: 8),
-                  Reveal(
-                    delay: 0.4,
-                    dy: 10,
-                    child: Text(ch.line, style: T.body.c(C.muted)),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 450),
+                    switchInCurve: kEase,
+                    layoutBuilder: (current, previous) => Stack(
+                      alignment: Alignment.topLeft,
+                      children: [...previous, ?current],
+                    ),
+                    child: Column(
+                      key: ValueKey(title),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Reveal(
+                          delay: 0.32,
+                          dy: 10,
+                          child: Text(title, style: T.displayLg),
+                        ),
+                        const SizedBox(height: 8),
+                        Reveal(
+                          delay: 0.4,
+                          dy: 10,
+                          child: Text(line, style: T.body.c(C.muted)),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -314,7 +581,13 @@ class _ChapterCardState extends State<ChapterCard> {
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(24, 24, 24, bottom + 20),
-              child: EnsoButton(label: cta, onTap: widget.onDone),
+              child: intro
+                  ? EnsoButton(
+                      label: cta,
+                      variant: BtnVariant.secondary,
+                      onTap: _endIntro,
+                    )
+                  : EnsoButton(label: cta, onTap: widget.onDone),
             ),
           ],
         ),

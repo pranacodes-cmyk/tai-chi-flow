@@ -221,10 +221,16 @@ class Voice {
       await _tts.awaitSpeakCompletion(false);
       final voices = await _tts.getVoices;
       if (voices is List) {
-        final en = voices
-            .whereType<Map>()
-            .where((v) => '${v['locale']}'.toLowerCase().startsWith('en'))
-            .toList();
+        // Only US, then UK English: a regional default (e.g. Indian or Australian English) would
+        // read the coach's lines in an accent the app never uses (web `pickVoice`).
+        int rank(Map v) {
+          final l = '${v['locale']}'.toLowerCase().replaceAll('_', '-');
+          return l.startsWith('en-us') ? 0 : (l.startsWith('en-gb') ? 1 : 2);
+        }
+
+        final en =
+            voices.whereType<Map>().where((v) => rank(v) < 2).toList()
+              ..sort((a, b) => rank(a) - rank(b));
         final pick =
             en
                 .where(

@@ -458,6 +458,31 @@ void main() {
     });
   });
 
+  group('onboarding host', () {
+    test('Ethan opens the first chapter with his film, poster and portrait', () {
+      final host = Content.i.onboardingHost!;
+      expect(Content.i.onboardingChapters.first.host?.name, 'Ethan');
+      expect(File('assets/video/${host.video}.mp4').existsSync(), isTrue);
+      expect(File('assets/images/${host.video}.jpg').existsSync(), isTrue);
+      expect(File('assets/images/${host.avatar}.jpg').existsSync(), isTrue);
+    });
+    test('subtitles run in order and switch at the right second', () {
+      final host = Content.i.onboardingHost!;
+      final ts = [for (final c in host.captions) c.t];
+      expect([...ts]..sort(), ts);
+      expect(host.captionAt(0), '');
+      expect(host.captionAt(1), "Hi, I'm Ethan — welcome to TaiChi Flow.");
+      expect(host.captionAt(13), "Let's start together, with one easy breath.");
+    });
+    test('his breath cues have natural-voice clips', () {
+      for (final p in [CoachBreath.inhale, CoachBreath.exhale]) {
+        for (final l in CoachLines.onbBreath(p)) {
+          expect(Content.i.voice.contains(voiceKey(l)), isTrue, reason: l);
+        }
+      }
+    });
+  });
+
   group('onboarding imagery', () {
     test('men see male photos, everyone else the female set', () {
       expect(genderVariant('male'), 'm');

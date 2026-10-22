@@ -270,16 +270,56 @@ class OnbStep {
           .toList();
 }
 
+/// One subtitle line of the host film, shown from [t] seconds until the next line starts.
+class OnbCaption {
+  final double t;
+  final String text;
+  OnbCaption.fromJson(Map<String, dynamic> j)
+    : t = (j['t'] as num).toDouble(),
+      text = j['text'];
+}
+
+/// The host who introduces the quiz on camera before the opening breath (web `OnbHost`).
+class OnbHost {
+  /// Film key with the host's own speech; its poster is the image of the same key.
+  final String video, name, avatar, title, line;
+  final List<OnbCaption> captions;
+  OnbHost.fromJson(Map<String, dynamic> j)
+    : video = j['video'],
+      name = j['name'],
+      avatar = j['avatar'],
+      title = j['title'],
+      line = j['line'],
+      captions = (j['captions'] as List? ?? const [])
+          .map((e) => OnbCaption.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+  /// The caption showing at [seconds] into the film ('' before the first line).
+  String captionAt(double seconds) {
+    var text = '';
+    for (final c in captions) {
+      if (c.t <= seconds) text = c.text;
+    }
+    return text;
+  }
+}
+
 /// Chapter card shown when the quiz enters a new section (web `OnbChapter`).
 class OnbChapter {
   final String section, title, line, video;
   final bool breath;
+
+  /// Plays the host's spoken introduction before the breath (chapter 1).
+  final OnbHost? host;
   OnbChapter.fromJson(Map<String, dynamic> j)
     : section = j['section'],
       title = j['title'],
       line = j['line'],
       video = j['video'],
-      breath = j['breath'] == true;
+      breath = j['breath'] == true,
+      host = j['host'] is Map
+          ? OnbHost.fromJson(j['host'] as Map<String, dynamic>)
+          : null;
 }
 
 class GuideSection {

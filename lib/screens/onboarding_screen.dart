@@ -131,10 +131,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _onBreath(BreathPhase phase) {
     if (phase == BreathPhase.inhale) {
-      _speak(CoachLines.breath(CoachBreath.inhale));
+      _speak(CoachLines.onbBreath(CoachBreath.inhale));
     }
     if (phase == BreathPhase.exhale) {
-      _speak(CoachLines.breath(CoachBreath.exhale));
+      _speak(CoachLines.onbBreath(CoachBreath.exhale));
     }
   }
 
@@ -381,6 +381,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   total: _sections.length,
                   onDone: _closeChapter,
                   onBreath: _onBreath,
+                  sound: sound,
+                  onToggleSound: _toggleSound,
                 ),
               ),
           ],

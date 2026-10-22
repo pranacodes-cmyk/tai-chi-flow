@@ -119,6 +119,10 @@ class Content {
   final List<Testimonial> testimonials;
   final List<OnbStep> onboarding;
   final List<OnbChapter> onboardingChapters;
+
+  /// The host who introduces the quiz and voices its replies (chapter 1's `host`).
+  OnbHost? get onboardingHost =>
+      onboardingChapters.map((c) => c.host).whereType<OnbHost>().firstOrNull;
   final List<Guide> guides;
   final List<Tip> tips;
   final Set<String> voice;
