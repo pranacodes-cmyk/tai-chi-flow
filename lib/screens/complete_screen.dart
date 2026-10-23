@@ -12,6 +12,7 @@ import '../state/app_state.dart';
 import '../theme/text.dart';
 import '../theme/tokens.dart';
 import '../widgets/confetti.dart';
+import '../widgets/rate_sheet.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/toast.dart';
 import '../widgets/ui.dart';
@@ -112,6 +113,7 @@ class CompleteScreen extends StatelessWidget {
               height: 400,
               child: Confetti(),
             ),
+            RatePromptTrigger(app: app),
             SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.fromLTRB(

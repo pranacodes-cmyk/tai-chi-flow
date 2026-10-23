@@ -307,6 +307,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           color: C.ivory.withValues(alpha: 0.65),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      const _LegalLine(),
                     ],
                   ),
                 ),

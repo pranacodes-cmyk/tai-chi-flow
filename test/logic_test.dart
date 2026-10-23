@@ -68,17 +68,19 @@ void main() {
         }
       },
     );
-    test('free offer: 3 quick sessions + 1 meditation, everything else fully paid', () {
+    test('free offer: 3 quick sessions + the 7-day starter + 4 meditations, everything else fully paid', () {
       final c = Content.i;
+      final starter = c.plans.firstWhere((p) => p.id == 'tai-chi-starter-7');
+      expect(starter.days.length, 7);
       for (final p in c.plans) {
-        final quick = c.quickSessions.any((q) => q.id == p.id);
+        final quick = c.quickSessions.any((q) => q.id == p.id) || p.id == 'tai-chi-starter-7';
         if (quick) {
           expect([p.premium, p.freeDays], [false, p.days.length]);
         } else {
           expect([p.premium, p.freeDays], [true, 0]);
         }
       }
-      expect(c.meditations.where((m) => !m.premium).length, 1);
+      expect(c.meditations.where((m) => !m.premium).length, 4);
     });
     test(
       'every extracted challenge still listed ships, exactly 3 of them free',
@@ -144,11 +146,11 @@ void main() {
         expect(Content.i.plan(id)!.days.length, 28);
       }
     });
-    test('the catalogue ships 11 courses and 20 single sessions, every one on a shelf', () {
+    test('the catalogue ships 12 courses and 20 single sessions, every one on a shelf', () {
       final c = Content.i;
       final courses = c.plans.where((p) => p.days.length > 1).toList();
       final sessions = c.plans.where((p) => p.days.length == 1).toList();
-      expect(courses.length, 11);
+      expect(courses.length, 12);
       expect(sessions.length, 20);
       for (final p in courses) {
         expect(c.planGroups, contains(p.group));
@@ -289,8 +291,8 @@ void main() {
         expect(isDayLocked(plan, 4, true), false);
       },
     );
-    test('exactly one meditation (Ocean Calm) is free', () {
-      expect(Content.i.meditations.where((m) => !m.premium).map((m) => m.id).toList(), ['ocean-calm']);
+    test('one meditation per everyday need is free', () {
+      expect(Content.i.meditations.where((m) => !m.premium).map((m) => m.id).toList(), ['evening-wind-down', 'ocean-calm', 'box-breathing', 'morning-clarity']);
     });
     test('the player route cannot bypass a locked premium day', () {
       expect(isSessionLocked('plan:wall-pilates-28:1', false), true);
@@ -458,21 +460,11 @@ void main() {
     });
   });
 
-  group('onboarding host', () {
-    test('Ethan opens the first chapter with his film, poster and portrait', () {
-      final host = Content.i.onboardingHost!;
-      expect(Content.i.onboardingChapters.first.host?.name, 'Ethan');
-      expect(File('assets/video/${host.video}.mp4').existsSync(), isTrue);
-      expect(File('assets/images/${host.video}.jpg').existsSync(), isTrue);
-      expect(File('assets/images/${host.avatar}.jpg').existsSync(), isTrue);
-    });
-    test('subtitles run in order and switch at the right second', () {
-      final host = Content.i.onboardingHost!;
-      final ts = [for (final c in host.captions) c.t];
-      expect([...ts]..sort(), ts);
-      expect(host.captionAt(0), '');
-      expect(host.captionAt(1), "Hi, I'm Ethan — welcome to TaiChi Flow.");
-      expect(host.captionAt(13), "Let's start together, with one easy breath.");
+  group('onboarding opening', () {
+    test('opens straight with the breath chapter, no welcome host film', () {
+      expect(Content.i.onboardingHost, isNull);
+      expect(Content.i.onboardingChapters.any((c) => c.host != null), isFalse);
+      expect(Content.i.onboardingChapters.first.breath, isTrue);
     });
     test('his breath cues have natural-voice clips', () {
       for (final p in [CoachBreath.inhale, CoachBreath.exhale]) {
@@ -631,5 +623,70 @@ void main() {
       s.reset();
       expect(s.privacy.ads, 'granted');
     });
+  });
+
+  group('paywall offer', () {
+    test('onboarding shows the requested variant', () {
+      expect(paywallVariant('onboarding', 'exit', null), 'exit');
+    });
+    test('in the app the last onboarding offer is repeated', () {
+      expect(paywallVariant('plan', 'regular', 'exit'), 'exit');
+      expect(paywallVariant('home', 'regular', 'gift'), 'gift');
+      expect(paywallVariant('home', 'regular', null), 'regular');
+    });
+    test('exit survey is asked only once, only on the regular paywall', () {
+      expect(shouldAskExitSurvey('regular', false), isTrue);
+      expect(shouldAskExitSurvey('regular', true), isFalse);
+      expect(shouldAskExitSurvey('exit', false), isFalse);
+    });
+    test('saved offer and survey flag survive a save', () {
+      final s = AppState.memory()
+        ..setPaywallOffer('exit')
+        ..markExitSurveyAsked();
+      final j = jsonDecode(jsonEncode(s.toJson())) as Map<String, dynamic>;
+      expect(j['paywallOffer'], 'exit');
+      expect(j['exitSurveyAsked'], true);
+    });
+  });
+
+  group('today free lead', () {
+    test('features a free session by time of day', () {
+      expect(freePickQuickId(7), 'morning-energy-boost');
+      expect(freePickQuickId(14), 'desk-break-routine');
+      expect(freePickQuickId(21), 'evening-relax-stretch');
+      expect(freePickQuickId(2), 'evening-relax-stretch');
+    });
+    test('features the next unfinished starter day, then hands back to quick sessions', () {
+      expect(freeStarterDay(7, []), 1);
+      expect(freeStarterDay(7, [1, 2]), 3);
+      expect(freeStarterDay(7, [1, 3]), 2);
+      expect(freeStarterDay(7, [1, 2, 3, 4, 5, 6, 7]), null);
+      final s = Content.i.plan(freeStarterId)!;
+      expect([s.premium, s.freeDays, s.days.length], [false, 7, 7]);
+    });
+    test('leads with free only when the personal plan is locked', () {
+      expect(homeLeadsWithFree(true), true);
+      expect(homeLeadsWithFree(false), false);
+    });
+  });
+
+  group('rating prompt', () {
+    test('asks once per day after a session until rated', () {
+      expect(shouldAskRating(false, null, '2026-10-23'), true);
+      expect(shouldAskRating(false, '2026-10-23', '2026-10-23'), false);
+      expect(shouldAskRating(false, '2026-10-22', '2026-10-23'), true);
+      expect(shouldAskRating(true, '2026-10-22', '2026-10-23'), false);
+    });
+    test('sends 4-5 stars to the store, 1-3 to feedback', () {
+      expect(ratingGoesToStore(5), true);
+      expect(ratingGoesToStore(4), true);
+      expect(ratingGoesToStore(3), false);
+    });
+  });
+
+  test('featured meditation is free for people without Plus', () {
+    expect(featuredMeditationId(20, false), 'evening-wind-down');
+    expect(featuredMeditationId(20, true), 'moonlit-lake');
+    expect(featuredMeditationId(8, false), 'morning-clarity');
   });
 }

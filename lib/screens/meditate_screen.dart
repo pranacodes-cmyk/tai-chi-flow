@@ -68,7 +68,7 @@ class _MeditateScreenState extends State<MeditateScreen> {
         .where((m) => cat == 'All' || m.category == cat)
         .toList();
     final featured = c.meditation(
-      DateTime.now().hour >= 17 ? 'moonlit-lake' : 'morning-clarity',
+      featuredMeditationId(DateTime.now().hour, app.premium.active),
     )!;
     final offline = c.meditations
         .where((m) => app.downloads.contains(m.id))

@@ -573,29 +573,47 @@ class ChipPill extends StatelessWidget {
   }
 }
 
+/// Gold "PLUS" pill marking paid content; `large` is the version sitting on cover cards.
 class PremiumBadge extends StatelessWidget {
-  const PremiumBadge({super.key, this.label = 'PLUS'});
+  const PremiumBadge({super.key, this.label = 'PLUS', this.large = false});
   final String label;
+  final bool large;
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: large ? 11 : 8,
+        vertical: large ? 5 : 2,
+      ),
       decoration: BoxDecoration(
         gradient: G.gold,
         borderRadius: BorderRadius.circular(99),
+        border: Border.all(
+          color: C.goldSoft.withValues(alpha: 0.7),
+          width: large ? 1 : 0.6,
+        ),
+        boxShadow: large
+            ? [
+                BoxShadow(
+                  color: C.gold.withValues(alpha: 0.45),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(LucideIcons.crown, size: 12, color: C.ink),
-          const SizedBox(width: 4),
+          Icon(LucideIcons.crown, size: large ? 13 : 12, color: C.ink),
+          SizedBox(width: large ? 5 : 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: T.family,
-              fontSize: 10,
+              fontSize: large ? 11 : 10,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
+              letterSpacing: large ? 1.3 : 0.8,
               color: C.ink,
             ),
           ),

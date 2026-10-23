@@ -421,7 +421,7 @@ class CourseCard extends StatelessWidget {
       child: Pressable(
         onTap: () => context.push('/plan/${plan.id}'),
         child: Container(
-          height: 212,
+          height: 224,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(30),
             boxShadow: S.card,
@@ -494,7 +494,24 @@ class CourseCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                  )
+                else if (plan.premium && !premium)
+                  const Positioned(
+                    right: 14,
+                    top: 14,
+                    child: PremiumBadge(large: true),
                   ),
+                // Hairline inner rim gives the cover a finished, premium edge.
+                IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: C.ivory.withValues(alpha: 0.14),
+                      ),
+                    ),
+                  ),
+                ),
                 Positioned(
                   left: 18,
                   right: 18,

@@ -18,18 +18,15 @@ class PrivacyPrompts {
   PrivacyPrompts._();
   static bool _ranThisLaunch = false;
 
-  /// Runs once per launch, shortly after the splash: consent regions answer the
-  /// privacy choice first; iPhone users then get the ATT explainer + system
-  /// question (only if sharing is allowed and iOS has not asked yet).
+  /// Runs once per launch, shortly after the splash: iPhone users get the ATT
+  /// explainer + system question (only if sharing is allowed and iOS has not
+  /// asked yet). The privacy choice itself lives only in Profile.
   static Future<void> runOnLaunch(BuildContext? Function() context) async {
     if (_ranThisLaunch) return;
     _ranThisLaunch = true;
     await Future<void>.delayed(const Duration(milliseconds: 2300));
-    if (TrackingService.needsChoice) {
-      final ctx = context();
-      if (ctx == null || !ctx.mounted) return;
-      await showPrivacyChoice(ctx);
-    }
+    // No privacy sheet on launch: consent regions simply stay off until the
+    // person opts in from Profile → Privacy choices.
     if (await TrackingService.shouldAskAtt()) {
       final ctx = context();
       if (ctx == null || !ctx.mounted) return;

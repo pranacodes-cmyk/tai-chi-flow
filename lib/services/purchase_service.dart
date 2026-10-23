@@ -86,11 +86,11 @@ const giftOffers = [
 const exitOffer = Offer(
   id: 'exit',
   title: 'Yearly · Special price',
-  price: r'$29.99',
+  price: r'$34.99',
   period: 'year',
-  perWeek: r'$0.58',
+  perWeek: r'$0.67',
   strike: r'$79.99',
-  save: 'Save 62%',
+  save: 'Save 56%',
 );
 
 /// RevenueCat public SDK keys (safe to ship in the binary).

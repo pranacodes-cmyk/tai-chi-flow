@@ -183,6 +183,41 @@ String greeting(int hour) {
   return 'Good evening';
 }
 
+/// Rating prompt: once per calendar day after a completed session, until the person has rated (4–5 stars sent to the store, or private feedback sent).
+bool shouldAskRating(bool rated, String? lastAskedDay, String todayKey) =>
+    !rated && lastAskedDay != todayKey;
+
+/// 4–5 stars go to the store review; 1–3 stars open private feedback instead.
+bool ratingGoesToStore(int stars) => stars >= 4;
+
+/// Meditate tab's featured card: a free pick for people without Plus, so the first thing they see plays.
+String featuredMeditationId(int hour, bool premium) {
+  if (hour >= 17) return premium ? 'moonlit-lake' : 'evening-wind-down';
+  return 'morning-clarity';
+}
+
+/// Free quick session featured on Today for people without Plus: morning wake-up, evening unwind, desk reset in between.
+String freePickQuickId(int hour) {
+  if (hour >= 5 && hour < 12) return 'morning-energy-boost';
+  if (hour >= 17 || hour < 5) return 'evening-relax-stretch';
+  return 'desk-break-routine';
+}
+
+/// The free seven-day starter course every free user can follow in full.
+const freeStarterId = 'tai-chi-starter-7';
+
+/// The starter day Today features for free users, or null once every day is finished.
+int? freeStarterDay(int totalDays, List<int> completed) {
+  final done = completed.toSet();
+  for (var d = 1; d <= totalDays; d++) {
+    if (!done.contains(d)) return d;
+  }
+  return null;
+}
+
+/// Today leads with a free session (personal plan moves below) whenever the personal plan's next day is locked.
+bool homeLeadsWithFree(bool planLocked) => planLocked;
+
 // ------------------------------------------------------------ body
 
 double bmi(double heightCm, double weightKg) {
@@ -586,3 +621,18 @@ bool adsMeasurementAllowed(String choice, int noticeVersion, String? country) {
 bool needsPrivacyChoice(String choice, int noticeVersion, String? country) =>
     isConsentRegion(country) &&
     (noticeVersion != privacyNoticeVersion || choice == 'unset');
+
+// ------------------------------------------------------------ paywall offer
+
+/// Which paywall variant to show. During onboarding the requested variant is
+/// shown (regular → exit / gift); afterwards the app always repeats the last
+/// offer the person saw in onboarding, so the in-app price never differs.
+String paywallVariant(String from, String requested, String? savedOffer) {
+  if (from == 'onboarding') return requested;
+  return savedOffer ?? 'regular';
+}
+
+/// The "what's holding you back?" question is asked once ever, only when the
+/// regular paywall is closed.
+bool shouldAskExitSurvey(String variant, bool alreadyAsked) =>
+    variant == 'regular' && !alreadyAsked;

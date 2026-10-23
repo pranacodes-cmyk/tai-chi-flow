@@ -11,6 +11,7 @@ import '../state/app_state.dart';
 import '../theme/text.dart';
 import '../theme/tokens.dart';
 import '../widgets/cards.dart';
+import '../widgets/feedback_sheet.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/tab_shell.dart';
 import '../widgets/ui.dart';
@@ -83,111 +84,19 @@ class HomeScreen extends StatelessWidget {
     );
     final dailyLocked = isDayLocked(daily, dailyDay, premium);
 
-    return EnsoScaffold(
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.only(
-          top: topInset(context) + 18,
-          bottom: tabBarSpace(context),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Eyebrow(DateFormat('EEEE, MMM d').format(now)),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${greeting(now.hour)}${name.isNotEmpty ? ',' : ''}',
-                          style: T.displayMd,
-                        ),
-                        Text(
-                          name.isNotEmpty ? name : 'friend',
-                          style: T.serifAccent.copyWith(
-                            fontSize: 30,
-                            color: C.jadeDeep,
-                            height: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Row(
-                      children: [
-                        Pressable(
-                          onTap: () => context.push('/history'),
-                          child: Container(
-                            height: 44,
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            decoration: BoxDecoration(
-                              color: C.ivory,
-                              borderRadius: BorderRadius.circular(44),
-                              boxShadow: S.soft,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  stats.streak > 0
-                                      ? Icons.local_fire_department_rounded
-                                      : LucideIcons.flame,
-                                  size: 19,
-                                  color: stats.streak > 0
-                                      ? C.terracotta
-                                      : C.muted,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '${stats.streak}',
-                                  style: T.label
-                                      .copyWith(fontWeight: FontWeight.w700)
-                                      .tab,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Pressable(
-                          onTap: () => context.go('/profile'),
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              gradient: G.jade,
-                              shape: BoxShape.circle,
-                              boxShadow: S.glow,
-                            ),
-                            child: Text(
-                              (name.isNotEmpty ? name : 'E')[0].toUpperCase(),
-                              style: T.label.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: C.ivory,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // today hero
-            Reveal(
+    final leadFree = homeLeadsWithFree(heroLocked);
+    final freeQ = c.quickSessions.firstWhere(
+      (q) => q.id == freePickQuickId(now.hour),
+      orElse: () => c.quickSessions.first,
+    );
+    final starter = c.plan(freeStarterId);
+    final starterDay = starter == null
+        ? null
+        : freeStarterDay(
+            starter.days.length,
+            app.planProgress[starter.id]?.completedDays ?? const <int>[],
+          );
+    final Widget planHero = Reveal(
               delay: 0.05,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -368,11 +277,8 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // rings + week
-            Reveal(
+            );
+    final Widget rings = Reveal(
               delay: 0.12,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -516,11 +422,8 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // daily tai chi challenge (60 days)
-            Reveal(
+            );
+    final Widget dailyCard = Reveal(
               delay: 0.15,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -539,11 +442,8 @@ class HomeScreen extends StatelessWidget {
                   onOpen: () => context.push('/plan/${daily.id}'),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // mindful habit
-            Reveal(
+            );
+    final Widget habit = Reveal(
               delay: 0.18,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -647,17 +547,14 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 36),
-
-            // quick sessions
-            Reveal(
+            );
+    final Widget quick = Reveal(
               delay: 0.22,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SectionHeader(
-                    'Quick sessions',
+                    leadFree ? 'More free sessions' : 'Quick sessions',
                     action: 'See all',
                     onAction: () => context.go('/courses?view=classes'),
                   ),
@@ -666,9 +563,8 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-
-            if (!app.premium.active) ...[
+            );
+    final List<Widget> upsell = [
               const SizedBox(height: 28),
               Reveal(
                 delay: 0.24,
@@ -756,6 +652,165 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
+];
+
+    return EnsoScaffold(
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.only(
+          top: topInset(context) + 18,
+          bottom: tabBarSpace(context),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Eyebrow(DateFormat('EEEE, MMM d').format(now)),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${greeting(now.hour)}${name.isNotEmpty ? ',' : ''}',
+                          style: T.displayMd,
+                        ),
+                        Text(
+                          name.isNotEmpty ? name : 'friend',
+                          style: T.serifAccent.copyWith(
+                            fontSize: 30,
+                            color: C.jadeDeep,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      children: [
+                        Pressable(
+                          onTap: () => context.push('/history'),
+                          child: Container(
+                            height: 44,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: C.ivory,
+                              borderRadius: BorderRadius.circular(44),
+                              boxShadow: S.soft,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  stats.streak > 0
+                                      ? Icons.local_fire_department_rounded
+                                      : LucideIcons.flame,
+                                  size: 19,
+                                  color: stats.streak > 0
+                                      ? C.terracotta
+                                      : C.muted,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${stats.streak}',
+                                  style: T.label
+                                      .copyWith(fontWeight: FontWeight.w700)
+                                      .tab,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Pressable(
+                          onTap: () => context.go('/profile'),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              gradient: G.jade,
+                              shape: BoxShape.circle,
+                              boxShadow: S.glow,
+                            ),
+                            child: Text(
+                              (name.isNotEmpty ? name : 'E')[0].toUpperCase(),
+                              style: T.label.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: C.ivory,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            if (!leadFree) ...[
+              planHero,
+              const SizedBox(height: 16),
+              rings,
+              const SizedBox(height: 16),
+              dailyCard,
+              const SizedBox(height: 16),
+              habit,
+              const SizedBox(height: 36),
+              quick,
+              if (!premium) ...upsell,
+              const SizedBox(height: 28),
+              const FeedbackInvite(),
+            ] else ...[
+              Reveal(
+                delay: 0.05,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: starter != null && starterDay != null
+                      ? _FreeHero(
+                          title: 'Day $starterDay · ${starter.days[starterDay - 1].title}',
+                          image: starter.image,
+                          eyebrow: '${starter.title} · Day $starterDay of ${starter.days.length}',
+                          meta:
+                              '${formatMinutes(totalSeconds(starter.days[starterDay - 1].items))}  ·  ${kcalForWeight(starter.days[starterDay - 1].kcal, app.profile.weightKg)} kcal  ·  ${starter.days[starterDay - 1].items.length} moves',
+                          cta: starterDay == 1 ? 'Start your free course' : 'Continue · Day $starterDay',
+                          progress: (starterDay - 1) / starter.days.length,
+                          onTap: () => context.push('/session/${planSessionId(starter.id, starterDay)}'),
+                        )
+                      : _FreeHero(
+                          title: freeQ.title,
+                          image: freeQ.image,
+                          eyebrow: "Today's free session",
+                          meta:
+                              '${formatMinutes(totalSeconds(freeQ.items))}  ·  ${kcalForWeight(freeQ.kcal, app.profile.weightKg)} kcal  ·  ${freeQ.items.length} moves',
+                          cta: 'Start free session',
+                          onTap: () => context.push('/session/quick:${freeQ.id}'),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              rings,
+              const SizedBox(height: 36),
+              quick,
+              const SizedBox(height: 28),
+              const FeedbackInvite(),
+              const SizedBox(height: 36),
+              const _MadeForYouHeader(),
+              planHero,
+              const SizedBox(height: 16),
+              dailyCard,
+              ...upsell,
+              const SizedBox(height: 28),
+              habit,
             ],
             const SizedBox(height: 28),
 
@@ -1286,6 +1341,139 @@ class _Legend extends StatelessWidget {
         Expanded(child: Text(label, style: T.caption.copyWith(fontSize: 14))),
         Text(value, style: T.label.copyWith(fontWeight: FontWeight.w700).tab),
       ],
+    );
+  }
+}
+
+class _FreeHero extends StatelessWidget {
+  const _FreeHero({
+    required this.title,
+    required this.image,
+    required this.eyebrow,
+    required this.meta,
+    required this.cta,
+    required this.onTap,
+    this.progress,
+  });
+  final String title, image, eyebrow, meta, cta;
+  final double? progress;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      child: Container(
+        height: 400,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(34),
+          boxShadow: S.float,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            KenBurns(child: EImage(img(image))),
+            DecoratedBox(decoration: BoxDecoration(gradient: G.scrim)),
+            Positioned(
+              left: 16,
+              top: 16,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: C.ivory,
+                      borderRadius: BorderRadius.circular(40),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(LucideIcons.sparkles, size: 13, color: C.jadeDeep),
+                        const SizedBox(width: 5),
+                        Text('Made for you', style: T.tiny.c(C.jadeDeep)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Glass(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Text('Free', style: T.tiny.c(C.ivory)),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 20,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Eyebrow(eyebrow, color: C.ivory.withValues(alpha: 0.7)),
+                  const SizedBox(height: 8),
+                  Text(title, style: T.displayLg.copyWith(fontSize: 29.6, color: C.ivory)),
+                  const SizedBox(height: 6),
+                  Text(
+                    meta,
+                    style: T.caption.copyWith(fontSize: 14, color: C.ivory.withValues(alpha: 0.8)),
+                  ),
+                  if (progress != null) ...[
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 4,
+                        backgroundColor: C.ivory.withValues(alpha: 0.25),
+                        valueColor: const AlwaysStoppedAnimation(C.ivory),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Container(
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: C.ivory,
+                      borderRadius: BorderRadius.circular(56),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.play_arrow_rounded, size: 24, color: C.ink),
+                        const SizedBox(width: 8),
+                        Text(cta, style: T.label.copyWith(fontSize: 17)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MadeForYouHeader extends StatelessWidget {
+  const _MadeForYouHeader();
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(LucideIcons.sparkles, size: 13, color: C.gold),
+              const SizedBox(width: 6),
+              Eyebrow('Your personal plan', color: C.gold),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('Built from your answers', style: T.title.s(20)),
+        ],
+      ),
     );
   }
 }

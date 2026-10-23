@@ -151,6 +151,11 @@ class AppState extends ChangeNotifier {
   List<HistoryEntry> history = [];
   Premium premium = const Premium();
   DateTime? offerExpiresAt;
+  /// Last paywall offer seen during onboarding; the app repeats it afterwards.
+  String? paywallOffer;
+  bool exitSurveyAsked = false;
+  bool ratedApp = false;
+  String? ratePromptDay;
   Reminders reminders = Reminders();
   AudioSettings audio = AudioSettings();
   Map<String, String> challenges = {};
@@ -187,6 +192,10 @@ class AppState extends ChangeNotifier {
     'history': history.map((h) => h.toJson()).toList(),
     'premium': premium.toJson(),
     'offerExpiresAt': offerExpiresAt?.toIso8601String(),
+    'paywallOffer': paywallOffer,
+    'exitSurveyAsked': exitSurveyAsked,
+    'ratedApp': ratedApp,
+    'ratePromptDay': ratePromptDay,
     'reminders': reminders.toJson(),
     'audio': audio.toJson(),
     'challenges': challenges,
@@ -221,6 +230,10 @@ class AppState extends ChangeNotifier {
     offerExpiresAt = j['offerExpiresAt'] == null
         ? null
         : DateTime.parse(j['offerExpiresAt']);
+    paywallOffer = j['paywallOffer'] as String?;
+    exitSurveyAsked = j['exitSurveyAsked'] == true;
+    ratedApp = j['ratedApp'] == true;
+    ratePromptDay = j['ratePromptDay'] as String?;
     reminders = Reminders.fromJson(
       (j['reminders'] as Map?)?.cast<String, dynamic>() ?? {},
     );
@@ -334,6 +347,26 @@ class AppState extends ChangeNotifier {
     _commit();
   }
 
+  void setPaywallOffer(String offer) {
+    paywallOffer = offer;
+    _commit();
+  }
+
+  void markExitSurveyAsked() {
+    exitSurveyAsked = true;
+    _commit();
+  }
+
+  void markRatePrompted(String day) {
+    ratePromptDay = day;
+    _commit();
+  }
+
+  void setRatedApp() {
+    ratedApp = true;
+    _commit();
+  }
+
   DateTime ensureOffer() {
     final existing = offerExpiresAt;
     if (existing != null && existing.isAfter(DateTime.now())) return existing;
@@ -397,6 +430,10 @@ class AppState extends ChangeNotifier {
     history = [];
     premium = const Premium();
     offerExpiresAt = null;
+    paywallOffer = null;
+    exitSurveyAsked = false;
+    ratedApp = false;
+    ratePromptDay = null;
     reminders = Reminders();
     audio = AudioSettings();
     challenges = {};

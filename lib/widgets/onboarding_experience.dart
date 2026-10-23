@@ -645,23 +645,12 @@ class _BreathHalo extends StatelessWidget {
                   curve: Curves.easeInOut,
                   builder: (_, s, _) => Transform.scale(
                     scale: s,
-                    child: Container(
-                      width: d,
-                      height: d,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: C.ivory.withValues(alpha: 0.9),
-                          width: 2.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: C.ivory.withValues(alpha: 0.9),
-                            blurRadius: 60,
-                            spreadRadius: -6,
-                          ),
-                        ],
-                      ),
+                    // CSS box-shadow is clipped inside the element; Flutter's
+                    // BoxShadow is not, which washed the photo white. Paint
+                    // only the ring + an outside glow to match the web.
+                    child: CustomPaint(
+                      size: Size(d, d),
+                      painter: _GlowRingPainter(C.ivory),
                     ),
                   ),
                 ),
@@ -991,4 +980,41 @@ class SoundToggle extends StatelessWidget {
     onTap: onToggle,
     label: on ? 'Mute music and voice' : 'Turn on music and voice',
   );
+}
+
+class _GlowRingPainter extends CustomPainter {
+  _GlowRingPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.shortestSide / 2;
+    final circle = Path()..addOval(Rect.fromCircle(center: c, radius: r));
+    canvas.save();
+    // Clip out the inside so the glow only spreads outward (CSS behaviour).
+    canvas.clipPath(Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(Rect.fromCircle(center: c, radius: r + 80))
+      ..addPath(circle, Offset.zero));
+    canvas.drawCircle(
+      c,
+      r - 6,
+      Paint()
+        ..color = color.withValues(alpha: 0.9)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30),
+    );
+    canvas.restore();
+    canvas.drawCircle(
+      c,
+      r - 1.25,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..color = color.withValues(alpha: 0.9),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GlowRingPainter old) => old.color != color;
 }
