@@ -320,3 +320,40 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 }
+
+/// "By continuing, you agree to our Terms and Privacy Policy." — mirrors the web welcome footer.
+class _LegalLine extends StatelessWidget {
+  const _LegalLine();
+
+  @override
+  Widget build(BuildContext context) {
+    final base = T.tiny.copyWith(
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
+      height: 1.35,
+      color: C.ivory.withValues(alpha: 0.5),
+    );
+    final link = base.copyWith(
+      fontWeight: FontWeight.w600,
+      color: C.ivory.withValues(alpha: 0.8),
+      decoration: TextDecoration.underline,
+      decorationColor: C.ivory.withValues(alpha: 0.4),
+    );
+    Widget tap(String label, String doc) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => context.push('/legal/$doc'),
+          child: Text(label, style: link),
+        );
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text('By continuing, you agree to our ', style: base),
+        tap('Terms', 'terms'),
+        Text(' and ', style: base),
+        tap('Privacy Policy', 'privacy'),
+        Text('.', style: base),
+      ],
+    );
+  }
+}
