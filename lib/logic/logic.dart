@@ -636,3 +636,10 @@ String paywallVariant(String from, String requested, String? savedOffer) {
 /// regular paywall is closed.
 bool shouldAskExitSurvey(String variant, bool alreadyAsked) =>
     variant == 'regular' && !alreadyAsked;
+
+/// Offer reveal only; neither answer grants access or starts a trial.
+String? paywallSurveyOffer(String? reason) => switch (reason) {
+  'price' => 'exit',
+  'later' || 'unsure' => 'regular',
+  _ => null,
+};

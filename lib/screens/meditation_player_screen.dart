@@ -152,6 +152,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
 
   Future<void> _close() async {
     if (elapsed >= 60 && !done) {
+      final wasRunning = running;
       _setRunning(false);
       final choice = await showEnsoSheet<String>(
         context,
@@ -214,6 +215,9 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
         context.pushReplacement('/complete?id=$id');
       } else if (choice == 'discard') {
         _leave();
+      } else if (wasRunning) {
+        // "Keep listening" or a dismissed sheet carries on where it paused
+        _setRunning(true);
       }
     } else {
       _leave();

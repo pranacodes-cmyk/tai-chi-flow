@@ -100,10 +100,15 @@ class _MovementsScreenState extends State<MovementsScreen> {
                   if (_query.text.isNotEmpty)
                     Pressable(
                       onTap: _query.clear,
-                      child: const Icon(
-                        LucideIcons.x,
-                        size: 18,
-                        color: C.muted,
+                      semanticLabel: 'Clear search',
+                      child: const SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Icon(
+                          LucideIcons.x,
+                          size: 18,
+                          color: C.muted,
+                        ),
                       ),
                     ),
                 ],

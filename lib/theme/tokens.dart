@@ -12,7 +12,7 @@ class C {
   static const jadeSoft = Color(0xFFDCE8DF);
   static const sage = Color(0xFF9DB8A2);
   static const ink = Color(0xFF1D2320);
-  static const muted = Color(0xFF727A74);
+  static const muted = Color(0xFF626A64); // 4.5:1+ on cream, ivory and sand
   static const line = Color(0xFFE7DFD2);
   static const terracotta = Color(0xFFD27D56);
   static const terracottaSoft = Color(0xFFF6E3D6);

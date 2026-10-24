@@ -278,7 +278,7 @@ class PlanDetailScreen extends StatelessWidget {
                                             ? 'Journey complete — beautiful work.'
                                             : 'Keep the rhythm going.',
                                         style: T.caption.c(
-                                          C.jadeDeep.withValues(alpha: 0.7),
+                                          C.jadeDeep,
                                         ),
                                       ),
                                     ],

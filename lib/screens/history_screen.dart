@@ -416,7 +416,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                           .tab,
                                     ),
                                     const SizedBox(height: 8),
-                                    Container(
+                                    Flexible(
+                                      child: Container(
                                       height: 100,
                                       alignment: Alignment.bottomCenter,
                                       decoration: BoxDecoration(
@@ -449,6 +450,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                               ),
                                             ),
                                       ),
+                                    ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
@@ -711,12 +713,14 @@ class _IconStat extends StatelessWidget {
           child: Center(child: icon),
         ),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value, style: T.title.tab),
-            Text(label, style: T.tiny.w(FontWeight.w400)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: T.title.tab),
+              Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: T.tiny.w(FontWeight.w400)),
+            ],
+          ),
         ),
       ],
     ),

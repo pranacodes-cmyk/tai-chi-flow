@@ -69,7 +69,8 @@ class _LoopFilmState extends State<LoopFilm> {
     c
         .initialize()
         .then((_) {
-          if (!mounted) return;
+          // a newer film may have replaced (and disposed) this controller meanwhile
+          if (!mounted || !identical(_c, c)) return;
           setState(() => _ready = true);
           c.play();
         })
@@ -488,14 +489,14 @@ class _ChapterCardState extends State<ChapterCard> {
                             child: Semantics(
                               button: true,
                               label: widget.sound
-                                  ? 'Mute the coach'
+                                  ? 'Mute sound'
                                   : 'Turn on sound',
                               child: GestureDetector(
                                 onTap: widget.onToggleSound,
                                 child: Glass(
                                   dark: false,
                                   radius: 22,
-                                  padding: const EdgeInsets.all(11),
+                                  padding: const EdgeInsets.all(13),
                                   child: Icon(
                                     widget.sound
                                         ? LucideIcons.volume2

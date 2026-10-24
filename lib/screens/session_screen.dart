@@ -87,12 +87,12 @@ class SessionScreen extends StatelessWidget {
                         const PlusChip(label: 'TaiChi Flow Plus'),
                       ],
                       const SizedBox(height: 12),
-                      Row(
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 6,
                         children: [
                           _Meta(LucideIcons.clock, formatMinutes(total)),
-                          const SizedBox(width: 16),
                           _Meta(LucideIcons.flame, '$kcal kcal'),
-                          const SizedBox(width: 16),
                           _Meta(
                             LucideIcons.layers,
                             '${session.items.length} moves',
@@ -317,6 +317,7 @@ class _Meta extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
     children: [
       Icon(icon, size: 16, color: C.ivory.withValues(alpha: 0.85)),
       const SizedBox(width: 6),

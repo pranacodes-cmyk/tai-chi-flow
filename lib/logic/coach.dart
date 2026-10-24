@@ -31,13 +31,20 @@ class CoachLines {
     '${first.name}.',
   ];
 
-  static List<String> start(Exercise ex) => ex.isAffirmation
-      ? ['Spoken affirmation.', ex.cue]
-      : ['${ex.name}.', ex.steps.isNotEmpty ? ex.steps.first : ex.cue];
-
-  static List<String> step(Exercise ex, int k) => [
-    k < ex.steps.length ? ex.steps[k] : ex.cue,
+  static List<String> instructions(Exercise ex, [SessionItem? item]) => [
+    if (item?.g case final String cue when cue.trim().isNotEmpty) cue,
+    ...ex.steps,
   ];
+
+  static List<String> start(Exercise ex, [SessionItem? item]) =>
+      ex.isAffirmation
+      ? ['Spoken affirmation.', ex.cue]
+      : ['${ex.name}.', instructions(ex, item).firstOrNull ?? ex.cue];
+
+  static List<String> step(Exercise ex, int k, [SessionItem? item]) {
+    final lines = instructions(ex, item);
+    return [k >= 0 && k < lines.length ? lines[k] : ex.cue];
+  }
 
   static List<String> halfway(Exercise ex, String affirmation) =>
       ex.isAffirmation

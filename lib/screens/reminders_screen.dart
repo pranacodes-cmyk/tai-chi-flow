@@ -138,7 +138,8 @@ class RemindersScreen extends StatelessWidget {
                                       onTap: () => shift(-15),
                                     ),
                                     Expanded(
-                                      child: Row(
+                                      child: FittedBox(fit: BoxFit.scaleDown, child: Row(
+                                        mainAxisSize: MainAxisSize.min,
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         crossAxisAlignment:
@@ -160,7 +161,7 @@ class RemindersScreen extends StatelessWidget {
                                             ),
                                           ),
                                         ],
-                                      ),
+                                      )),
                                     ),
                                     CircleBtn(
                                       icon: LucideIcons.plus,

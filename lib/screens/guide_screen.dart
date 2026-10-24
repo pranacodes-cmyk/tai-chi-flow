@@ -102,7 +102,8 @@ class _GuideScreenState extends State<GuideScreen> {
                             children: [
                               Row(
                                 children: [
-                                  Container(
+                                  Flexible(
+                                    child: Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 12,
                                       vertical: 4,
@@ -113,6 +114,8 @@ class _GuideScreenState extends State<GuideScreen> {
                                     ),
                                     child: Text(
                                       g.tag.toUpperCase(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: T.tiny.copyWith(
                                         fontSize: 11,
                                         letterSpacing: 1.1,
@@ -120,6 +123,7 @@ class _GuideScreenState extends State<GuideScreen> {
                                         color: C.ivory,
                                       ),
                                     ),
+                                  ),
                                   ),
                                   const SizedBox(width: 8),
                                   Container(

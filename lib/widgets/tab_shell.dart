@@ -275,13 +275,18 @@ class NowPlayingPill extends StatelessWidget {
                                 ? 'Pause soundscape'
                                 : 'Play soundscape',
                             child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
                               onTap: () {
                                 Haptics.select();
                                 st.playing
                                     ? Ambient.pause()
                                     : Ambient.play(scape.id, 0.55);
                               },
-                              child: Container(
+                              child: SizedBox(
+                                width: 44,
+                                height: 44,
+                                child: Center(
+                                  child: Container(
                                 width: 40,
                                 height: 40,
                                 decoration: const BoxDecoration(
@@ -296,6 +301,8 @@ class NowPlayingPill extends StatelessWidget {
                                   color: C.ink,
                                 ),
                               ),
+                                ),
+                              ),
                             ),
                           ),
                           Semantics(
@@ -308,8 +315,8 @@ class NowPlayingPill extends StatelessWidget {
                                 Ambient.stop();
                               },
                               child: SizedBox(
-                                width: 32,
-                                height: 40,
+                                width: 44,
+                                height: 44,
                                 child: Icon(
                                   LucideIcons.x,
                                   size: 16,

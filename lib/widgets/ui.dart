@@ -516,7 +516,9 @@ class CircleBtn extends StatelessWidget {
         child: Center(child: iconW),
       ),
     };
-    return Pressable(onTap: onTap, semanticLabel: label, child: body);
+    // Small visuals keep a 44×44 touch area so they stay easy to hit.
+    final hit = size < 44 ? SizedBox(width: 44, height: 44, child: Center(child: body)) : body;
+    return Pressable(onTap: onTap, semanticLabel: label, child: hit);
   }
 }
 

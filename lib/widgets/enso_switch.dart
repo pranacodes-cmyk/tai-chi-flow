@@ -20,11 +20,15 @@ class EnsoSwitch extends StatelessWidget {
       toggled: value,
       label: label,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           Haptics.select();
           onChanged(!value);
         },
-        child: AnimatedContainer(
+        // 44px-tall touch area around the 31px track
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6.5),
+          child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           width: 51,
           height: 31,
@@ -53,6 +57,7 @@ class EnsoSwitch extends StatelessWidget {
               ),
             ),
           ),
+        ),
         ),
       ),
     );

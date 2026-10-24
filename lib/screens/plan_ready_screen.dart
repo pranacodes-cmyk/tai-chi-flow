@@ -108,7 +108,12 @@ class _Generating extends StatelessWidget {
             ),
           ),
         ),
-        Padding(
+        // Scrolls only when a short phone or large text needs more room.
+        LayoutBuilder(builder: (context, box) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: box.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
           padding: EdgeInsets.fromLTRB(
             28,
             topInset(context) + 56,
@@ -207,13 +212,15 @@ class _Generating extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              AnimatedDefaultTextStyle(
+                              Expanded(
+                                child: AnimatedDefaultTextStyle(
                                 duration: const Duration(milliseconds: 500),
                                 style: T.body.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: on || current ? C.ink : C.muted,
                                 ),
                                 child: Text(c),
+                              ),
                               ),
                             ],
                           ),
@@ -241,7 +248,8 @@ class _Generating extends StatelessWidget {
                         children: [
                           Avatar(t.avatar ?? 'onb-age-f-50', size: 40),
                           const SizedBox(width: 12),
-                          Column(
+                          Expanded(
+                            child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
@@ -254,6 +262,7 @@ class _Generating extends StatelessWidget {
                               Stars(count: t.rating, size: 13),
                             ],
                           ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -265,6 +274,9 @@ class _Generating extends StatelessWidget {
             ],
           ),
         ),
+            ),
+          ),
+        )),
       ],
     );
   }

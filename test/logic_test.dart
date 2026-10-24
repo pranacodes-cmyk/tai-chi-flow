@@ -73,7 +73,9 @@ void main() {
       final starter = c.plans.firstWhere((p) => p.id == 'tai-chi-starter-7');
       expect(starter.days.length, 7);
       for (final p in c.plans) {
-        final quick = c.quickSessions.any((q) => q.id == p.id) || p.id == 'tai-chi-starter-7';
+        final quick =
+            c.quickSessions.any((q) => q.id == p.id) ||
+            p.id == 'tai-chi-starter-7';
         if (quick) {
           expect([p.premium, p.freeDays], [false, p.days.length]);
         } else {
@@ -94,14 +96,22 @@ void main() {
       ];
       expect(
         days
-            .map((d) => d.items.where((it) => it.p == 'New today').map((it) => it.e).toList())
+            .map(
+              (d) => d.items
+                  .where((it) => it.p == 'New today')
+                  .map((it) => it.e)
+                  .toList(),
+            )
             .toList(),
         [
           ...section.map((e) => [e]),
           ['closing-form-standing'],
         ],
       );
-      expect(days[6].items.where((it) => it.p == 'Flow').map((it) => it.e).toList(), section);
+      expect(
+        days[6].items.where((it) => it.p == 'Flow').map((it) => it.e).toList(),
+        section,
+      );
     });
     test('no movement plays twice inside one free starter lesson', () {
       final days = Content.i.plan('tai-chi-starter-7')!.days;
@@ -187,15 +197,85 @@ void main() {
         expect([...c.planGroups, 'Quick & free'], contains(p.group));
       }
     });
-    test('Seated Tai Chi teaches 14 forms and graduates with all 14 in one flow', () {
-      final days = Content.i.plan('seated-tai-chi')!.days;
-      final taught = days
-          .expand((d) => d.items.where((it) => it.p == 'New today').map((it) => it.e))
-          .toSet()
-        ..remove('guided-deep-breathing-seated-tai-chi');
-      expect(taught.length, 14);
-      expect(days[27].items.where((it) => it.p == 'Flow').map((it) => it.e).toSet().length, 14);
+    test('Daily Tai Chi never plays the same movement twice in one day', () {
+      final days = Content.i.plan('standing-tai-chi')?.days ?? [];
+      expect(days.length, 28);
+      for (final d in days) {
+        final ids = d.items.map((it) => it.e).toList();
+        expect(ids.toSet().length, ids.length, reason: 'day ${d.day}');
+      }
     });
+    test('Daily Tai Chi day 1 has Opening and Wild Horse once, day 16 Single Whip once', () {
+      final p = Content.i.plan('standing-tai-chi');
+      expect(p, isNotNull);
+      if (p == null) return;
+      expect(
+        p.days[0].items
+            .where((it) => it.e == 'commencement-opening-form-standing')
+            .length,
+        1,
+      );
+      expect(
+        p.days[0].items
+            .where((it) => it.e == 'parting-the-wild-horses-mane-standing')
+            .length,
+        1,
+      );
+      expect(
+        p.days[15].items.where((it) => it.e == 'single-whip-standing').length,
+        1,
+      );
+      expect(
+        p.days
+            .map(
+              (d) => d.items
+                  .firstWhere((it) => it.p == 'Skill' || it.p == 'Flow')
+                  .g,
+            )
+            .toSet()
+            .length,
+        28,
+      );
+    });
+    test('lesson cue precedes normal instructions and older items keep existing guidance', () {
+      final ex = Content.i.exercise('commencement-opening-form-standing');
+      expect(ex, isNotNull);
+      if (ex == null) return;
+      const item = SessionItem(
+        'commencement-opening-form-standing',
+        60,
+        'Flow',
+        'Keep both feet grounded.',
+      );
+      expect(CoachLines.start(ex, item).last, 'Keep both feet grounded.');
+      expect(CoachLines.step(ex, 1, item), [ex.steps.first]);
+      expect(CoachLines.start(ex).last, ex.steps.first);
+      expect(SessionItem.fromJson({'e': ex.id, 's': 60}).g, isNull);
+    });
+    test(
+      'Seated Tai Chi teaches 14 forms and graduates with all 14 in one flow',
+      () {
+        final days = Content.i.plan('seated-tai-chi')!.days;
+        final taught =
+            days
+                .expand(
+                  (d) => d.items
+                      .where((it) => it.p == 'New today')
+                      .map((it) => it.e),
+                )
+                .toSet()
+              ..remove('guided-deep-breathing-seated-tai-chi');
+        expect(taught.length, 14);
+        expect(
+          days[27].items
+              .where((it) => it.p == 'Flow')
+              .map((it) => it.e)
+              .toSet()
+              .length,
+          14,
+        );
+      },
+    );
     test(
       'Shibashi 18 teaches a new form every day and ends with all 18 forms',
       () {
@@ -222,24 +302,87 @@ void main() {
         9,
       );
     });
-    test(
-      '28-Day Wall Pilates uses 34 movements and never repeats one inside a workout',
-      () {
-        final days = Content.i.plan('wall-pilates-28')!.days;
-        expect(days.length, 28);
-        expect(
-          days.expand((d) => d.items.map((it) => it.e)).toSet().length,
-          34,
-        );
-        for (final d in days) {
-          final work = d.items
-              .where((it) => it.p == 'Workout')
-              .map((it) => it.e)
-              .toList();
-          expect(work.toSet().length, work.length, reason: 'day ${d.day}');
+    test('28-Day Wall Pilates uses 34 movements and never repeats one inside a workout', () {
+      final days = Content.i.plan('wall-pilates-28')!.days;
+      expect(days.length, 28);
+      expect(days.expand((d) => d.items.map((it) => it.e)).toSet().length, 34);
+      for (final d in days) {
+        final work = d.items
+            .where((it) => it.p == 'Workout')
+            .map((it) => it.e)
+            .toList();
+        expect(work.toSet().length, work.length, reason: 'day ${d.day}');
+      }
+    });
+    test('teaching courses play each movement once per flow; a form taught today returns once with its own guidance', () {
+      const ids = ['tai-chi-beginner', 'seated-tai-chi', 'tai-chi-walking-30', 'shibashi-flow-18', 'standing-qigong-14'];
+      for (final id in ids) {
+        final plan = Content.i.plan(id);
+        expect(plan, isNotNull);
+        if (plan == null) continue;
+        for (final d in plan.days) {
+          final flow = d.items.where((it) => it.p == 'Flow').map((it) => it.e).toList();
+          expect(flow.toSet().length, flow.length, reason: '$id day ${d.day}');
+          // An explicitly labelled "Round 2" is a deliberate conditioning pass, not a repeat.
+          final taught = d.items.where((it) => it.p != 'Round 2').toList();
+          for (final e in taught.map((it) => it.e).toSet()) {
+            final group = taught.where((it) => it.e == e).toList();
+            if (group.length > 1) {
+              expect(group.length, 2, reason: '$id day ${d.day}');
+              expect(group.every((it) => (it.g ?? '').isNotEmpty), isTrue);
+              expect(group.map((it) => it.g).toSet().length, 2);
+            }
+          }
+          final first = d.items.firstWhere((it) => it.p != 'Warm-up');
+          expect((first.g ?? '').isNotEmpty, isTrue, reason: '$id day ${d.day}');
         }
-      },
-    );
+      }
+    });
+    test('chair blocks do not overlap within the first workout pass', () {
+      final plan = Content.i.plan('chair-yoga-weight-loss');
+      expect(plan, isNotNull);
+      if (plan == null) return;
+      for (final d in plan.days) {
+        final work = d.items.where((it) => it.p == 'Workout').map((it) => it.e).toList();
+        expect(work.toSet().length, work.length, reason: 'day ${d.day}');
+      }
+      expect(plan.days[2].items.where((it) => it.e == 'seated-knee-to-elbow-crunches-seated').length, 1);
+      expect(plan.days[4].items.where((it) => it.e == 'seated-row-upper-back-squeeze-chair-yoga').length, 1);
+    });
+    test('retained conditioning rounds are explicitly coached', () {
+      for (final p in Content.i.plans.where((p) => p.days.length > 1)) {
+        for (final d in p.days) {
+          for (var i = 0; i < d.items.length; i++) {
+            final it = d.items[i];
+            if (it.p == 'Round 2' && (i == 0 || d.items[i - 1].p != 'Round 2')) {
+              expect((it.g ?? '').isNotEmpty, isTrue, reason: '${p.id} day ${d.day}');
+            }
+          }
+        }
+      }
+      final brocades = Content.i.plan('standing-qigong-14');
+      expect(brocades?.days[12].items.where((it) => it.p == 'Round 2').length, 9);
+    });
+    test('all lesson guidance has a bundled natural voice clip', () {
+      final clips = Content.i.voice.toSet();
+      for (final p in Content.i.plans) {
+        for (final d in p.days) {
+          for (final it in d.items.where((it) => (it.g ?? '').isNotEmpty)) {
+            expect(clips.contains(voiceKey(it.g ?? '')), isTrue, reason: '${p.id} day ${d.day}');
+          }
+        }
+      }
+    });
+    test('course warm-ups do not duplicate teaching work or settling', () {
+      for (final p in Content.i.plans.where((p) => p.days.length > 1)) {
+        for (final d in p.days) {
+          final main = d.items.where((it) => it.p != 'Warm-up' && it.p != 'Round 2').map((it) => it.e).toSet();
+          for (final it in d.items.where((it) => it.p == 'Warm-up')) {
+            expect(main.contains(it.e), isFalse, reason: '${p.id} day ${d.day}: ${it.e}');
+          }
+        }
+      }
+    });
     test('no third-party hosted media ships with the app', () {
       expect(jsonEncode(json).contains('firebasestorage'), isFalse);
     });
@@ -320,7 +463,13 @@ void main() {
       },
     );
     test('one meditation per everyday need is free', () {
-      expect(Content.i.meditations.where((m) => !m.premium).map((m) => m.id).toList(), ['evening-wind-down', 'ocean-calm', 'box-breathing', 'morning-clarity']);
+      expect(
+        Content.i.meditations
+            .where((m) => !m.premium)
+            .map((m) => m.id)
+            .toList(),
+        ['evening-wind-down', 'ocean-calm', 'box-breathing', 'morning-clarity'],
+      );
     });
     test('the player route cannot bypass a locked premium day', () {
       expect(isSessionLocked('plan:wall-pilates-28:1', false), true);
@@ -365,14 +514,6 @@ void main() {
       expect(forms.toSet().length, 24);
       expect(forms.first, 'commencement-opening-form-standing');
       expect(forms.last, 'closing-form-standing');
-    });
-    test('no course day or single class plays the same movement twice', () {
-      for (final p in Content.i.plans) {
-        for (var i = 0; i < p.days.length; i++) {
-          final ids = p.days[i].items.map((it) => it.e).toList();
-          expect(ids.toSet().length, ids.length, reason: '${p.title} day ${i + 1}');
-        }
-      }
     });
     test('every Tai Chi Foundations lesson is a different class', () {
       final days = Content.i
@@ -549,6 +690,11 @@ void main() {
         expect(File('assets/video/$d.mp4').existsSync(), isTrue, reason: d);
       }
     });
+    test('the paywall film and its poster are bundled, with no browser-only WebM', () {
+      expect(File('assets/video/paywall-mountain.mp4').existsSync(), isTrue);
+      expect(File('assets/images/paywall-mountain.jpg').existsSync(), isTrue);
+      expect(Directory('assets/video').listSync().where((f) => f.path.endsWith('.webm')), isEmpty);
+    });
   });
 
   group('coach voice', () {
@@ -629,18 +775,33 @@ void main() {
       expect(isConsentRegion('US'), isFalse);
       expect(isConsentRegion('IN'), isFalse);
     });
-    test('without an answer, sharing is off in consent regions and on elsewhere', () {
-      expect(adsMeasurementAllowed('unset', 0, 'FR'), isFalse);
-      expect(adsMeasurementAllowed('unset', 0, null), isFalse);
-      expect(adsMeasurementAllowed('unset', 0, 'US'), isTrue);
-    });
+    test(
+      'without an answer, sharing is off in consent regions and on elsewhere',
+      () {
+        expect(adsMeasurementAllowed('unset', 0, 'FR'), isFalse);
+        expect(adsMeasurementAllowed('unset', 0, null), isFalse);
+        expect(adsMeasurementAllowed('unset', 0, 'US'), isTrue);
+      },
+    );
     test('an explicit answer to the current notice always wins', () {
-      expect(adsMeasurementAllowed('granted', privacyNoticeVersion, 'DE'), isTrue);
-      expect(adsMeasurementAllowed('denied', privacyNoticeVersion, 'US'), isFalse);
+      expect(
+        adsMeasurementAllowed('granted', privacyNoticeVersion, 'DE'),
+        isTrue,
+      );
+      expect(
+        adsMeasurementAllowed('denied', privacyNoticeVersion, 'US'),
+        isFalse,
+      );
     });
     test('an answer to an older notice counts as no answer', () {
-      expect(adsMeasurementAllowed('granted', privacyNoticeVersion - 1, 'DE'), isFalse);
-      expect(needsPrivacyChoice('granted', privacyNoticeVersion - 1, 'DE'), isTrue);
+      expect(
+        adsMeasurementAllowed('granted', privacyNoticeVersion - 1, 'DE'),
+        isFalse,
+      );
+      expect(
+        needsPrivacyChoice('granted', privacyNoticeVersion - 1, 'DE'),
+        isTrue,
+      );
     });
     test('the opt-in sheet shows only in consent regions until answered', () {
       expect(needsPrivacyChoice('unset', 0, 'IT'), isTrue);
@@ -649,7 +810,8 @@ void main() {
     });
     test('the privacy answer survives saving and a data reset', () {
       final s = AppState.memory()..setAdsChoice('granted', 'DE');
-      final restored = jsonDecode(jsonEncode(s.toJson())) as Map<String, dynamic>;
+      final restored =
+          jsonDecode(jsonEncode(s.toJson())) as Map<String, dynamic>;
       expect((restored['privacy'] as Map)['ads'], 'granted');
       expect((restored['privacy'] as Map)['version'], privacyNoticeVersion);
       s.reset();
@@ -658,6 +820,16 @@ void main() {
   });
 
   group('paywall offer', () {
+    test('checking first reveals the regular trial offer without a purchase', () {
+      expect(paywallSurveyOffer('later'), 'regular');
+      expect(paywallSurveyOffer('unsure'), 'regular');
+    });
+    test('price high reveals the lower exit offer', () {
+      expect(paywallSurveyOffer('price'), 'exit');
+    });
+    test('dismissing the survey selects no offer', () {
+      expect(paywallSurveyOffer(null), isNull);
+    });
     test('onboarding shows the requested variant', () {
       expect(paywallVariant('onboarding', 'exit', null), 'exit');
     });

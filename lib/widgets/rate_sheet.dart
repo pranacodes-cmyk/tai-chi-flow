@@ -73,7 +73,13 @@ class _RateBodyState extends State<_RateBody> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               for (var i = 1; i <= 5; i++)
-                GestureDetector(
+                Semantics(
+                  button: true,
+                  selected: i == stars,
+                  label: '$i ${i > 1 ? 'stars' : 'star'}',
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () => _pick(i),
                   child: AnimatedScale(
                     scale: i <= stars ? 1.15 : 1,
@@ -88,6 +94,7 @@ class _RateBodyState extends State<_RateBody> {
                       ),
                     ),
                   ),
+                ),
                 ),
             ],
           ),

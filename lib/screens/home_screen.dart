@@ -175,7 +175,8 @@ class HomeScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Row(
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
                                   formatMinutes(totalSeconds(day.items)),
@@ -243,7 +244,8 @@ class HomeScreen extends StatelessWidget {
                                             color: C.ink,
                                           ),
                                           const SizedBox(width: 8),
-                                          Text(
+                                          Flexible(
+                                            child: Text(
                                             heroLocked
                                                 ? 'Unlock Day $dayNumber'
                                                 : planDone
@@ -251,9 +253,12 @@ class HomeScreen extends StatelessWidget {
                                                 : (todayDone
                                                       ? 'Done · Practice again'
                                                       : "Start today's session"),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: T.label.copyWith(
                                               fontSize: 17,
                                             ),
+                                          ),
                                           ),
                                         ],
                                       ),
@@ -353,7 +358,8 @@ class HomeScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           for (var i = 0; i < 7; i++)
-                            Builder(
+                            // shares the row equally and shrinks on the narrowest phones
+                            Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: Builder(
                               builder: (_) {
                                 final d = addDays(weekStart, i);
                                 final k = dateKey(d);
@@ -415,7 +421,7 @@ class HomeScreen extends StatelessWidget {
                                   ],
                                 );
                               },
-                            ),
+                            )))),
                         ],
                       ),
                     ],
@@ -867,7 +873,7 @@ class HomeScreen extends StatelessWidget {
                             '— ${quote.author}',
                             style: T.caption.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: C.jadeDeep.withValues(alpha: 0.7),
+                              color: C.jadeDeep,
                             ),
                           ),
                         ],
@@ -1297,7 +1303,8 @@ class _DailyPracticeCard extends StatelessWidget {
                           : (doneToday ? C.jadeDeep : C.ivory),
                     ),
                     const SizedBox(width: 8),
-                    Text(
+                    Flexible(
+                      child: Text(
                       locked
                           ? 'Unlock Day $day with TaiChi Flow Plus'
                           : (doneToday
@@ -1308,6 +1315,7 @@ class _DailyPracticeCard extends StatelessWidget {
                       style: T.label.c(
                         locked ? C.ink : (doneToday ? C.jadeDeep : C.ivory),
                       ),
+                    ),
                     ),
                   ],
                 ),
@@ -1440,7 +1448,7 @@ class _FreeHero extends StatelessWidget {
                       children: [
                         const Icon(Icons.play_arrow_rounded, size: 24, color: C.ink),
                         const SizedBox(width: 8),
-                        Text(cta, style: T.label.copyWith(fontSize: 17)),
+                        Flexible(child: Text(cta, maxLines: 1, overflow: TextOverflow.ellipsis, style: T.label.copyWith(fontSize: 17))),
                       ],
                     ),
                   ),

@@ -56,8 +56,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// The line shown (and spoken) right now: the active instruction step, or the affirmation itself.
   String _guidance(Exercise e) {
     if (e.isAffirmation) return e.description;
-    if (e.steps.isEmpty) return e.cue;
-    return e.steps[stepIdx.clamp(0, e.steps.length - 1)];
+    final lines = CoachLines.instructions(e, items[index]);
+    if (lines.isEmpty) return e.cue;
+    return lines[stepIdx.clamp(0, lines.length - 1)];
   }
 
   @override
@@ -118,15 +119,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (phase == _Phase.work) {
       final ex = current;
       final len = items[index].s;
-      if (!ex.isAffirmation && ex.steps.length > 1) {
+      final lines = CoachLines.instructions(ex, items[index]);
+      if (!ex.isAffirmation && lines.length > 1) {
         // walk through the real instructions, one step per equal slice of the movement
-        final k = ((len - next) / (len / ex.steps.length)).floor().clamp(
+        final k = ((len - next) / (len / lines.length)).floor().clamp(
           0,
-          ex.steps.length - 1,
+          lines.length - 1,
         );
         if (k != stepIdx) {
           stepIdx = k;
-          _say(CoachLines.step(ex, k), interrupt: false);
+          _say(CoachLines.step(ex, k, items[index]), interrupt: false);
         }
       } else if (!spokeHalf && len >= 40 && next <= len / 2) {
         spokeHalf = true;
@@ -158,7 +160,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     Sfx.play('sfx-chime', 0.45);
     Haptics.medium();
     Future.delayed(const Duration(milliseconds: 350), () {
-      if (mounted) _say(CoachLines.start(ex));
+      if (mounted && index == i) _say(CoachLines.start(ex, items[i]));
     });
   }
 

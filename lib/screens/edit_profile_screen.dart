@@ -237,12 +237,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     color: C.jadeDeep,
                                   ),
                                   const SizedBox(width: 6),
-                                  Text(
+                                  Expanded(
+                                    child: Text(
                                     'Suggested for your new goals',
                                     style: T.caption.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: C.jadeDeep,
                                     ),
+                                  ),
                                   ),
                                 ],
                               ),

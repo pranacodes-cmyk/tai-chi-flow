@@ -54,6 +54,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _advancing = false;
   VoidCallback? _finishReply;
   final _timers = <Timer>[];
+  /// Finishing forward keeps the music playing through plan-ready and the paywall.
+  bool _finished = false;
 
   @override
   void initState() {
@@ -66,7 +68,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void dispose() {
     _clearTimers();
     Voice.stop();
-    Ambient.stop();
+    if (!_finished) Ambient.stop();
     super.dispose();
   }
 
@@ -204,6 +206,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       });
       _onStep();
     } else {
+      _finished = true;
       context.go('/plan-ready');
     }
   }
@@ -1520,8 +1523,8 @@ class _Zones extends StatelessWidget {
                         for (final e in _hotspots.entries)
                           for (final (x, y) in e.value)
                             Positioned(
-                              left: x * photoW - 18,
-                              top: y * h - 18,
+                              left: x * photoW - 22,
+                              top: y * h - 22,
                               child: _Hotspot(
                                 on: value.contains(e.key),
                                 onTap: () => _toggle(e.key),
@@ -1659,8 +1662,8 @@ class _HotspotState extends State<_Hotspot>
       semanticLabel: widget.label,
       scale: 0.9,
       child: SizedBox(
-        width: 36,
-        height: 36,
+        width: 44,
+        height: 44,
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -2520,7 +2523,7 @@ class _DayPicker extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         for (var i = 0; i < 7; i++)
-          Pressable(
+          Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: Pressable(
             onTap: () => onChanged(
               days.contains(i)
                   ? days.where((x) => x != i).toList()
@@ -2549,7 +2552,7 @@ class _DayPicker extends StatelessWidget {
                 ),
               ),
             ),
-          ),
+          )))),
       ],
     );
   }

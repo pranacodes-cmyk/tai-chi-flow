@@ -9,9 +9,16 @@ class SessionItem {
 
   /// Lesson phase label ("Warm-up", "New today", …) — authored courses only.
   final String? p;
-  const SessionItem(this.e, this.s, [this.p]);
-  factory SessionItem.fromJson(Map<String, dynamic> j) =>
-      SessionItem(j['e'] as String, (j['s'] as num).toInt(), j['p'] as String?);
+
+  /// Authored lesson-specific practice cue; older content omits it.
+  final String? g;
+  const SessionItem(this.e, this.s, [this.p, this.g]);
+  factory SessionItem.fromJson(Map<String, dynamic> j) => SessionItem(
+    j['e'] as String,
+    (j['s'] as num).toInt(),
+    j['p'] as String?,
+    j['g'] as String?,
+  );
 }
 
 List<SessionItem> _items(dynamic v) => (v as List)

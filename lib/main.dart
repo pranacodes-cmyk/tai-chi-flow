@@ -122,8 +122,15 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
           trackHeight: 6,
         ),
       ),
-      builder: (context, child) =>
-          _Splash(child: child ?? const SizedBox.shrink()),
+      // System font size is honoured up to 130% so large-text users get bigger type
+      // without fixed-size cards and buttons breaking apart.
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.3)),
+          child: _Splash(child: child ?? const SizedBox.shrink()),
+        );
+      },
     );
   }
 }
