@@ -353,22 +353,26 @@ void main() {
       expect(taiChi.days.length, 21);
       expect(taiChi.subtitle, contains('21 days'));
     });
-    test('Tai Chi Foundations ends with all 22 postures of the 24-form, first form first, closing last', () {
-      const warmAndSettle = {
-        'full-body-breathing-qigong',
-        'twisting-waist-and-pushing-palms-shibashi',
-        'guided-deep-breathing-standing',
-      };
+    test('Tai Chi Foundations ends with all 24 forms flowed once each, first form first, closing last', () {
       final forms = Content.i
           .plan('tai-chi-beginner')!
           .days[20]
           .items
+          .where((it) => it.p == 'Flow')
           .map((it) => it.e)
-          .where((e) => !warmAndSettle.contains(e))
           .toList();
-      expect(forms.toSet().length, 22);
+      expect(forms.length, 24);
+      expect(forms.toSet().length, 24);
       expect(forms.first, 'commencement-opening-form-standing');
       expect(forms.last, 'closing-form-standing');
+    });
+    test('no course day or single class plays the same movement twice', () {
+      for (final p in Content.i.plans) {
+        for (var i = 0; i < p.days.length; i++) {
+          final ids = p.days[i].items.map((it) => it.e).toList();
+          expect(ids.toSet().length, ids.length, reason: '${p.title} day ${i + 1}');
+        }
+      }
     });
     test('every Tai Chi Foundations lesson is a different class', () {
       final days = Content.i
