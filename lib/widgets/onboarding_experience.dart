@@ -488,7 +488,7 @@ class _ChapterCardState extends State<ChapterCard> {
                             child: Semantics(
                               button: true,
                               label: widget.sound
-                                  ? 'Mute Ethan'
+                                  ? 'Mute the coach'
                                   : 'Turn on sound',
                               child: GestureDetector(
                                 onTap: widget.onToggleSound,
