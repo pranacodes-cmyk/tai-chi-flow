@@ -82,6 +82,34 @@ void main() {
       }
       expect(c.meditations.where((m) => !m.premium).length, 4);
     });
+    test('the free starter teaches section one of the 24-form, one new form a day, Closing after the day-7 flow', () {
+      final days = Content.i.plan('tai-chi-starter-7')!.days;
+      const section = [
+        'commencement-opening-form-standing',
+        'parting-the-wild-horses-mane-standing',
+        'white-crane-spreads-wings-standing',
+        'brush-knee-and-twist-step-standing',
+        'play-the-lute-standing',
+        'repulse-the-monkey-standing',
+      ];
+      expect(
+        days
+            .map((d) => d.items.where((it) => it.p == 'New today').map((it) => it.e).toList())
+            .toList(),
+        [
+          ...section.map((e) => [e]),
+          ['closing-form-standing'],
+        ],
+      );
+      expect(days[6].items.where((it) => it.p == 'Flow').map((it) => it.e).toList(), section);
+    });
+    test('no movement plays twice inside one free starter lesson', () {
+      final days = Content.i.plan('tai-chi-starter-7')!.days;
+      for (var i = 0; i < days.length; i++) {
+        final ids = days[i].items.map((it) => it.e).toList();
+        expect(ids.toSet().length, ids.length, reason: 'day ${i + 1}');
+      }
+    });
     test(
       'every extracted challenge still listed ships, exactly 3 of them free',
       () {
