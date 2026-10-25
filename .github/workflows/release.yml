@@ -75,12 +75,38 @@ jobs:
             echo "keyAlias=$KEY_ALIAS"
             echo "keyPassword=$KEY_PASSWORD"
           } > android/key.properties
+      - name: Move coach voice into an install-time asset pack
+        # Play rejects base modules over 200 MB; the voice clips (all languages) ship in a
+        # Play asset pack at the same flutter_assets path, so the app loads them unchanged.
+        run: |
+          DEST=android/voice_pack/src/main/assets/flutter_assets/assets/voice
+          mkdir -p "$DEST"
+          mv assets/voice/* "$DEST/"
+          sed -i '\#^    - assets/voice/$#d' pubspec.yaml
+          if grep -q 'assets/voice/' pubspec.yaml; then echo 'voice still listed'; exit 1; fi
+          echo "Voice clips in pack: $(ls "$DEST" | wc -l)"
       - run: flutter pub get
       - name: Build App Bundle
         run: |
           flutter build appbundle --release \
             --build-name=${{ needs.verify.outputs.build_name }} \
             --build-number=${{ needs.verify.outputs.build_number }}
+      - name: Check bundle layout and size
+        run: |
+          python3 - <<'EOF'
+          import zipfile, sys
+          z = zipfile.ZipFile("build/app/outputs/bundle/release/app-release.aab")
+          names = z.infolist()
+          pack = [i for i in names if i.filename.startswith("voice_pack/assets/flutter_assets/assets/voice/")]
+          base_voice = [i for i in names if i.filename.startswith("base/assets/flutter_assets/assets/voice/")]
+          base = sum(i.compress_size for i in names if i.filename.startswith("base/"))
+          packed = sum(i.compress_size for i in pack)
+          print(f"voice clips in asset pack: {len(pack)} ({packed/1e6:.1f} MB)")
+          print(f"voice clips left in base: {len(base_voice)}")
+          print(f"base module compressed: {base/1e6:.1f} MB")
+          if len(pack) < 1000 or base_voice or base > 190e6:
+              sys.exit("bundle layout check failed")
+          EOF
       - name: Check upload signature
         run: |
           keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab | grep -E "SHA256:" | head -1
