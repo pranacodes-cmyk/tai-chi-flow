@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'single_classes_section.dart';
 import '../data/content.dart';
+import '../data/models.dart';
 import '../logic/logic.dart';
 import '../state/app_state.dart';
 import '../theme/text.dart';
@@ -12,6 +13,7 @@ import '../widgets/cards.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/tab_shell.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
 /// Courses tab: every multi-day journey, shelved by style (web `/courses`).
 class CoursesScreen extends StatefulWidget {
@@ -57,10 +59,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Courses', style: T.displayLg),
+                  Text(tr('courses.title'), style: T.displayLg),
                   const SizedBox(height: 4),
                   Text(
-                    'Your complete practice collection.',
+                    tr('courses.subtitle'),
                     style: T.bodySm.c(C.muted),
                   ),
                 ],
@@ -73,7 +75,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 for (final v in ['courses', 'classes']) ...[
                   if (v == 'classes') const SizedBox(width: 8),
                   Expanded(child: ChipPill(
-                    label: v == 'courses' ? 'Courses' : 'Single classes',
+                    label: v == 'courses' ? tr('courses.toggleCourses') : tr('courses.toggleSingleClasses'),
                     active: widget.view == v,
                     onTap: () => context.go('/courses?view=$v'),
                   )),
@@ -84,7 +86,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: EnsoButton(
-                label: 'Styles & movement library',
+                label: tr('courses.stylesLibrary'),
                 variant: BtnVariant.secondary,
                 onTap: () => context.push('/movements'),
               ),
@@ -100,7 +102,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
               children: [
                 for (final s in ['All', ...shelves])
                   ChipPill(
-                    label: s,
+                    label: trTag(s),
                     active: shelf == s,
                     onTap: () => setState(() => shelf = s),
                   ),
@@ -131,7 +133,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SectionHeader(g),
+                            SectionHeader(trTag(g)),
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
@@ -167,8 +169,73 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 36),
+            Reveal(
+              delay: 0.12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SectionHeader(tr('courses.learnTheArt')),
+                  HScroll(children: [for (final g in c.guides) _GuideCard(g)]),
+                ],
+              ),
+            ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A short Tai Chi article: principles, breath, balance and habit.
+class _GuideCard extends StatelessWidget {
+  const _GuideCard(this.guide);
+  final Guide guide;
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: tr('courses.guideReadLabel', {'title': guide.title, 'minutes': guide.minutes}),
+      excludeSemantics: true,
+      child: Pressable(
+        onTap: () => context.push('/guide/${guide.id}'),
+        child: Container(
+          width: 240,
+          height: 168,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: S.card,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              EImage(img(guide.image)),
+              DecoratedBox(decoration: BoxDecoration(gradient: G.scrim)),
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 14,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Eyebrow(
+                      tr('courses.guideTagMinRead', {'tag': trTag(guide.tag), 'minutes': guide.minutes}),
+                      color: C.ivory.withValues(alpha: 0.75),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      guide.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: T.title.copyWith(fontSize: 17, color: C.ivory),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -199,7 +266,7 @@ class _ContinueCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Eyebrow('Your course', color: C.jade),
+                    Eyebrow(tr('courses.yourCourse'), color: C.jade),
                     const SizedBox(height: 4),
                     Text(
                       plan.title,
@@ -210,8 +277,8 @@ class _ContinueCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       completed.length >= plan.days.length
-                          ? 'Completed'
-                          : 'Next: Day $next of ${plan.days.length}',
+                          ? tr('courses.completed')
+                          : tr('courses.nextDayOfTotal', {'day': next, 'total': plan.days.length}),
                       style: T.caption,
                     ),
                   ],

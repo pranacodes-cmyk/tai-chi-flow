@@ -11,6 +11,7 @@ import '../theme/text.dart';
 import '../theme/tokens.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
 const _feelingIcon = ['', 'frown', 'meh', 'smile', 'sparkles', 'lotus'];
 
@@ -69,10 +70,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('History', style: T.displayLg),
+                  Text(tr('history.title'), style: T.displayLg),
                   const SizedBox(height: 4),
                   Text(
-                    'Every mindful minute, beautifully kept.',
+                    tr('history.subtitle'),
                     style: T.bodySm.c(C.muted),
                   ),
                 ],
@@ -128,7 +129,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                         style: T.displayXl.c(C.ivory).tab,
                                       ),
                                       Text(
-                                        'day streak',
+                                        tr('history.dayStreak'),
                                         style: T.caption.copyWith(
                                           fontSize: 14,
                                           color: C.ivory.withValues(
@@ -138,7 +139,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        'Best: ${stats.best} days',
+                                        tr('history.bestStreak', {'n': stats.best}),
                                         style: T.tiny.copyWith(
                                           fontWeight: FontWeight.w400,
                                           color: C.ivory.withValues(alpha: 0.7),
@@ -156,14 +157,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               children: [
                                 Expanded(
                                   child: _MiniStat(
-                                    'Total minutes',
+                                    tr('history.totalMinutes'),
                                     '${stats.minutes}',
                                   ),
                                 ),
                                 const SizedBox(height: 12),
                                 Expanded(
                                   child: _MiniStat(
-                                    'Calories burned',
+                                    tr('history.caloriesBurned'),
                                     '${stats.kcal}',
                                   ),
                                 ),
@@ -185,7 +186,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             ),
                             bg: C.jadeSoft,
                             value: '${stats.workouts}',
-                            label: 'workouts',
+                            label: tr('history.workouts'),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -198,7 +199,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             ),
                             bg: C.goldSoft,
                             value: '${stats.meditations}',
-                            label: 'meditations',
+                            label: tr('history.meditations'),
                           ),
                         ),
                       ],
@@ -220,7 +221,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              DateFormat('MMMM yyyy').format(month),
+                              DateFormat('MMMM yyyy', appLocale).format(month),
                               style: T.title,
                             ),
                           ),
@@ -229,7 +230,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             tone: Tone.sand,
                             size: 36,
                             iconSize: 16,
-                            label: 'Previous month',
+                            label: tr('history.previousMonth'),
                             onTap: () => setState(
                               () => month = DateTime(
                                 month.year,
@@ -244,7 +245,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             tone: Tone.sand,
                             size: 36,
                             iconSize: 16,
-                            label: 'Next month',
+                            label: tr('history.nextMonth'),
                             onTap: () => setState(
                               () => month = DateTime(
                                 month.year,
@@ -340,13 +341,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       const Divider(height: 1, color: C.line),
                       const SizedBox(height: 16),
                       Text(
-                        DateFormat('EEEE, MMM d')
+                        DateFormat('EEEE, MMM d', appLocale)
                             .format(DateTime(sel[0], sel[1], sel[2])),
                         style: T.caption.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 6),
                       if (dayEntries.isEmpty)
-                        Text('No practice this day.', style: T.caption.s(14))
+                        Text(tr('history.noPractice'), style: T.caption.s(14))
                       else
                         for (final h in dayEntries)
                           Padding(
@@ -362,7 +363,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   ),
                                 ),
                                 Text(
-                                  '${(h.durationSec / 60).round().clamp(1, 9999)} min',
+                                  tr('common.minShort', {'n': (h.durationSec / 60).round().clamp(1, 9999)}),
                                   style: T.caption.s(14).tab,
                                 ),
                               ],
@@ -385,9 +386,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          Expanded(child: Text('This week', style: T.title)),
+                          Expanded(child: Text(tr('history.thisWeek'), style: T.title)),
                           Text(
-                            '${week.fold<int>(0, (s, w) => s + w.minutes)} min',
+                            tr('common.minShort', {'n': week.fold<int>(0, (s, w) => s + w.minutes)}),
                             style: T.caption
                                 .copyWith(fontWeight: FontWeight.w600)
                                 .tab,
@@ -475,7 +476,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             const SizedBox(height: 36),
             SectionHeader(
-              'Achievements',
+              tr('history.achievements'),
               action: '${unlocked.length}/${Content.i.achievements.length}',
               onAction: () => context.push('/achievements'),
             ),
@@ -527,7 +528,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ],
             ),
             const SizedBox(height: 28),
-            const SectionHeader('Recent sessions'),
+            SectionHeader(tr('history.recentSessions')),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: recent.isEmpty
@@ -550,16 +551,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Text('Your journey starts today', style: T.title),
+                          Text(tr('history.journeyStart'), style: T.title),
                           const SizedBox(height: 6),
                           Text(
-                            'Complete your first session and it will appear here.',
+                            tr('history.journeyStartBody'),
                             textAlign: TextAlign.center,
                             style: T.caption.s(14),
                           ),
                           const SizedBox(height: 20),
                           EnsoButton(
-                            label: 'Start practicing',
+                            label: tr('history.startPracticing'),
                             size: BtnSize.md,
                             expand: false,
                             onTap: () => context.go('/'),
@@ -607,7 +608,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                         Row(
                                           children: [
                                             Text(
-                                              DateFormat('MMM d')
+                                              DateFormat('MMM d', appLocale)
                                                   .format(h.completedAt),
                                               style: T.tiny.w(FontWeight.w400),
                                             ),
@@ -619,7 +620,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                             ),
                                             const SizedBox(width: 3),
                                             Text(
-                                              '${(h.durationSec / 60).round().clamp(1, 9999)} min',
+                                              tr('common.minShort', {'n': (h.durationSec / 60).round().clamp(1, 9999)}),
                                               style: T.tiny.w(FontWeight.w400),
                                             ),
                                             if (h.kcal > 0) ...[

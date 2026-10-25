@@ -52,6 +52,10 @@ android {
             isShrinkResources = false
         }
     }
+
+    if (rootProject.findProject(":voice_pack") != null) {
+        assetPacks.add(":voice_pack")
+    }
 }
 
 kotlin {

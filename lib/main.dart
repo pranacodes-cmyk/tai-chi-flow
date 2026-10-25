@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'data/content.dart';
+import 'logic/logic.dart' show resolveLanguage, supportedLanguages;
 import 'router.dart';
 import 'services/audio_service.dart';
 import 'services/notification_service.dart';
@@ -15,14 +18,18 @@ import 'state/app_state.dart';
 import 'theme/text.dart';
 import 'theme/tokens.dart';
 import 'widgets/privacy_sheet.dart';
+import 'i18n/i18n.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   await Content.load();
+  await initializeDateFormatting();
   await PurchaseService.init();
   final app = await AppState.load();
+  final lang = resolveLanguage(app.language, deviceLanguageTags());
+  if (lang != 'en') await Content.load(lang);
   Haptics.enabled = app.audio.haptics;
   unawaited(TrackingService.init(app));
   unawaited(
@@ -67,6 +74,7 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.app.addListener(_syncHaptics);
+    widget.app.addListener(_syncLanguage);
     unawaited(
       PrivacyPrompts.runOnLaunch(
         () => _router.routerDelegate.navigatorKey.currentContext,
@@ -75,6 +83,44 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
   }
 
   void _syncHaptics() => Haptics.enabled = widget.app.audio.haptics;
+
+  bool _switchingLanguage = false;
+
+  /// Loads the content of a newly chosen (or newly preferred device) language and rebuilds every
+  /// screen in place, so the person stays where they are.
+  Future<void> _syncLanguage() async {
+    final want = resolveLanguage(widget.app.language, deviceLanguageTags());
+    if (want == Content.i.lang || _switchingLanguage) return;
+    _switchingLanguage = true;
+    try {
+      await Content.load(want);
+    } finally {
+      _switchingLanguage = false;
+    }
+    if (!mounted) return;
+    setState(() {});
+    void mark(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(mark);
+    }
+
+    (context as Element).visitChildren(mark);
+    final app = widget.app;
+    if (app.onboarded && app.reminders.enabled) {
+      unawaited(
+        NotificationService.schedule(
+          app.reminders,
+          name: app.profile.name,
+          minutes: app.profile.dailyMinutes,
+        ),
+      );
+    }
+    // a newer choice may have arrived while this one loaded
+    unawaited(_syncLanguage());
+  }
+
+  @override
+  void didChangeLocales(List<Locale>? locales) => unawaited(_syncLanguage());
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -89,15 +135,24 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.app.removeListener(_syncHaptics);
+    widget.app.removeListener(_syncLanguage);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'TaiChi Flow',
+      title: tr('frame.appTitle'),
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
+      locale: Content.i.lang == 'pt'
+          ? const Locale('pt', 'BR')
+          : Locale(Content.i.lang),
+      supportedLocales: [
+        for (final l in supportedLanguages)
+          l == 'pt' ? const Locale('pt', 'BR') : Locale(l),
+      ],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: T.family,
@@ -213,7 +268,7 @@ class _SplashState extends State<_Splash> with TickerProviderStateMixin {
                           Opacity(
                             opacity: ((_in.value - 0.28) / 0.6).clamp(0.0, 1.0),
                             child: Text(
-                              'TaiChi Flow',
+                              tr('frame.appTitle'),
                               style: T.displayMd.copyWith(
                                 letterSpacing: -0.5,
                                 decoration: TextDecoration.none,
@@ -224,7 +279,7 @@ class _SplashState extends State<_Splash> with TickerProviderStateMixin {
                           Opacity(
                             opacity: ((_in.value - 0.5) / 0.5).clamp(0.0, 1.0),
                             child: Text(
-                              'meditation in motion',
+                              tr('frame.tagline'),
                               style: T.serifAccent.copyWith(
                                 fontSize: 18.4,
                                 color: C.muted,

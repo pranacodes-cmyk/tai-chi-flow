@@ -16,9 +16,11 @@ import '../widgets/ruler_picker.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/sheet.dart';
 import '../widgets/tab_shell.dart';
+import '../widgets/feedback_sheet.dart';
 import '../widgets/privacy_sheet.dart';
 import '../widgets/toast.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -38,12 +40,14 @@ class ProfileScreen extends StatelessWidget {
         o.id: o.label,
     };
     final reminderLabel = r.enabled
-        ? DateFormat('h:mm a').format(DateTime(2020, 1, 1, r.hour, r.minute))
-        : 'Off';
+        ? DateFormat('h:mm a', appLocale).format(DateTime(2020, 1, 1, r.hour, r.minute))
+        : tr('profile.reminderOff');
     final planName = switch (premium.plan) {
-      'gift' => 'Yearly (gift)',
-      'exit' => 'Yearly (special)',
-      'lifetime' => 'Lifetime',
+      'gift' => tr('profile.planYearlyGift'),
+      'exit' => tr('profile.planYearlySpecial'),
+      'lifetime' => tr('profile.planLifetime'),
+      'monthly' => tr('purchase.planMonthly'),
+      'yearly' => tr('purchase.planYearly'),
       null => '',
       final p => p[0].toUpperCase() + p.substring(1),
     };
@@ -96,10 +100,12 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Text(p.name.isNotEmpty ? p.name : 'Friend', style: T.displayMd),
+            Text(p.name.isNotEmpty ? p.name : tr('profile.friend'), style: T.displayMd),
             const SizedBox(height: 4),
             Text(
-              '${premium.active ? 'TaiChi Flow Plus member' : 'Free member'} · ${stats.sessions} sessions',
+              premium.active
+                  ? tr('profile.memberStatusPlus', {'n': stats.sessions})
+                  : tr('profile.memberStatusFree', {'n': stats.sessions}),
               style: T.caption.s(14),
             ),
             const SizedBox(height: 16),
@@ -115,7 +121,7 @@ class ProfileScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(99),
                   boxShadow: S.soft,
                 ),
-                child: Text('Edit profile', style: T.label.s(14)),
+                child: Text(tr('profile.editProfile'), style: T.label.s(14)),
               ),
             ),
             const SizedBox(height: 28),
@@ -158,12 +164,12 @@ class ProfileScreen extends StatelessWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Try TaiChi Flow Plus free',
+                                          tr('profile.tryPlusFree'),
                                           style: T.title.c(C.ivory),
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'All plans, meditations & voice coaching',
+                                          tr('profile.allPlansSubtitle'),
                                           style: T.caption.c(
                                             C.ivory.withValues(alpha: 0.7),
                                           ),
@@ -212,13 +218,13 @@ class ProfileScreen extends StatelessWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'TaiChi Flow Plus · $planName',
+                                        tr('profile.plusPlanTitle', {'plan': planName}),
                                         style: T.title,
                                       ),
                                       Text(
                                         premium.plan == 'lifetime'
-                                            ? 'Since ${premium.since != null ? DateFormat.yMd().format(premium.since!) : 'today'} · Yours for life'
-                                            : 'Since ${premium.since != null ? DateFormat.yMd().format(premium.since!) : 'today'} · Manage in ${AppLinks.storeName}',
+                                            ? tr('profile.sinceLifetime', {'date': premium.since != null ? DateFormat.yMd(appLocale).format(premium.since!) : tr('profile.todayLower')})
+                                            : tr('profile.sinceManage', {'date': premium.since != null ? DateFormat.yMd(appLocale).format(premium.since!) : tr('profile.todayLower'), 'store': AppLinks.storeName}),
                                         style: T.caption.c(
                                           C.ink.withValues(alpha: 0.7),
                                         ),
@@ -240,7 +246,7 @@ class ProfileScreen extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Expanded(child: Text('Body', style: T.title)),
+                              Expanded(child: Text(tr('profile.body'), style: T.title)),
                               Pressable(
                                 onTap: () => _logWeight(context),
                                 child: Container(
@@ -253,7 +259,7 @@ class ProfileScreen extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(99),
                                   ),
                                   child: Text(
-                                    'Log weight',
+                                    tr('profile.logWeight'),
                                     style: T.caption.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: C.jadeDeep,
@@ -269,7 +275,7 @@ class ProfileScreen extends StatelessWidget {
                               Expanded(
                                 child: _Stat(
                                   LucideIcons.ruler,
-                                  'Height',
+                                  tr('profile.height'),
                                   formatHeight(p.heightCm, p.units),
                                 ),
                               ),
@@ -277,7 +283,7 @@ class ProfileScreen extends StatelessWidget {
                               Expanded(
                                 child: _Stat(
                                   LucideIcons.scale,
-                                  'Weight',
+                                  tr('profile.weight'),
                                   formatWeight(p.weightKg, p.units),
                                 ),
                               ),
@@ -285,7 +291,7 @@ class ProfileScreen extends StatelessWidget {
                               Expanded(
                                 child: _Stat(
                                   LucideIcons.heart,
-                                  'Goal',
+                                  tr('profile.goal'),
                                   formatWeight(p.targetWeightKg, p.units),
                                 ),
                               ),
@@ -305,7 +311,7 @@ class ProfileScreen extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    'BMI $value',
+                                    tr('profile.bmiValue', {'value': value}),
                                     style: T.label.s(14),
                                   ),
                                 ),
@@ -319,7 +325,7 @@ class ProfileScreen extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(99),
                                   ),
                                   child: Text(
-                                    bmiCategory(value),
+                                    trTag(bmiCategory(value)),
                                     style: T.tiny.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: C.jadeDeep,
@@ -342,7 +348,7 @@ class ProfileScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Your goals', style: T.title),
+                          Text(tr('profile.yourGoals'), style: T.title),
                           const SizedBox(height: 12),
                           Wrap(
                             spacing: 8,
@@ -398,7 +404,7 @@ class ProfileScreen extends StatelessWidget {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text('Current plan', style: T.tiny),
+                                        Text(tr('profile.currentPlan'), style: T.tiny),
                                         Text(
                                           plan.title,
                                           maxLines: 1,
@@ -435,28 +441,34 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   _Group(
-                    title: 'Practice',
+                    title: tr('profile.practice'),
                     children: [
                       _Row(
                         icon: LucideIcons.bell,
-                        label: 'Daily reminder',
+                        label: tr('profile.dailyReminder'),
                         value: reminderLabel,
                         onTap: () => context.push('/reminders'),
                       ),
                       _Row(
                         icon: LucideIcons.slidersHorizontal,
-                        label: 'Sound & voice',
+                        label: tr('profile.soundVoice'),
                         onTap: () => context.push('/settings'),
                       ),
                       _Row(
+                        icon: LucideIcons.languages,
+                        label: tr('settings.language'),
+                        value: languageNames[appLang],
+                        onTap: () => _language(context),
+                      ),
+                      _Row(
                         icon: LucideIcons.chartColumn,
-                        label: 'History',
-                        value: '${app.history.length} sessions',
+                        label: tr('profile.history'),
+                        value: tr('common.sessions', {'n': app.history.length}),
                         onTap: () => context.push('/history'),
                       ),
                       _Row(
                         icon: LucideIcons.trophy,
-                        label: 'Achievements',
+                        label: tr('profile.achievements'),
                         value:
                             '${app.unlocked.length}/${Content.i.achievements.length}',
                         onTap: () => context.push('/achievements'),
@@ -474,7 +486,7 @@ class ProfileScreen extends StatelessWidget {
                             children: [
                               const _RowIcon(LucideIcons.ruler),
                               const SizedBox(width: 14),
-                              Expanded(child: Text('Units', style: T.label)),
+                              Expanded(child: Text(tr('profile.units'), style: T.label)),
                               Container(
                                 padding: const EdgeInsets.all(2),
                                 decoration: BoxDecoration(
@@ -483,9 +495,9 @@ class ProfileScreen extends StatelessWidget {
                                 ),
                                 child: Row(
                                   children: [
-                                    for (final u in const [
-                                      ('metric', 'kg · cm'),
-                                      ('imperial', 'lb · ft'),
+                                    for (final u in [
+                                      ('metric', tr('profile.unitsMetric')),
+                                      ('imperial', tr('profile.unitsImperial')),
                                     ])
                                       AnimatedContainer(
                                         duration: const Duration(
@@ -523,43 +535,48 @@ class ProfileScreen extends StatelessWidget {
                     ],
                   ),
                   _Group(
-                    title: 'Support',
+                    title: tr('profile.support'),
                     children: [
                       _Row(
                         icon: LucideIcons.star,
-                        label: 'Rate TaiChi Flow',
+                        label: tr('profile.rateApp'),
                         onTap: () => AppLinks.rate(),
                       ),
                       _Row(
                         icon: LucideIcons.share2,
-                        label: 'Share with a friend',
+                        label: tr('profile.shareWithFriend'),
                         onTap: () async {
                           await Clipboard.setData(
-                            const ClipboardData(
-                              text: "I've been practicing Tai Chi with TaiChi Flow — meditation in motion. Join me 🌿",
+                            ClipboardData(
+                              text: tr('profile.shareInviteText'),
                             ),
                           );
                           Toast.show(
-                            'Invite copied',
-                            description: 'Paste it to a friend.',
+                            tr('profile.inviteCopied'),
+                            description: tr('profile.pasteToFriend'),
                           );
                         },
                       ),
                       _Row(
                         icon: LucideIcons.refreshCw,
-                        label: 'Restore purchases',
+                        label: tr('profile.restorePurchases'),
                         onTap: () => _restore(context),
                       ),
                       _Row(
+                        icon: LucideIcons.messagesSquare,
+                        label: tr('profile.tellUsWhatYouNeed'),
+                        onTap: () => showFeedbackSheet(context),
+                      ),
+                      _Row(
                         icon: LucideIcons.circleHelp,
-                        label: 'Help & feedback',
+                        label: tr('profile.helpFeedback'),
                         onTap: () async {
                           if (!await AppLinks.contact()) {
                             await Clipboard.setData(
                               ClipboardData(text: Content.i.legal.contact),
                             );
                             Toast.show(
-                              'Support email copied',
+                              tr('profile.supportEmailCopied'),
                               description: Content.i.legal.contact,
                             );
                           }
@@ -568,26 +585,26 @@ class ProfileScreen extends StatelessWidget {
                     ],
                   ),
                   _Group(
-                    title: 'About',
+                    title: tr('profile.about'),
                     children: [
                       _Row(
                         icon: LucideIcons.shieldCheck,
-                        label: 'Privacy choices',
+                        label: tr('profile.privacyChoices'),
                         onTap: () => _privacyChoices(context),
                       ),
                       _Row(
                         icon: LucideIcons.shield,
-                        label: 'Privacy policy',
+                        label: tr('profile.privacyPolicy'),
                         onTap: () => context.push('/legal/privacy'),
                       ),
                       _Row(
                         icon: LucideIcons.fileText,
-                        label: 'Terms of use',
+                        label: tr('profile.termsOfUse'),
                         onTap: () => context.push('/legal/terms'),
                       ),
                       _Row(
                         icon: LucideIcons.trash2,
-                        label: 'Reset all data',
+                        label: tr('profile.resetAllData'),
                         danger: true,
                         onTap: () => _reset(context),
                       ),
@@ -598,7 +615,7 @@ class ProfileScreen extends StatelessWidget {
                     child: FutureBuilder<String>(
                       future: AppLinks.version(),
                       builder: (_, v) => Text(
-                        'TaiChi Flow ${v.data ?? ''} · Made with calm',
+                        tr('profile.versionFooter', {'version': v.data ?? ''}),
                         style: T.tiny.w(FontWeight.w400),
                       ),
                     ),
@@ -614,17 +631,100 @@ class ProfileScreen extends StatelessWidget {
 
   Future<void> _restore(BuildContext context) async {
     final app = context.read<AppState>();
-    Toast.show('Checking your purchases…');
+    Toast.show(tr('profile.checkingPurchases'));
     final ok = await PurchaseService.restore();
     if (ok) {
       if (!app.premium.active) app.setPremium('yearly');
-      Toast.show('TaiChi Flow Plus restored', description: 'Welcome back 💚');
+      Toast.show(tr('profile.plusRestored'), description: tr('profile.welcomeBack'));
     } else {
       Toast.show(
-        'No purchase found',
-        description: 'Use the same ${AppLinks.storeName} account you bought with.',
+        tr('profile.noPurchaseFound'),
+        description: tr('profile.useStoreAccount', {'store': AppLinks.storeName}),
       );
     }
+  }
+
+  /// Language picker: the device language (default) or any shipped language, each in its own name.
+  void _language(BuildContext context) {
+    final app = context.read<AppState>();
+    final device = resolveLanguage(null, deviceLanguageTags());
+    showEnsoSheet<void>(
+      context,
+      builder: (ctx) {
+        Widget option(String? code, String title, [String? subtitle]) {
+          final selected = app.language == code;
+          return Semantics(
+            button: true,
+            selected: selected,
+            child: Pressable(
+              onTap: () {
+                Navigator.pop(ctx);
+                if (!selected) app.setLanguage(code);
+              },
+              scale: 0.985,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 56),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected ? C.jadeSoft : Colors.transparent,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, style: T.label),
+                          if (subtitle != null)
+                            Text(subtitle, style: T.caption.s(13)),
+                        ],
+                      ),
+                    ),
+                    if (selected)
+                      const Icon(LucideIcons.check, size: 20, color: C.jadeDeep),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                tr('settings.language'),
+                style: T.title,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      option(
+                        null,
+                        tr('settings.languageSystem'),
+                        tr('settings.languageSystemDetail', {
+                          'language': languageNames[device],
+                        }),
+                      ),
+                      for (final code in supportedLanguages)
+                        option(code, languageNames[code]!),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _privacyChoices(BuildContext context) async {
@@ -647,7 +747,7 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
               child: Column(
                 children: [
-                  Text("Log today's weight", style: T.title),
+                  Text(tr('profile.logTodaysWeight'), style: T.title),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -657,7 +757,7 @@ class ProfileScreen extends StatelessWidget {
                       Text('$display', style: T.displayXl.tab),
                       const SizedBox(width: 8),
                       Text(
-                        imperial ? 'lb' : 'kg',
+                        imperial ? tr('profile.unitLb') : tr('profile.unitKg'),
                         style: T.title.copyWith(
                           color: C.muted,
                           fontWeight: FontWeight.w600,
@@ -675,12 +775,12 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   EnsoButton(
-                    label: 'Save',
+                    label: tr('common.save'),
                     onTap: () {
                       app.logWeight(draft);
                       Navigator.pop(ctx);
                       Toast.show(
-                        'Weight logged',
+                        tr('profile.weightLogged'),
                         description: formatWeight(draft, app.profile.units),
                         tone: 'success',
                       );
@@ -704,10 +804,10 @@ class ProfileScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
           child: Column(
             children: [
-              Text('Reset everything?', style: T.displayMd),
+              Text(tr('profile.resetEverything'), style: T.displayMd),
               const SizedBox(height: 8),
               Text(
-                'Your history, streaks, plan progress and settings will be erased from this device.',
+                tr('profile.resetDescription'),
                 textAlign: TextAlign.center,
                 style: T.bodySm.c(C.muted),
               ),
@@ -726,14 +826,14 @@ class ProfileScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(56),
                   ),
                   child: Text(
-                    'Erase & start over',
+                    tr('profile.eraseStartOver'),
                     style: T.label.copyWith(fontSize: 17, color: C.ivory),
                   ),
                 ),
               ),
               const SizedBox(height: 8),
               EnsoButton(
-                label: 'Cancel',
+                label: tr('common.cancel'),
                 variant: BtnVariant.ghost,
                 size: BtnSize.md,
                 onTap: () => Navigator.pop(ctx),
@@ -790,9 +890,9 @@ class _WeightSpark extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text('Weight trend', style: T.tiny)),
+              Expanded(child: Text(tr('profile.weightTrend'), style: T.tiny)),
               Text(
-                '${delta > 0 ? '+' : ''}$delta kg',
+                tr('profile.weightDeltaKg', {'delta': '${delta > 0 ? '+' : ''}$delta'}),
                 style: T.tiny.copyWith(
                   color: delta <= 0 ? C.jade : C.terracotta,
                 ),

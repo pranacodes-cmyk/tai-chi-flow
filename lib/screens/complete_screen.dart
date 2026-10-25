@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../data/content.dart';
+import '../data/models.dart';
 import '../logic/logic.dart';
 import '../state/app_state.dart';
 import '../theme/text.dart';
@@ -16,13 +17,14 @@ import '../widgets/rate_sheet.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/toast.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
-const _feelings = [
-  (1, 'Tense', 'frown'),
-  (2, 'Okay', 'meh'),
-  (3, 'Good', 'smile'),
-  (4, 'Great', 'sparkles'),
-  (5, 'Blissful', 'lotus'),
+List<(int, String, String)> get _feelings => [
+  (1, tr('complete.feelingTense'), 'frown'),
+  (2, tr('complete.feelingOkay'), 'meh'),
+  (3, tr('complete.feelingGood'), 'smile'),
+  (4, tr('complete.feelingGreat'), 'sparkles'),
+  (5, tr('complete.feelingBlissful'), 'lotus'),
 ];
 
 class CompleteScreen extends StatelessWidget {
@@ -41,10 +43,10 @@ class CompleteScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Nothing to celebrate yet', style: T.displayMd),
+              Text(tr('complete.nothingToCelebrate'), style: T.displayMd),
               const SizedBox(height: 24),
               EnsoButton(
-                label: 'Go to Today',
+                label: tr('complete.goToToday'),
                 expand: false,
                 onTap: () => context.go('/'),
               ),
@@ -68,15 +70,20 @@ class CompleteScreen extends StatelessWidget {
     final moves = session?.items.length ?? 0;
     final minutes = (entry.durationSec / 60).round().clamp(1, 10000);
     final isMed = entry.kind == 'meditation';
+    // finishing the last free day previews the next, locked lesson with a Plus offer
+    final plan = entry.planId == null ? null : Content.i.plan(entry.planId!);
+    final nextLocked = plan == null || entry.day == null
+        ? null
+        : lockedNextDay(plan, entry.day!, app.premium.active);
 
     final statTiles = [
-      (LucideIcons.clock, minutes, 'minutes'),
+      (LucideIcons.clock, minutes, tr('complete.statMinutes')),
       isMed
-          ? (LucideIcons.award, stats.meditations, 'meditations')
-          : (LucideIcons.flame, entry.kcal, 'kcal'),
+          ? (LucideIcons.award, stats.meditations, tr('complete.statMeditations'))
+          : (LucideIcons.flame, entry.kcal, tr('complete.statKcal')),
       isMed
-          ? (LucideIcons.flame, stats.streak, 'day streak')
-          : (LucideIcons.layers, moves, 'moves'),
+          ? (LucideIcons.flame, stats.streak, tr('complete.statDayStreak'))
+          : (LucideIcons.layers, moves, tr('complete.statMoves')),
     ];
 
     return PopScope(
@@ -132,7 +139,7 @@ class CompleteScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         Eyebrow(
-                          isMed ? 'Meditation complete' : 'Session complete',
+                          isMed ? tr('complete.meditationComplete') : tr('complete.sessionComplete'),
                           color: C.sage,
                         ),
                         const SizedBox(height: 8),
@@ -146,8 +153,8 @@ class CompleteScreen extends StatelessWidget {
                           constraints: const BoxConstraints(maxWidth: 300),
                           child: Text(
                             isMed
-                                ? 'Stillness is a skill. You just practiced it.'
-                                : "This isn't a workout. It's meditation in motion.",
+                                ? tr('complete.stillnessSkill')
+                                : tr('complete.notWorkout'),
                             textAlign: TextAlign.center,
                             style: T.serifAccent.copyWith(
                               fontSize: 22.4,
@@ -230,7 +237,7 @@ class CompleteScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '${stats.streak}-day streak',
+                                    tr('complete.streakTitle', {'n': stats.streak}),
                                     style: T.label.copyWith(
                                       fontSize: 17,
                                       fontWeight: FontWeight.w700,
@@ -239,8 +246,8 @@ class CompleteScreen extends StatelessWidget {
                                   ),
                                   Text(
                                     stats.streak > 1
-                                        ? 'Your consistency is building real change.'
-                                        : 'Day one of something beautiful. Come back tomorrow.',
+                                        ? tr('complete.consistencyBuilding')
+                                        : tr('complete.dayOneBeautiful'),
                                     style: T.caption.c(
                                       C.ivory.withValues(alpha: 0.85),
                                     ),
@@ -250,6 +257,18 @@ class CompleteScreen extends StatelessWidget {
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                  ],
+                  if (plan != null && nextLocked != null) ...[
+                    const SizedBox(height: 12),
+                    Reveal(
+                      delay: 0.8,
+                      child: _NextDayOffer(
+                        plan: plan,
+                        dayNumber: nextLocked,
+                        weightKg: app.profile.weightKg,
+                        onUnlock: () => context.push('/paywall?from=plan'),
                       ),
                     ),
                   ],
@@ -276,7 +295,7 @@ class CompleteScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 6),
                                 Eyebrow(
-                                  'New achievement${newBadges.length > 1 ? 's' : ''}',
+                                  tr('complete.newAchievements', {'n': newBadges.length}),
                                   color: C.gold,
                                 ),
                               ],
@@ -339,7 +358,7 @@ class CompleteScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          'How do you feel?',
+                          tr('complete.howDoYouFeel'),
                           style: T.label.c(C.ivory.withValues(alpha: 0.8)),
                         ),
                         const SizedBox(height: 12),
@@ -400,24 +419,24 @@ class CompleteScreen extends StatelessWidget {
                         icon: LucideIcons.share2,
                         tone: Tone.dark,
                         size: 56,
-                        label: 'Share',
+                        label: tr('complete.share'),
                         onTap: () async {
                           await Clipboard.setData(
                             ClipboardData(
                               text:
-                                  'I just finished "${entry.title}" on TaiChi Flow — $minutes mindful minutes. 🌿 ${stats.streak}-day streak!',
+                                  tr('complete.shareMessage', {'title': entry.title, 'minutes': minutes, 'streak': stats.streak}),
                             ),
                           );
                           Toast.show(
-                            'Copied to clipboard',
-                            description: 'Share your progress anywhere.',
+                            tr('complete.copiedToClipboard'),
+                            description: tr('complete.shareProgressAnywhere'),
                           );
                         },
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: EnsoButton(
-                          label: 'Done',
+                          label: tr('common.done'),
                           variant: BtnVariant.ivory,
                           onTap: () => context.go('/'),
                         ),
@@ -429,6 +448,136 @@ class CompleteScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "Day N is ready": the next lesson's preview with a single Plus action, shown after the last free day.
+class _NextDayOffer extends StatelessWidget {
+  const _NextDayOffer({
+    required this.plan,
+    required this.dayNumber,
+    required this.weightKg,
+    required this.onUnlock,
+  });
+  final Plan plan;
+  final int dayNumber;
+  final double weightKg;
+  final VoidCallback onUnlock;
+
+  @override
+  Widget build(BuildContext context) {
+    final day = plan.days[dayNumber - 1];
+    final learn = [
+      for (final it in day.items)
+        if (it.p == 'New today') Content.i.exercise(it.e),
+    ].whereType<Exercise>().toList();
+    final total = plan.days.length;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: C.ivory,
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: G.gold,
+              borderRadius: BorderRadius.circular(40),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(LucideIcons.crown, size: 13, color: C.ink),
+                const SizedBox(width: 5),
+                Text(tr('complete.dayReady', {'day': dayNumber}), style: T.tiny.c(C.ink)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RoundedImage(
+                img(learn.isNotEmpty ? learn.first.image : plan.image),
+                size: 88,
+                radius: 20,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr('complete.dayTitle', {'day': dayNumber, 'title': day.title}),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: T.title.copyWith(fontSize: 17, color: C.ink),
+                    ),
+                    if (learn.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        tr('complete.newExercises', {'names': learn.map((e) => e.name).join(' & ')}),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: T.caption.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: C.jadeDeep,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 2),
+                    Text(
+                      tr('complete.timeKcal', {'time': formatMinutes(totalSeconds(day.items)), 'kcal': kcalForWeight(day.kcal, weightKg)}),
+                      style: T.caption,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            tr('complete.finishedFreeDays', {'day': dayNumber, 'total': total}),
+            style: T.caption.copyWith(color: C.ink),
+          ),
+          const SizedBox(height: 14),
+          Semantics(
+            button: true,
+            label: tr('common.continueWithPlus'),
+            excludeSemantics: true,
+            child: Pressable(
+              onTap: onUnlock,
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: G.gold,
+                  borderRadius: BorderRadius.circular(52),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(LucideIcons.crown, size: 18, color: C.ink),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        tr('common.continueWithPlus'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: T.label.copyWith(fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

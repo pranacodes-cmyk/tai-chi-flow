@@ -8,6 +8,7 @@ import 'package:enso/state/app_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,10 +28,17 @@ Future<void> _loadFonts() async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(_loadFonts);
-  Content.loadFromJson(jsonDecode(File('assets/data/content.json').readAsStringSync()) as Map<String, dynamic>);
+  setUpAll(() async {
+    await _loadFonts();
+    await initializeDateFormatting();
+  });
+  Map<String, dynamic> contentFor(String lang) => jsonDecode(
+        File(lang == 'en' ? 'assets/data/content.json' : 'assets/data/i18n/content.$lang.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+  Content.loadFromJson(contentFor('en'));
   final c = Content.i;
-  final starter = c.plans.firstWhere((p) => p.id.contains('starter'), orElse: () => c.plans.first).id;
+  // the journey after its two free days: Today and the course page show their locked, Plus-offer state
+  const starter = 'tai-chi-journey-30';
   final premium = c.plans.firstWhere((p) => p.premium).id;
   final quick = c.quickSessions.first.id;
   final routes = [
@@ -40,16 +48,23 @@ void main() {
     '/legal/privacy', '/paywall?from=onboarding&offer=regular', '/paywall?offer=gift', '/paywall?offer=exit',
     '/session/quick:$quick', '/plan-ready',
   ];
-  const sizes = [Size(320, 640), Size(360, 640)];
+  // English at both widths; every other language (longer German/French words, Japanese glyphs)
+  // at the tightest width.
+  final runs = [
+    for (final w in [320.0, 360.0]) ('en', Size(w, 640)),
+    for (final lang in ['de', 'fr', 'es', 'pt', 'it', 'ja']) (lang, const Size(320, 640)),
+  ];
 
-  for (final size in sizes) {
+  for (final (lang, size) in runs) {
     for (final route in routes) {
-      testWidgets('no overflow at ${size.width.toInt()}px, 130% text: $route', (tester) async {
+      testWidgets('no overflow at ${size.width.toInt()}px, 130% text, $lang: $route', (tester) async {
+        Content.loadFromJson(contentFor(lang), lang);
         SharedPreferences.setMockInitialValues({
           'enso-state-v1': jsonEncode({
+            'language': lang,
             'onboarded': true,
             'activePlanId': starter,
-            'planProgress': {starter: {'startedAt': '2026-10-20T08:00:00.000Z', 'completedDays': [1]}},
+            'planProgress': {starter: {'startedAt': '2026-10-20T08:00:00.000Z', 'completedDays': [1, 2]}},
           }),
         });
         final app = await AppState.load();

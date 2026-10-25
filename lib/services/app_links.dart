@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/content.dart';
+import '../i18n/i18n.dart';
 
 /// Store, support and version links (web `src/lib/app-links.ts`).
 class AppLinks {
@@ -17,7 +18,8 @@ class AppLinks {
   static bool get _ios => !kIsWeb && Platform.isIOS;
 
   /// Name of the store that bills subscriptions on this device.
-  static String get storeName => _ios ? 'the App Store' : 'Google Play';
+  static String get storeName =>
+      _ios ? tr('links.storeNameAppStore') : tr('links.storeNameGooglePlay');
 
   static String? _version;
 
@@ -71,7 +73,8 @@ class AppLinks {
   );
 
   /// Email to support with the app version filled in.
-  static Future<bool> contact({String subject = 'TaiChi Flow help'}) async {
+  static Future<bool> contact({String? subject}) async {
+    final s = subject ?? tr('links.contactSubject');
     final v = await version();
     final to = Content.i.legal.contact;
     return _open(
@@ -79,7 +82,7 @@ class AppLinks {
         scheme: 'mailto',
         path: to,
         query:
-            'subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent('\n\n—\nTaiChi Flow $v · ${_ios ? 'iPhone' : 'Android'}')}',
+            'subject=${Uri.encodeComponent(s)}&body=${Uri.encodeComponent(tr('links.emailSignature', {'version': v, 'device': _ios ? 'iPhone' : 'Android'}))}',
       ),
     );
   }

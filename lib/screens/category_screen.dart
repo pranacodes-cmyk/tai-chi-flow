@@ -12,6 +12,7 @@ import '../widgets/cards.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
 import 'plan_detail_screen.dart';
+import '../i18n/i18n.dart';
 
 class CategoryScreen extends StatelessWidget {
   const CategoryScreen({super.key, required this.categoryId});
@@ -76,7 +77,7 @@ class CategoryScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            '${kcalForWeight(c.kcal, weight)} kcal',
+                            tr('common.kcal', {'n': kcalForWeight(c.kcal, weight)}),
                             style: T.caption.copyWith(
                               fontSize: 14,
                               color: C.ivory.withValues(alpha: 0.85),
@@ -97,7 +98,7 @@ class CategoryScreen extends StatelessWidget {
                         style: T.body.c(C.ink.withValues(alpha: 0.8)),
                       ),
                       const SizedBox(height: 28),
-                      Text('Movements', style: T.title.s(20)),
+                      Text(tr('category.movements'), style: T.title.s(20)),
                       const SizedBox(height: 12),
                       for (final (i, id) in c.exerciseIds.take(10).indexed)
                         Builder(
@@ -111,7 +112,7 @@ class CategoryScreen extends StatelessWidget {
                                   image: img(e.image),
                                   title: e.name,
                                   subtitle:
-                                      '${e.level} · ${e.focus.take(2).join(' · ')}',
+                                      '${trTag(e.level)} · ${e.focus.take(2).map(trTag).join(' · ')}',
                                   size: 68,
                                   onTap: () => context.push('/exercise/$id'),
                                 ),
@@ -123,7 +124,7 @@ class CategoryScreen extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: EnsoButton(
-                            label: 'See all ${c.exerciseIds.length} movements',
+                            label: tr('category.seeAllMovements', {'n': c.exerciseIds.length}),
                             variant: BtnVariant.secondary,
                             onTap: () =>
                                 context.push('/movements?category=${c.id}'),
@@ -132,7 +133,7 @@ class CategoryScreen extends StatelessWidget {
                       if (related.isNotEmpty) ...[
                         const SizedBox(height: 22),
                         Text(
-                          'Programs featuring ${c.name}',
+                          tr('category.programsFeaturing', {'name': c.name}),
                           style: T.title.s(20),
                         ),
                         const SizedBox(height: 12),
@@ -143,8 +144,8 @@ class CategoryScreen extends StatelessWidget {
                               image: img(p.image),
                               title: p.title,
                               subtitle: p.isSingleSession
-                                  ? '${p.minutesPerDay} min · ${p.level}'
-                                  : '${p.days.length} days · ${p.minutesPerDay} min/day',
+                                  ? '${tr('common.minShort', {'n': p.minutesPerDay})} · ${trTag(p.level)}'
+                                  : '${tr('common.days', {'n': p.days.length})} · ${tr('category.minPerDay', {'n': p.minutesPerDay})}',
                               size: 56,
                               trailing: p.premium && !premium
                                   ? const PremiumBadge()
@@ -165,7 +166,7 @@ class CategoryScreen extends StatelessWidget {
           ),
           BottomCta(
             child: EnsoButton(
-              label: 'Start ${c.name} session',
+              label: tr('category.startSession', {'name': c.name}),
               icon: Icons.play_arrow_rounded,
               onTap: () => context.push('/session/cat:${c.id}'),
             ),

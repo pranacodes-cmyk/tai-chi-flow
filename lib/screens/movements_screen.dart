@@ -9,6 +9,7 @@ import '../theme/tokens.dart';
 import '../widgets/cards.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
 /// Searchable library of every movement (web: /movements).
 class MovementsScreen extends StatefulWidget {
@@ -60,12 +61,12 @@ class _MovementsScreenState extends State<MovementsScreen> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
-            child: Text('All movements', style: T.displayLg),
+            child: Text(tr('movements.allMovements'), style: T.displayLg),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
             child: Text(
-              '${results.length} guided movements',
+              tr('movements.guidedCount', {'n': results.length}),
               style: T.bodySm.c(C.muted),
             ),
           ),
@@ -92,7 +93,7 @@ class _MovementsScreenState extends State<MovementsScreen> {
                       decoration: InputDecoration(
                         isCollapsed: true,
                         border: InputBorder.none,
-                        hintText: 'Search movements or body areas',
+                        hintText: tr('movements.searchHint'),
                         hintStyle: T.body.c(C.muted),
                       ),
                     ),
@@ -100,7 +101,7 @@ class _MovementsScreenState extends State<MovementsScreen> {
                   if (_query.text.isNotEmpty)
                     Pressable(
                       onTap: _query.clear,
-                      semanticLabel: 'Clear search',
+                      semanticLabel: tr('movements.clearSearch'),
                       child: const SizedBox(
                         width: 44,
                         height: 44,
@@ -124,7 +125,7 @@ class _MovementsScreenState extends State<MovementsScreen> {
               physics: const BouncingScrollPhysics(),
               children: [
                 ChipPill(
-                  label: 'All',
+                  label: trTag('All'),
                   active: _cat == 'all',
                   onTap: () => setState(() => _cat = 'all'),
                 ),
@@ -152,10 +153,10 @@ class _MovementsScreenState extends State<MovementsScreen> {
                           color: C.muted,
                         ),
                         const SizedBox(height: 12),
-                        Text('No movements found', style: T.title),
+                        Text(tr('movements.noneFound'), style: T.title),
                         const SizedBox(height: 4),
                         Text(
-                          'Try another word, or clear the filter.',
+                          tr('movements.noneFoundHint'),
                           textAlign: TextAlign.center,
                           style: T.bodySm.c(C.muted),
                         ),

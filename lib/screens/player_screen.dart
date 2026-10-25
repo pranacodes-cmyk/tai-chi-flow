@@ -20,6 +20,7 @@ import '../widgets/scaffold.dart';
 import '../widgets/sheet.dart';
 import '../widgets/ui.dart';
 import 'plan_detail_screen.dart';
+import '../i18n/i18n.dart';
 
 enum _Phase { ready, work, rest }
 
@@ -256,16 +257,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
           child: Column(
             children: [
-              Text('Leave this session?', style: T.displayMd.c(C.ivory)),
+              Text(tr('player.leaveSessionTitle'), style: T.displayMd.c(C.ivory)),
               const SizedBox(height: 8),
               Text(
-                "You're $pctDone% through. Progress for this session won't be saved.",
+                tr('player.leaveSessionBody', {'pct': pctDone}),
                 textAlign: TextAlign.center,
                 style: T.bodySm.c(C.ivory.withValues(alpha: 0.65)),
               ),
               const SizedBox(height: 24),
               EnsoButton(
-                label: 'Keep practicing',
+                label: tr('player.keepPracticing'),
                 variant: BtnVariant.ivory,
                 onTap: () => Navigator.pop(ctx, false),
               ),
@@ -275,7 +276,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 child: SizedBox(
                   height: 48,
                   child: Center(
-                    child: Text('End session', style: T.label.c(C.terracotta)),
+                    child: Text(tr('player.endSession'), style: T.label.c(C.terracotta)),
                   ),
                 ),
               ),
@@ -336,15 +337,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     icon: LucideIcons.x,
                     tone: Tone.dark,
                     onTap: _exit,
-                    label: 'Close',
+                    label: tr('common.close'),
                   ),
                   Expanded(
                     child: Text(
                       phase == _Phase.rest
-                          ? 'Rest · next movement'
+                          ? tr('player.restNextMovement')
                           : phase == _Phase.ready
-                          ? 'Get ready'
-                          : '${index + 1} / ${items.length}',
+                          ? tr('player.getReady')
+                          : tr('player.stepOfTotal', {'current': index + 1, 'total': items.length}),
                       textAlign: TextAlign.center,
                       style: T.caption.c(C.ivory.withValues(alpha: 0.7)),
                     ),
@@ -353,7 +354,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     icon: LucideIcons.slidersHorizontal,
                     tone: Tone.dark,
                     onTap: _settings,
-                    label: 'Audio settings',
+                    label: tr('player.audioSettings'),
                   ),
                 ],
               ),
@@ -422,7 +423,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     child: Center(
                       child: Text(
                         phase == _Phase.rest
-                            ? 'Breathe and prepare for the next movement.'
+                            ? tr('player.restGuidance')
                             : _guidance(shown),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
@@ -450,11 +451,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         size: 48,
                         iconSize: 26,
                         onTap: _skipPrev,
-                        label: 'Previous',
+                        label: tr('player.previous'),
                       ),
                       Pressable(
                         onTap: _togglePlay,
-                        semanticLabel: running ? 'Pause' : 'Play',
+                        semanticLabel: running ? tr('common.pause') : tr('common.play'),
                         child: Container(
                           width: 64,
                           height: 64,
@@ -477,7 +478,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         size: 48,
                         iconSize: 26,
                         onTap: _skipNext,
-                        label: 'Next',
+                        label: tr('player.next'),
                       ),
                     ],
                   ),
@@ -543,21 +544,21 @@ class _SoundSheet extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 4),
-            child: Text('Sound', style: T.title.c(C.ivory)),
+            child: Text(tr('player.sound'), style: T.title.c(C.ivory)),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
               toggle(
                 a.voice ? LucideIcons.mic : LucideIcons.micOff,
-                'Voice ${a.voice ? 'on' : 'off'}',
+                a.voice ? tr('player.voiceOn') : tr('player.voiceOff'),
                 a.voice,
                 () => app.setAudio((x) => x.voice = !x.voice),
               ),
               const SizedBox(width: 12),
               toggle(
                 LucideIcons.music2,
-                'Music ${a.music ? 'on' : 'off'}',
+                a.music ? tr('player.musicOn') : tr('player.musicOff'),
                 a.music,
                 () {
                   app.setAudio((x) => x.music = !x.music);
@@ -570,7 +571,7 @@ class _SoundSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 4),
             child: Text(
-              'Soundscape',
+              tr('player.soundscape'),
               style: T.caption.copyWith(
                 fontWeight: FontWeight.w600,
                 color: C.ivory.withValues(alpha: 0.6),
@@ -637,7 +638,7 @@ class _SoundSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 4),
             child: Text(
-              'Music volume',
+              tr('player.musicVolume'),
               style: T.caption.copyWith(
                 fontWeight: FontWeight.w600,
                 color: C.ivory.withValues(alpha: 0.6),

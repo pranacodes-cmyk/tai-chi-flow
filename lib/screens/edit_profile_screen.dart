@@ -11,6 +11,7 @@ import '../theme/tokens.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/toast.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -34,7 +35,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void _save() {
     draft.name = _name.text.trim();
     app.replaceProfile(draft);
-    Toast.show('Profile saved', tone: 'success');
+    Toast.show(tr('editProfile.profileSaved'), tone: 'success');
     context.canPop() ? context.pop() : context.go('/profile');
   }
 
@@ -68,7 +69,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                  child: Text('Edit profile', style: T.displayLg),
+                  child: Text(tr('editProfile.title'), style: T.displayLg),
                 ),
                 const SizedBox(height: 24),
                 Padding(
@@ -77,7 +78,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _Field(
-                        'Name',
+                        tr('editProfile.name'),
                         Container(
                           height: 56,
                           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -95,7 +96,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             decoration: InputDecoration(
                               counterText: '',
                               border: InputBorder.none,
-                              hintText: 'Your first name',
+                              hintText: tr('editProfile.namePlaceholder'),
                               hintStyle: T.label.copyWith(
                                 fontSize: 17,
                                 color: C.muted,
@@ -105,7 +106,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
                       _Field(
-                        'Age',
+                        tr('editProfile.age'),
                         Row(
                           children: [
                             for (final (i, o) in _opts('ageGroup').indexed) ...[
@@ -122,7 +123,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
                       _Field(
-                        'Goals',
+                        tr('editProfile.goals'),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
@@ -143,11 +144,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
                       _Field(
-                        'Body',
+                        tr('editProfile.body'),
                         Column(
                           children: [
                             _Stepper(
-                              'Height',
+                              tr('editProfile.height'),
                               formatHeight(draft.heightCm, draft.units),
                               () => setState(
                                 () => draft.heightCm = (draft.heightCm - 1)
@@ -160,7 +161,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                             const SizedBox(height: 10),
                             _Stepper(
-                              'Weight',
+                              tr('editProfile.weight'),
                               formatWeight(draft.weightKg, draft.units),
                               () => setState(
                                 () => draft.weightKg = step(
@@ -177,7 +178,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                             const SizedBox(height: 10),
                             _Stepper(
-                              'Goal weight',
+                              tr('editProfile.goalWeight'),
                               formatWeight(draft.targetWeightKg, draft.units),
                               () => setState(
                                 () => draft.targetWeightKg = step(
@@ -196,7 +197,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
                       _Field(
-                        'Daily practice',
+                        tr('editProfile.dailyPractice'),
                         Row(
                           children: [
                             for (final (i, m) in const [
@@ -208,7 +209,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               if (i > 0) const SizedBox(width: 8),
                               Expanded(
                                 child: _Pill(
-                                  '$m min',
+                                  tr('common.minShort', {'n': m}),
                                   draft.dailyMinutes == m,
                                   () => setState(() => draft.dailyMinutes = m),
                                 ),
@@ -239,7 +240,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
-                                    'Suggested for your new goals',
+                                    tr('editProfile.suggestedForGoals'),
                                     style: T.caption.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: C.jadeDeep,
@@ -255,13 +256,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                               const SizedBox(height: 12),
                               EnsoButton(
-                                label: 'Switch to this plan',
+                                label: tr('editProfile.switchToThisPlan'),
                                 size: BtnSize.sm,
                                 expand: false,
                                 onTap: () {
                                   app.startPlan(suggested);
                                   Toast.show(
-                                    'Plan updated',
+                                    tr('editProfile.planUpdated'),
                                     description: suggestedPlan.title,
                                     tone: 'success',
                                   );
@@ -277,7 +278,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ),
           BottomCta(
-            child: EnsoButton(label: 'Save changes', onTap: _save),
+            child: EnsoButton(label: tr('editProfile.saveChanges'), onTap: _save),
           ),
         ],
       ),
@@ -363,7 +364,7 @@ class _Stepper extends StatelessWidget {
           tone: Tone.sand,
           size: 36,
           iconSize: 16,
-          label: 'Decrease $label',
+          label: tr('editProfile.decreaseLabel', {'label': label}),
           onTap: onDec,
         ),
         SizedBox(
@@ -379,7 +380,7 @@ class _Stepper extends StatelessWidget {
           tone: Tone.sand,
           size: 36,
           iconSize: 16,
-          label: 'Increase $label',
+          label: tr('editProfile.increaseLabel', {'label': label}),
           onTap: onInc,
         ),
       ],

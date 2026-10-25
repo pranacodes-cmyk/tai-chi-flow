@@ -19,6 +19,7 @@ import '../widgets/ruler_picker.dart';
 import '../widgets/onboarding_experience.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
 const _sections = ['About you', 'Your goals', 'Your body', 'Your routine'];
 
@@ -261,7 +262,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       CircleBtn(
                         icon: LucideIcons.chevronLeft,
                         onTap: back,
-                        label: 'Back',
+                        label: tr('common.back'),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -318,7 +319,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Eyebrow(step.section, color: C.jade),
+                          Eyebrow(trTag(step.section), color: C.jade),
                           const SizedBox(height: 10),
                           Text(
                             step.title,
@@ -359,8 +360,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     child: EnsoButton(
                       label: step.type == 'name'
-                          ? 'Create my plan'
-                          : 'Continue',
+                          ? tr('onboarding.createMyPlan')
+                          : tr('common.continue'),
                       onTap: valid ? next : null,
                     ),
                   ),
@@ -753,7 +754,7 @@ class _GenderCards extends StatelessWidget {
           delay: 0.27,
           dy: 10,
           child: Text(
-            'Join members of every age, shape and fitness level.',
+            tr('onboarding.joinMembers'),
             textAlign: TextAlign.center,
             style: T.caption,
           ),
@@ -1079,10 +1080,10 @@ class _ProofCard extends StatelessWidget {
           dy: 12,
           child: Row(
             children: [
-              for (final (i, s) in const [
-                ('Balance', 'steadier'),
-                ('10 min', 'a day'),
-                ('0', 'equipment'),
+              for (final (i, s) in [
+                (tr('onboarding.statBalance'), tr('onboarding.statSteadier')),
+                (tr('common.minShort', {'n': 10}), tr('onboarding.statADay')),
+                ('0', tr('onboarding.statEquipment')),
               ].indexed) ...[
                 if (i > 0) const SizedBox(width: 10),
                 Expanded(
@@ -1118,13 +1119,13 @@ class _ProofCard extends StatelessWidget {
   }
 }
 
-const _zoneCopy = {
-  'neck': 'Neck & shoulder release in every session',
-  'back': 'Spine-friendly twists and gentle back mobility',
-  'arms': 'Flowing arm work for tone and circulation',
-  'core': 'Deep breathing that quietly strengthens your core',
-  'hips': 'Hip openers to ease stiffness',
-  'legs': 'Rooted stances for stronger legs and knees',
+Map<String, String> get _zoneCopy => {
+  'neck': tr('onboarding.zoneNeck'),
+  'back': tr('onboarding.zoneBack'),
+  'arms': tr('onboarding.zoneArms'),
+  'core': tr('onboarding.zoneCore'),
+  'hips': tr('onboarding.zoneHips'),
+  'legs': tr('onboarding.zoneLegs'),
 };
 
 class _InsightCard extends StatelessWidget {
@@ -1136,9 +1137,9 @@ class _InsightCard extends StatelessWidget {
     final bullets = <String>[
       ...profile.zones.take(2).map((z) => _zoneCopy[z]).whereType<String>(),
       profile.limitations.any((l) => l != 'none')
-          ? 'Joint-safe options for the areas you flagged'
-          : 'Low-impact flows that are kind to your joints',
-      'Breath-led pacing that lowers stress as you move',
+          ? tr('onboarding.jointSafeOptions')
+          : tr('onboarding.lowImpactFlows'),
+      tr('onboarding.breathLedPacing'),
     ].take(3).toList();
     Widget legend(Color c, String l) => Row(
       mainAxisSize: MainAxisSize.min,
@@ -1165,10 +1166,10 @@ class _InsightCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text('Balance & mobility', style: T.title)),
-                    legend(C.jade, 'With TaiChi Flow'),
+                    Expanded(child: Text(tr('onboarding.balanceMobility'), style: T.title)),
+                    legend(C.jade, tr('onboarding.withTaiChiFlow')),
                     const SizedBox(width: 12),
-                    legend(C.sandDeep, 'Without'),
+                    legend(C.sandDeep, tr('onboarding.without')),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -1185,7 +1186,7 @@ class _InsightCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    for (final l in const ['Today', 'Week 2', 'Week 4'])
+                    for (final l in trList('onboarding.insightTimeline'))
                       Text(l, style: T.tiny.copyWith(fontSize: 11)),
                   ],
                 ),
@@ -1766,7 +1767,7 @@ class _HeightStep extends StatelessWidget {
         children: [
           _UnitToggle(
             value: p.units,
-            options: const [('metric', 'cm'), ('imperial', 'ft / in')],
+            options: [('metric', tr('onboarding.cm')), ('imperial', tr('onboarding.ftIn'))],
             onChanged: (v) => app.setProfile((x) => x.units = v),
           ),
           const SizedBox(height: 48),
@@ -1782,7 +1783,7 @@ class _HeightStep extends StatelessWidget {
               if (!imperial) ...[
                 const SizedBox(width: 8),
                 Text(
-                  'cm',
+                  tr('onboarding.cm'),
                   style: T.title.copyWith(
                     fontSize: 20,
                     color: C.muted,
@@ -1857,7 +1858,7 @@ class _WeightStepState extends State<_WeightStep> {
         children: [
           _UnitToggle(
             value: p.units,
-            options: const [('metric', 'kg'), ('imperial', 'lb')],
+            options: [('metric', tr('onboarding.kg')), ('imperial', tr('onboarding.lb'))],
             onChanged: (v) => app.setProfile((x) => x.units = v),
           ),
           const SizedBox(height: 40),
@@ -1869,7 +1870,7 @@ class _WeightStepState extends State<_WeightStep> {
               Text('$display', style: T.displayXl.copyWith(fontSize: 72).tab),
               const SizedBox(width: 8),
               Text(
-                imperial ? 'lb' : 'kg',
+                imperial ? tr('onboarding.lb') : tr('onboarding.kg'),
                 style: T.title.copyWith(
                   fontSize: 20,
                   color: C.muted,
@@ -1913,11 +1914,14 @@ class _WeightStepState extends State<_WeightStep> {
                       TextSpan(
                         children: [
                           TextSpan(
-                            text:
-                                'Lose ${imperial ? '${kgToLb(diff)} lb' : '${fmt(diff)} kg'} ',
+                            text: tr('onboarding.loseAmount', {
+                              'amount': imperial
+                                  ? '${kgToLb(diff)} lb'
+                                  : '${fmt(diff)} kg',
+                            }),
                           ),
                           TextSpan(
-                            text: '· $pct% of your weight',
+                            text: tr('onboarding.weightPercent', {'pct': pct}),
                             style: T.title.c(C.muted),
                           ),
                         ],
@@ -1927,27 +1931,27 @@ class _WeightStepState extends State<_WeightStep> {
                     const SizedBox(height: 6),
                     Text(
                       pct <= 10
-                          ? 'A realistic, healthy target. Gentle daily movement gets you there.'
-                          : "An ambitious goal — we'll build up gradually and safely.",
+                          ? tr('onboarding.realisticTarget')
+                          : tr('onboarding.ambitiousGoal'),
                       style: T.caption.copyWith(fontSize: 14, height: 1.5),
                     ),
                   ] else ...[
-                    Text('Maintain & tone', style: T.title),
+                    Text(tr('onboarding.maintainTone'), style: T.title),
                     const SizedBox(height: 6),
                     Text(
-                      "We'll focus on strength, balance and flexibility while you hold your weight.",
+                      tr('onboarding.maintainToneDesc'),
                       style: T.caption.copyWith(fontSize: 14, height: 1.5),
                     ),
                   ],
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      _Pill('BMI $currentBmi', C.sand, C.ink),
+                      _Pill(tr('onboarding.bmiValue', {'value': currentBmi}), C.sand, C.ink),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 12),
                         child: Text('→', style: TextStyle(color: C.muted)),
                       ),
-                      _Pill('BMI $targetBmi', C.jadeSoft, C.jadeDeep),
+                      _Pill(tr('onboarding.bmiValue', {'value': targetBmi}), C.jadeSoft, C.jadeDeep),
                     ],
                   ),
                 ],
@@ -1977,11 +1981,11 @@ class _Pill extends StatelessWidget {
 class _BmiCard extends StatelessWidget {
   const _BmiCard({required this.value});
   final double value;
-  static const copy = {
-    'Underweight': "We'll focus on gentle strength and energy.",
-    'Healthy': "Great range! We'll keep you strong and supple.",
-    'Overweight': 'Low-impact movement is perfect for steady progress.',
-    'Obese': 'Joint-friendly sessions will help you move with ease.',
+  static Map<String, String> get copy => {
+    'Underweight': tr('onboarding.bmiUnderweightCopy'),
+    'Healthy': tr('onboarding.bmiHealthyCopy'),
+    'Overweight': tr('onboarding.bmiOverweightCopy'),
+    'Obese': tr('onboarding.bmiObeseCopy'),
   };
   @override
   Widget build(BuildContext context) {
@@ -1999,7 +2003,7 @@ class _BmiCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text('Your BMI', style: T.title)),
+              Expanded(child: Text(tr('onboarding.yourBmi'), style: T.title)),
               Text('$value', style: T.displayMd.tab),
             ],
           ),
@@ -2046,7 +2050,7 @@ class _BmiCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              for (final l in const ['Under', 'Healthy', 'Over', 'Obese'])
+              for (final l in trList('onboarding.bmiShortLabels'))
                 Text(
                   l,
                   style: T.tiny.copyWith(
@@ -2061,7 +2065,7 @@ class _BmiCard extends StatelessWidget {
             TextSpan(
               children: [
                 TextSpan(
-                  text: '$cat. ',
+                  text: '${trTag(cat)}. ',
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: C.ink,
@@ -2078,19 +2082,19 @@ class _BmiCard extends StatelessWidget {
   }
 }
 
-const _stressCopy = [
-  'Wonderfully calm',
-  'Mostly calm',
-  'A little stressed',
-  'Quite stressed',
-  'Overwhelmed',
+List<String> get _stressCopy => [
+  tr('onboarding.stressWonderfullyCalm'),
+  tr('onboarding.stressMostlyCalm'),
+  tr('onboarding.stressLittleStressed'),
+  tr('onboarding.stressQuiteStressed'),
+  tr('onboarding.stressOverwhelmed'),
 ];
-const _stressHelp = [
-  "We'll keep your practice light and joyful.",
-  'Regular flow will help you stay grounded.',
-  'Breath-led qigong will help release tension.',
-  "We'll add calming breathwork to every session.",
-  "We'll start with soothing, slow sessions to help you reset.",
+List<String> get _stressHelp => [
+  tr('onboarding.stressHelp1'),
+  tr('onboarding.stressHelp2'),
+  tr('onboarding.stressHelp3'),
+  tr('onboarding.stressHelp4'),
+  tr('onboarding.stressHelp5'),
 ];
 
 /// Seconds per breath of the orb: slow and easy when calm, quick when overwhelmed (web `stressBreath`).
@@ -2260,8 +2264,8 @@ class _StressScaleState extends State<_StressScale>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Calm', style: T.tiny.w(FontWeight.w500)),
-              Text('Overwhelmed', style: T.tiny.w(FontWeight.w500)),
+              Text(tr('onboarding.calm'), style: T.tiny.w(FontWeight.w500)),
+              Text(tr('onboarding.stressOverwhelmed'), style: T.tiny.w(FontWeight.w500)),
             ],
           ),
         ],
@@ -2316,7 +2320,7 @@ class _TimeGrid extends StatelessWidget {
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text(
-                        'Popular',
+                        tr('onboarding.popular'),
                         style: T.tiny.copyWith(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -2348,11 +2352,11 @@ class _TimeGrid extends StatelessWidget {
   }
 }
 
-const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+List<String> get dayLetters => trList('common.weekdayLetters');
 
 ({String time, String ampm}) formatTime(int h, int m) => (
   time: '${h % 12 == 0 ? 12 : h % 12}:${m.toString().padLeft(2, '0')}',
-  ampm: h >= 12 ? 'PM' : 'AM',
+  ampm: h >= 12 ? tr('onboarding.pm') : tr('onboarding.am'),
 );
 
 class _ReminderStep extends StatelessWidget {
@@ -2371,10 +2375,10 @@ class _ReminderStep extends StatelessWidget {
       });
     }
 
-    const presets = [
-      ('Morning', 7, 30),
-      ('Midday', 12, 30),
-      ('Evening', 19, 0),
+    final presets = [
+      (tr('onboarding.morning'), 7, 30),
+      (tr('onboarding.midday'), 12, 30),
+      (tr('onboarding.evening'), 19, 0),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2393,7 +2397,7 @@ class _ReminderStep extends StatelessWidget {
                 tone: Tone.sand,
                 size: 48,
                 onTap: () => shift(-15),
-                label: 'Earlier',
+                label: tr('onboarding.earlier'),
               ),
               Expanded(
                 child: Row(
@@ -2418,7 +2422,7 @@ class _ReminderStep extends StatelessWidget {
                 tone: Tone.sand,
                 size: 48,
                 onTap: () => shift(15),
-                label: 'Later',
+                label: tr('onboarding.later'),
               ),
             ],
           ),
@@ -2464,7 +2468,7 @@ class _ReminderStep extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Text(
-          'Repeat on',
+          tr('onboarding.repeatOn'),
           style: T.caption.copyWith(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 10),
@@ -2481,7 +2485,7 @@ class _ReminderStep extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         EnsoButton(
-          label: 'Remind me daily',
+          label: tr('onboarding.remindMeDaily'),
           onTap: () async {
             app.setReminders((x) => x.enabled = true);
             onDone();
@@ -2495,7 +2499,7 @@ class _ReminderStep extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         EnsoButton(
-          label: 'Not now',
+          label: tr('onboarding.notNow'),
           variant: BtnVariant.ghost,
           onTap: () {
             app.setReminders((x) => x.enabled = false);
@@ -2603,19 +2607,21 @@ class _NotificationPreview extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'TaiChi Flow · $time',
+                tr('onboarding.notifHeader', {'time': time}),
                 style: T.tiny.copyWith(color: C.ivory.withValues(alpha: 0.6)),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            '${name.isNotEmpty ? '$name, your' : 'Your'} $minutes-minute practice is ready 🌿',
+            name.isNotEmpty
+                ? tr('onboarding.notifBodyWithName', {'name': name, 'minutes': minutes})
+                : tr('onboarding.notifBodyNoName', {'minutes': minutes}),
             style: T.label.c(C.ivory),
           ),
           const SizedBox(height: 2),
           Text(
-            'A few mindful minutes for balance and calm.',
+            tr('onboarding.fewMindfulMinutes'),
             style: T.caption.c(C.ivory.withValues(alpha: 0.7)),
           ),
         ],
@@ -2719,13 +2725,13 @@ class _NameStepState extends State<_NameStep> {
               decoration: InputDecoration(
                 counterText: '',
                 border: InputBorder.none,
-                hintText: 'Your first name',
+                hintText: tr('onboarding.yourFirstName'),
                 hintStyle: T.displayMd.c(C.muted.withValues(alpha: 0.5)),
               ),
             ),
           ),
           const SizedBox(height: 12),
-          Text("We'll use it to cheer you on.", style: T.caption),
+          Text(tr('onboarding.cheerYouOn'), style: T.caption),
         ],
       ),
     );

@@ -15,19 +15,20 @@ import '../theme/tokens.dart';
 import '../widgets/breath_orb.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
-const _patterns = [
+List<({String id, String name, String desc, List<int> p})> get _patterns => [
   (
     id: 'box',
-    name: 'Box',
-    desc: '4 · 4 · 4 · 4 — focus & calm',
+    name: tr('breathe.patternBoxName'),
+    desc: tr('breathe.patternBoxDesc'),
     p: [4, 4, 4, 4],
   ),
-  (id: '478', name: '4-7-8', desc: 'Deep relaxation & sleep', p: [4, 7, 8, 0]),
+  (id: '478', name: tr('breathe.pattern478Name'), desc: tr('breathe.pattern478Desc'), p: [4, 7, 8, 0]),
   (
     id: 'calm',
-    name: 'Calm',
-    desc: '4 in · 6 out — reset stress',
+    name: tr('breathe.patternCalmName'),
+    desc: tr('breathe.patternCalmDesc'),
     p: [4, 0, 6, 0],
   ),
 ];
@@ -117,7 +118,7 @@ class _BreatheScreenState extends State<BreatheScreen> {
     final entry = HistoryEntry(
       id: '${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}${math.Random().nextInt(1 << 30).toRadixString(36)}',
       sessionId: 'breath:$pid',
-      title: '${pattern.name} breathing',
+      title: tr('breathe.sessionTitle', {'name': pattern.name}),
       kind: 'meditation',
       image: 'med-mountains',
       completedAt: DateTime.now(),
@@ -163,7 +164,7 @@ class _BreatheScreenState extends State<BreatheScreen> {
                         CircleBtn(
                           icon: LucideIcons.x,
                           tone: Tone.dark,
-                          label: 'Close',
+                          label: tr('common.close'),
                           onTap: () => context.canPop()
                               ? context.pop()
                               : context.go('/meditate'),
@@ -190,7 +191,7 @@ class _BreatheScreenState extends State<BreatheScreen> {
                       ],
                     ),
                     SizedBox(height: compact ? 8 : 16),
-                    Text('Breathe', style: T.displayLg.c(C.ivory)),
+                    Text(tr('breathe.title'), style: T.displayLg.c(C.ivory)),
                     const SizedBox(height: 4),
                     Text(
                       pattern.desc,
@@ -271,7 +272,7 @@ class _BreatheScreenState extends State<BreatheScreen> {
                                     borderRadius: BorderRadius.circular(48),
                                   ),
                                   child: Text(
-                                    '$d min',
+                                    tr('common.minShort', {'n': d}),
                                     style: T.label.copyWith(
                                       fontSize: 14,
                                       color: mins == d
@@ -287,13 +288,13 @@ class _BreatheScreenState extends State<BreatheScreen> {
                       ),
                       const SizedBox(height: 20),
                       EnsoButton(
-                        label: 'Begin',
+                        label: tr('breathe.begin'),
                         variant: BtnVariant.ivory,
                         onTap: _start,
                       ),
                     ] else
                       EnsoButton(
-                        label: 'Stop',
+                        label: tr('breathe.stop'),
                         variant: BtnVariant.glass,
                         onTap: _stop,
                       ),

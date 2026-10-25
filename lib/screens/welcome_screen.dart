@@ -8,6 +8,7 @@ import '../theme/text.dart';
 import '../theme/tokens.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
 const _pillars = ['Balance', 'Flexibility', 'Calm'];
 
@@ -139,7 +140,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'TaiChi Flow',
+                        tr('welcome.brandName'),
                         style: T.label.copyWith(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
@@ -163,7 +164,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '4.9 rating',
+                              tr('welcome.rating'),
                               style: T.tiny.copyWith(color: C.ivory),
                             ),
                           ],
@@ -193,7 +194,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                           ),
                           child: Text(
-                            p,
+                            trTag(p),
                             style: T.tiny.copyWith(
                               color: C.ivory.withValues(alpha: 0.9),
                             ),
@@ -208,9 +209,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   child: Text.rich(
                     TextSpan(
                       children: [
-                        const TextSpan(text: 'Meditation\n'),
+                        TextSpan(text: tr('welcome.headlineLine1')),
                         TextSpan(
-                          text: 'in motion.',
+                          text: tr('welcome.headlineLine2'),
                           style: T.serifAccent.copyWith(
                             fontSize: 54.4,
                             color: C.ivory,
@@ -229,7 +230,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 320),
                     child: Text(
-                      'Tai Chi, Qigong and chair yoga for steadier balance, looser joints and a calmer mind — in 10 minutes a day.',
+                      tr('welcome.subtitle'),
                       style: T.body.copyWith(
                         fontSize: 17,
                         color: C.ivory.withValues(alpha: 0.85),
@@ -271,7 +272,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             const Stars(size: 13),
                             const SizedBox(height: 2),
                             Text(
-                              'Loved by members aged 18 to 80+',
+                              tr('welcome.lovedBy'),
                               softWrap: true,
                               style: T.tiny.copyWith(
                                 height: 1.25,
@@ -294,7 +295,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       Shimmer(
                         color: C.jadeSoft,
                         child: EnsoButton(
-                          label: 'Get my personal plan',
+                          label: tr('welcome.ctaLabel'),
                           variant: BtnVariant.ivory,
                           trailing: LucideIcons.arrowRight,
                           onTap: () => context.go('/onboarding'),
@@ -302,7 +303,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        '1-minute quiz · Built around your body',
+                        tr('welcome.quizNote'),
                         style: T.caption.copyWith(
                           color: C.ivory.withValues(alpha: 0.65),
                         ),
@@ -344,15 +345,17 @@ class _LegalLine extends StatelessWidget {
           onTap: () => context.push('/legal/$doc'),
           child: Text(label, style: link),
         );
+    // links render wherever the language places {terms} and {privacy}
     return Wrap(
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text('By continuing, you agree to our ', style: base),
-        tap('Terms', 'terms'),
-        Text(' and ', style: base),
-        tap('Privacy Policy', 'privacy'),
-        Text('.', style: base),
+        for (final part in trParts('welcome.legalLine'))
+          switch (part.name) {
+            'terms' => tap(tr('welcome.termsLabel'), 'terms'),
+            'privacy' => tap(tr('welcome.privacyLabel'), 'privacy'),
+            _ => Text(part.text, style: base),
+          },
       ],
     );
   }

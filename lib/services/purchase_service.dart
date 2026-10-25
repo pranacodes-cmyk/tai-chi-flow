@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 import 'tracking_service.dart';
+import '../i18n/i18n.dart';
 
 /// Purchase layer — RevenueCat-backed, with a demo fallback so the app still
 /// works in previews, tests and before store products propagate.
@@ -33,20 +34,20 @@ class Offer {
 }
 
 /// Regular paywall plans. The yearly plan carries the 7-day trial.
-const regularOffers = [
+List<Offer> get regularOffers => [
   Offer(
     id: 'yearly',
-    title: 'Yearly',
+    title: tr('purchase.planYearly'),
     price: r'$79.99',
     period: 'year',
     perWeek: r'$1.54',
-    badge: 'Best value',
+    badge: tr('purchase.badgeBestValue'),
     trialDays: 7,
-    save: 'Save 67%',
+    save: tr('purchase.save67'),
   ),
   Offer(
     id: 'monthly',
-    title: 'Monthly',
+    title: tr('purchase.planMonthly'),
     price: r'$9.99',
     period: 'month',
     perWeek: r'$2.50',
@@ -54,43 +55,43 @@ const regularOffers = [
 ];
 
 /// "View all plans" gift screen — discounted, no trial.
-const giftOffers = [
+List<Offer> get giftOffers => [
   Offer(
     id: 'gift',
-    title: 'Yearly · New user gift',
+    title: tr('purchase.planGiftYearly'),
     price: r'$39.99',
     period: 'year',
     perWeek: r'$0.77',
-    badge: '50% off first year',
+    badge: tr('purchase.badgeGiftDiscount'),
     strike: r'$79.99',
-    save: '50% OFF',
+    save: tr('purchase.save50Off'),
   ),
   Offer(
     id: 'monthly',
-    title: 'Monthly',
+    title: tr('purchase.planMonthly'),
     price: r'$9.99',
     period: 'month',
     perWeek: r'$2.50',
   ),
   Offer(
     id: 'lifetime',
-    title: 'Lifetime',
+    title: tr('purchase.planLifetime'),
     price: r'$99.99',
     period: 'once',
-    perWeek: 'Pay once',
-    badge: 'One-time payment',
+    perWeek: tr('purchase.payOnce'),
+    badge: tr('purchase.badgeOneTime'),
   ),
 ];
 
 /// Shown after the exit survey answer "the price feels high" — no trial.
-const exitOffer = Offer(
+Offer get exitOffer => Offer(
   id: 'exit',
-  title: 'Yearly · Special price',
+  title: tr('purchase.planExitYearly'),
   price: r'$34.99',
   period: 'year',
   perWeek: r'$0.67',
   strike: r'$79.99',
-  save: 'Save 56%',
+  save: tr('purchase.save56'),
 );
 
 /// RevenueCat public SDK keys (safe to ship in the binary).
@@ -226,7 +227,11 @@ class PurchaseService {
     String? save = o.save;
     if (o.strike != null && yearly != null && yearly.price > 0 && o.id != 'yearly') {
       final pct = ((1 - product.price / yearly.price) * 100).round();
-      if (pct > 0) save = o.save!.contains('OFF') ? '$pct% OFF' : 'Save $pct%';
+      if (pct > 0) {
+        save = o.id == 'gift'
+            ? tr('purchase.percentOff', {'pct': pct})
+            : tr('purchase.savePercent', {'pct': pct});
+      }
     }
     return Offer(
       id: o.id,
@@ -267,7 +272,7 @@ class PurchaseService {
     if (_cache == null) await warmUp();
     final pkg = _packageFor(plan);
     if (pkg == null) {
-      lastError = 'Plans could not load from ${Platform.isIOS ? 'the App Store' : 'Google Play'}. Check your connection and try again.';
+      lastError = tr('purchase.plansLoadError', {'store': Platform.isIOS ? 'the App Store' : 'Google Play'});
       return false;
     }
     final product = pkg.storeProduct;
@@ -298,18 +303,18 @@ class PurchaseService {
       lastError = switch (code) {
         PurchasesErrorCode.purchaseCancelledError => null,
         PurchasesErrorCode.paymentPendingError =>
-          'Your payment is pending. Plus unlocks as soon as the store confirms it.',
+          tr('purchase.paymentPending'),
         PurchasesErrorCode.productAlreadyPurchasedError =>
-          'You already own this. Tap Restore purchase to unlock it.',
+          tr('purchase.alreadyOwned'),
         PurchasesErrorCode.networkError =>
-          'No connection. Check your internet and try again.',
+          tr('purchase.noConnection'),
         PurchasesErrorCode.purchaseNotAllowedError =>
-          'Purchases are turned off on this device.',
-        _ => 'The store could not finish the purchase. Please try again — if you were charged, tap Restore purchase.',
+          tr('purchase.purchasesDisabled'),
+        _ => tr('purchase.genericError'),
       };
       return false;
     } catch (_) {
-      lastError = 'The store could not finish the purchase. Please try again — if you were charged, tap Restore purchase.';
+      lastError = tr('purchase.genericError');
       return false;
     }
   }

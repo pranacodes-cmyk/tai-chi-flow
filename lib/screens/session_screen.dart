@@ -13,6 +13,7 @@ import '../widgets/exercise_body.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
 import 'plan_detail_screen.dart';
+import '../i18n/i18n.dart';
 
 class SessionScreen extends StatelessWidget {
   const SessionScreen({super.key, required this.sessionId});
@@ -68,7 +69,7 @@ class SessionScreen extends StatelessWidget {
                         icon: fav ? Icons.favorite_rounded : LucideIcons.heart,
                         iconColor: fav ? C.terracotta : C.ivory,
                         tone: Tone.dark,
-                        label: 'Favorite',
+                        label: tr('session.favorite'),
                         onTap: () => app.toggleFavorite(sessionId),
                       ),
                     ],
@@ -92,10 +93,10 @@ class SessionScreen extends StatelessWidget {
                         runSpacing: 6,
                         children: [
                           _Meta(LucideIcons.clock, formatMinutes(total)),
-                          _Meta(LucideIcons.flame, '$kcal kcal'),
+                          _Meta(LucideIcons.flame, tr('common.kcal', {'n': kcal})),
                           _Meta(
                             LucideIcons.layers,
-                            '${session.items.length} moves',
+                            tr('session.movesCount', {'n': session.items.length}),
                           ),
                         ],
                       ),
@@ -129,15 +130,9 @@ class SessionScreen extends StatelessWidget {
                                 child: Text.rich(
                                   TextSpan(
                                     children: [
-                                      const TextSpan(text: "You'll need: "),
+                                      TextSpan(text: tr('session.youllNeed')),
                                       TextSpan(
-                                        text: needs
-                                            .map(
-                                              (n) =>
-                                                  n[0].toUpperCase() +
-                                                  n.substring(1),
-                                            )
-                                            .join(', '),
+                                        text: needs.map(trTag).join(', '),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -161,8 +156,8 @@ class SessionScreen extends StatelessWidget {
                           Expanded(
                             child: _Toggle(
                               icon: LucideIcons.mic,
-                              label: 'Voice coach',
-                              sub: audio.voice ? 'On' : 'Off',
+                              label: tr('session.voiceCoach'),
+                              sub: audio.voice ? tr('session.on') : tr('session.off'),
                               on: audio.voice,
                               onTap: () =>
                                   app.setAudio((a) => a.voice = !a.voice),
@@ -172,8 +167,8 @@ class SessionScreen extends StatelessWidget {
                           Expanded(
                             child: _Toggle(
                               icon: LucideIcons.music,
-                              label: 'Music',
-                              sub: audio.music ? trackName : 'Off',
+                              label: tr('session.music'),
+                              sub: audio.music ? trackName : tr('session.off'),
                               on: audio.music,
                               onTap: () =>
                                   app.setAudio((a) => a.music = !a.music),
@@ -182,7 +177,7 @@ class SessionScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 28),
-                      Text('Movements', style: T.title.s(20)),
+                      Text(tr('session.movements'), style: T.title.s(20)),
                       const SizedBox(height: 12),
                       for (final (i, x) in exercises.indexed) ...[
                         if (x.it.p != null &&
@@ -228,9 +223,10 @@ class SessionScreen extends StatelessWidget {
                                           const SizedBox(height: 2),
                                           Text(
                                             x.ex.isAffirmation
-                                                ? 'Affirmation · Breath'
+                                                ? tr('session.affirmationBreath')
                                                 : x.ex.focus
                                                       .take(2)
+                                                      .map(trTag)
                                                       .join(' · '),
                                             style: T.caption,
                                           ),
@@ -263,12 +259,12 @@ class SessionScreen extends StatelessWidget {
           BottomCta(
             child: locked
                 ? EnsoButton(
-                    label: 'Unlock with TaiChi Flow Plus',
+                    label: tr('session.unlockPlus'),
                     variant: BtnVariant.gold,
                     onTap: () => context.push('/paywall?from=session'),
                   )
                 : EnsoButton(
-                    label: 'Begin practice',
+                    label: tr('session.beginPractice'),
                     icon: Icons.play_arrow_rounded,
                     onTap: () => context.push('/player/$sessionId'),
                   ),
@@ -305,7 +301,7 @@ class _PhaseHeader extends StatelessWidget {
       children: [
         Eyebrow(label, color: C.jade),
         const Dot(color: C.muted),
-        Eyebrow('${(seconds / 60).ceil()} min'),
+        Eyebrow(tr('common.minShort', {'n': (seconds / 60).ceil()})),
       ],
     ),
   );

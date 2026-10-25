@@ -13,6 +13,7 @@ import '../widgets/sheet.dart';
 import '../widgets/toast.dart';
 import '../widgets/ui.dart';
 import 'session_screen.dart';
+import '../i18n/i18n.dart';
 
 const equipmentLabel = {
   'none': 'None',
@@ -53,8 +54,8 @@ class PlanDetailScreen extends StatelessWidget {
       if (!isActive) {
         app.startPlan(plan.id);
         Toast.show(
-          'New plan started',
-          description: '${plan.title} is now on your Today screen.',
+          tr('plan.newPlanStarted'),
+          description: tr('plan.newPlanStartedDesc', {'title': plan.title}),
           tone: 'success',
         );
       }
@@ -77,13 +78,13 @@ class PlanDetailScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 _MenuRow(
                   icon: LucideIcons.rotateCcw,
-                  label: 'Restart from Day 1',
+                  label: tr('plan.restartFromDay1'),
                   onTap: () {
                     app.restartPlan(plan.id);
                     Navigator.pop(ctx);
                     Toast.show(
-                      'Plan restarted',
-                      description: 'Fresh start from Day 1.',
+                      tr('plan.planRestarted'),
+                      description: tr('plan.freshStartDesc'),
                     );
                   },
                 ),
@@ -91,13 +92,13 @@ class PlanDetailScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   _MenuRow(
                     icon: LucideIcons.target,
-                    label: 'Make this my plan',
+                    label: tr('plan.makeThisMyPlan'),
                     onTap: () {
                       app.startPlan(plan.id);
                       Navigator.pop(ctx);
                       Toast.show(
-                        'Set as your plan',
-                        description: "You'll see it on Today.",
+                        tr('plan.setAsYourPlan'),
+                        description: tr('plan.youllSeeItOnToday'),
                         tone: 'success',
                       );
                     },
@@ -131,7 +132,7 @@ class PlanDetailScreen extends StatelessWidget {
                         icon: LucideIcons.ellipsis,
                         tone: Tone.dark,
                         onTap: menu,
-                        label: 'More',
+                        label: tr('plan.more'),
                       ),
                     ],
                   ),
@@ -139,7 +140,7 @@ class PlanDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Eyebrow(
-                        plan.group,
+                        trTag(plan.group),
                         color: C.ivory.withValues(alpha: 0.7),
                       ),
                       const SizedBox(height: 8),
@@ -153,8 +154,8 @@ class PlanDetailScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         PlusChip(
                           label: plan.freeDays > 0
-                              ? 'First ${plan.freeDays} days free'
-                              : 'TaiChi Flow Plus',
+                              ? tr('plan.firstDaysFree', {'n': plan.freeDays})
+                              : tr('plan.plusLabel'),
                         ),
                       ],
                     ],
@@ -179,18 +180,18 @@ class PlanDetailScreen extends StatelessWidget {
                               (
                                 LucideIcons.calendarDays,
                                 '${plan.days.length}',
-                                'days',
+                                tr('plan.statDaysLabel'),
                               ),
                               (
                                 LucideIcons.clock,
                                 '${plan.minutesPerDay}',
-                                'min/day',
+                                tr('plan.statMinPerDayLabel'),
                               ),
-                              (LucideIcons.target, plan.level, 'level'),
+                              (LucideIcons.target, trTag(plan.level), tr('plan.statLevelLabel')),
                               (
                                 LucideIcons.armchair,
-                                equipmentLabel[plan.equipment] ?? '',
-                                'equipment',
+                                trTag(plan.equipment),
+                                tr('plan.statEquipmentLabel'),
                               ),
                             ].indexed) ...[
                               if (i > 0) const SizedBox(width: 8),
@@ -266,7 +267,7 @@ class PlanDetailScreen extends StatelessWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '${completed.length} of ${plan.days.length} days complete',
+                                        tr('plan.daysCompleteProgress', {'completed': completed.length, 'total': plan.days.length}),
                                         style: T.label.copyWith(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
@@ -275,8 +276,8 @@ class PlanDetailScreen extends StatelessWidget {
                                       ),
                                       Text(
                                         completed.length >= plan.days.length
-                                            ? 'Journey complete — beautiful work.'
-                                            : 'Keep the rhythm going.',
+                                            ? tr('plan.journeyComplete')
+                                            : tr('plan.keepRhythmGoing'),
                                         style: T.caption.c(
                                           C.jadeDeep,
                                         ),
@@ -319,7 +320,7 @@ class PlanDetailScreen extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 32),
-                        Text('Your days', style: T.title.s(20)),
+                        Text(tr('plan.yourDays'), style: T.title.s(20)),
                         const SizedBox(height: 14),
                         for (final d in plan.days)
                           Padding(
@@ -328,7 +329,7 @@ class PlanDetailScreen extends StatelessWidget {
                               day: d.day,
                               title: d.title,
                               subtitle:
-                                  '${formatMinutes(totalSeconds(d.items))} · ${d.items.length} moves · ${d.focus.join(', ')}',
+                                  '${formatMinutes(totalSeconds(d.items))} · ${tr('common.movements', {'n': d.items.length})} · ${d.focus.map(trTag).join(', ')}',
                               restore: d.restore,
                               done: completed.contains(d.day),
                               locked: isDayLocked(plan, d.day, premium),
@@ -347,19 +348,19 @@ class PlanDetailScreen extends StatelessWidget {
           BottomCta(
             child: nextLocked
                 ? EnsoButton(
-                    label: 'Unlock Day $next with TaiChi Flow Plus',
+                    label: tr('plan.unlockDayWithPlus', {'day': next}),
                     variant: BtnVariant.gold,
                     icon: LucideIcons.crown,
                     onTap: () => context.push('/paywall?from=plan'),
                   )
                 : EnsoButton(
                     label: !isActive
-                        ? 'Start this plan'
+                        ? tr('plan.startThisPlan')
                         : completed.length >= plan.days.length
-                        ? 'Practice again'
+                        ? tr('plan.practiceAgain')
                         : completed.isNotEmpty
-                        ? 'Continue · Day $next'
-                        : 'Start Day $next',
+                        ? tr('plan.continueDay', {'day': next})
+                        : tr('plan.startDay', {'day': next}),
                     onTap: cta,
                   ),
           ),
@@ -436,7 +437,7 @@ class _DayRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Day $day · $title', style: T.label),
+                  Text(tr('plan.dayTitle', {'day': day, 'title': title}), style: T.label),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
@@ -468,7 +469,7 @@ class _DayRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: Text(
-                  'NEXT',
+                  tr('plan.nextBadge'),
                   style: T.tiny.copyWith(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -523,15 +524,15 @@ class _NotFound extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Not found', style: T.displayMd),
+            Text(tr('plan.notFound'), style: T.displayMd),
             const SizedBox(height: 8),
             Text(
-              "This page doesn't exist or has moved.",
+              tr('plan.pageNotExist'),
               style: T.bodySm.c(C.muted),
             ),
             const SizedBox(height: 24),
             EnsoButton(
-              label: 'Back to Today',
+              label: tr('plan.backToToday'),
               expand: false,
               onTap: () => context.go('/'),
             ),

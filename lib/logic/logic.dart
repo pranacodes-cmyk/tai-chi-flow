@@ -3,11 +3,14 @@ import 'dart:math' as math;
 
 import '../data/content.dart';
 import '../data/models.dart';
+import '../i18n/i18n.dart';
 
 const restBetweenSec = 10;
 
 /// Tai Chi Foundations: the course every standing newcomer starts with.
-const defaultPlanId = 'tai-chi-beginner';
+/// The flagship 30-Day Tai Chi Journey: Today's main lesson and every standing newcomer's default plan.
+const journeyId = 'tai-chi-journey-30';
+const defaultPlanId = journeyId;
 const baseWeightKg = 70.0;
 
 class Profile {
@@ -176,11 +179,59 @@ int dayOfYear(DateTime d) =>
     DateTime(d.year, d.month, d.day).difference(DateTime(d.year, 1, 1)).inDays +
     1;
 
+// ------------------------------------------------------------ language
+
+/// Languages the app ships in; English is the source language.
+const supportedLanguages = ['en', 'es', 'pt', 'de', 'fr', 'it', 'ja'];
+
+/// Each language's own name, shown in the language picker.
+const languageNames = {
+  'en': 'English',
+  'es': 'Español',
+  'pt': 'Português',
+  'de': 'Deutsch',
+  'fr': 'Français',
+  'it': 'Italiano',
+  'ja': '日本語',
+};
+
+/// The app language: the person's saved choice, else the first device language we ship, else English.
+String resolveLanguage(String? saved, List<String> deviceLocales) {
+  if (saved != null && supportedLanguages.contains(saved)) return saved;
+  for (final l in deviceLocales) {
+    final primary = l.toLowerCase().split(RegExp('[-_]')).first;
+    if (supportedLanguages.contains(primary)) return primary;
+  }
+  return 'en';
+}
+
+/// Device-voice locales for the coach fallback, most preferred first (prefix match on the
+/// voice's locale). English stays US/UK only; other languages prefer the accent of the clips.
+List<String> fallbackVoiceLocales(String lang) => const {
+  'en': ['en-us', 'en-gb'],
+  'es': ['es-mx', 'es-us', 'es-419', 'es-es', 'es'],
+  'pt': ['pt-br', 'pt'],
+  'de': ['de-de', 'de'],
+  'fr': ['fr-fr', 'fr'],
+  'it': ['it-it', 'it'],
+  'ja': ['ja-jp', 'ja'],
+}[lang] ?? const ['en-us', 'en-gb'];
+
+/// Rank of a device voice locale for [lang] (lower is better), or null when it must not be used.
+int? fallbackVoiceRank(String lang, String locale) {
+  final l = locale.toLowerCase().replaceAll('_', '-');
+  final prefs = fallbackVoiceLocales(lang);
+  for (var i = 0; i < prefs.length; i++) {
+    if (l == prefs[i] || l.startsWith('${prefs[i]}-')) return i;
+  }
+  return null;
+}
+
 String greeting(int hour) {
-  if (hour < 5) return 'Good evening';
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 5) return tr('greet.evening');
+  if (hour < 12) return tr('greet.morning');
+  if (hour < 17) return tr('greet.afternoon');
+  return tr('greet.evening');
 }
 
 /// Rating prompt: once per calendar day after a completed session, until the person has rated (4–5 stars sent to the store, or private feedback sent).
@@ -203,20 +254,31 @@ String freePickQuickId(int hour) {
   return 'desk-break-routine';
 }
 
-/// The free seven-day starter course every free user can follow in full.
-const freeStarterId = 'tai-chi-starter-7';
-
-/// The starter day Today features for free users, or null once every day is finished.
-int? freeStarterDay(int totalDays, List<int> completed) {
-  final done = completed.toSet();
-  for (var d = 1; d <= totalDays; d++) {
-    if (!done.contains(d)) return d;
+/// The course Today's lesson card shows: the personal plan, unless its next lesson is locked for a free
+/// person while the journey still has a free day left — then the journey's free day leads, so the app
+/// never opens on a paywall before both free lessons are used.
+String todayPlanId(
+  String activePlanId, {
+  required bool activeLocked,
+  required int journeyFreeDays,
+  required List<int> journeyCompleted,
+}) {
+  if (!activeLocked || activePlanId == journeyId) return activePlanId;
+  final done = journeyCompleted.toSet();
+  for (var d = 1; d <= journeyFreeDays; d++) {
+    if (!done.contains(d)) return journeyId;
   }
-  return null;
+  return activePlanId;
 }
 
-/// Today leads with a free session (personal plan moves below) whenever the personal plan's next day is locked.
-bool homeLeadsWithFree(bool planLocked) => planLocked;
+/// After finishing a plan day: the next day when it exists and is locked for this person (the finish
+/// screen previews it with a Plus offer), else null.
+int? lockedNextDay(Plan plan, int finishedDay, bool premium) {
+  final next = finishedDay + 1;
+  return next <= plan.days.length && isDayLocked(plan, next, premium)
+      ? next
+      : null;
+}
 
 // ------------------------------------------------------------ body
 
@@ -358,8 +420,8 @@ Session? resolveSession(String id) {
       kind: 'plan',
       title: plan.isSingleSession
           ? plan.title
-          : 'Day ${day.day} · ${day.title}',
-      subtitle: plan.isSingleSession ? plan.group : plan.title,
+          : tr('common.dayTitle', {'day': day.day, 'title': day.title}),
+      subtitle: plan.isSingleSession ? trTag(plan.group) : plan.title,
       image: plan.image,
       items: day.items,
       restSec: restBetweenSec,
@@ -390,7 +452,7 @@ Session? resolveSession(String id) {
       id: id,
       kind: 'exercise',
       title: ex.name,
-      subtitle: 'Single practice',
+      subtitle: tr('session.singlePractice'),
       image: ex.image,
       items: items,
       restSec: 0,
@@ -546,9 +608,11 @@ class DayMinutes {
   const DayMinutes(this.key, this.label, this.minutes);
 }
 
-const weekLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+/// Weekday initials (Sunday first) in the app language.
+List<String> get weekLetters => trList('common.weekdayLetters');
 
 List<DayMinutes> weekMinutes(List<HistoryEntry> history, DateTime today) {
+  final letters = weekLetters;
   return List.generate(7, (idx) {
     final i = 6 - idx;
     final d = addDays(today, -i);
@@ -556,13 +620,14 @@ List<DayMinutes> weekMinutes(List<HistoryEntry> history, DateTime today) {
     final secs = history
         .where((h) => dateKey(h.completedAt) == key)
         .fold<int>(0, (s, h) => s + h.durationSec);
-    return DayMinutes(key, weekLetters[d.weekday % 7], (secs / 60).round());
+    return DayMinutes(key, letters[d.weekday % 7], (secs / 60).round());
   });
 }
 
 // ------------------------------------------------------------ formatting
 
-String formatMinutes(int sec) => '${math.max(1, (sec / 60).round())} min';
+String formatMinutes(int sec) =>
+    tr('common.minShort', {'n': math.max(1, (sec / 60).round())});
 
 String formatClock(num sec) {
   final s = math.max(0, sec.ceil());

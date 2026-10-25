@@ -21,6 +21,7 @@ import '../widgets/sheet.dart';
 import '../widgets/toast.dart';
 import '../widgets/ui.dart';
 import 'plan_detail_screen.dart';
+import '../i18n/i18n.dart';
 
 const _sleepOptions = [0, 5, 10, 15, 30];
 
@@ -121,7 +122,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
     if (sleepAt != null && elapsed >= sleepAt!) {
       sleepAt = null;
       _setRunning(false);
-      Toast.show('Sleep timer ended', description: 'Sweet dreams.');
+      Toast.show(tr('medPlayer.sleepTimerEnded'), description: tr('medPlayer.sweetDreams'));
     }
     if (elapsed >= total && !done) {
       done = true;
@@ -162,16 +163,16 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
             child: Column(
               children: [
-                Text('End meditation?', style: T.displayMd.c(C.ivory)),
+                Text(tr('medPlayer.endMeditationTitle'), style: T.displayMd.c(C.ivory)),
                 const SizedBox(height: 8),
                 Text(
-                  "You've been still for ${(elapsed / 60).round()} minutes. Save them to your history?",
+                  tr('medPlayer.stillForMinutes', {'n': (elapsed / 60).round()}),
                   textAlign: TextAlign.center,
                   style: T.bodySm.c(C.ivory.withValues(alpha: 0.65)),
                 ),
                 const SizedBox(height: 24),
                 EnsoButton(
-                  label: 'Save & finish',
+                  label: tr('medPlayer.saveAndFinish'),
                   variant: BtnVariant.ivory,
                   onTap: () => Navigator.pop(ctx, 'save'),
                 ),
@@ -182,7 +183,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
                     height: 48,
                     child: Center(
                       child: Text(
-                        'Keep listening',
+                        tr('medPlayer.keepListening'),
                         style: T.label.c(C.ivory.withValues(alpha: 0.8)),
                       ),
                     ),
@@ -194,7 +195,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
                     height: 44,
                     child: Center(
                       child: Text(
-                        'Discard',
+                        tr('medPlayer.discard'),
                         style: T.label.copyWith(
                           fontSize: 14,
                           color: C.terracotta,
@@ -233,7 +234,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
     }
     if (app.downloads.contains(m!.id)) {
       app.toggleDownload(m!.id);
-      Toast.show('Removed from downloads');
+      Toast.show(tr('medPlayer.removedFromDownloads'));
       return;
     }
     setState(() => downloading = true);
@@ -242,8 +243,8 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
       setState(() => downloading = false);
       app.toggleDownload(m!.id);
       Toast.show(
-        'Available offline',
-        description: '${m!.title} is saved to your device.',
+        tr('medPlayer.availableOffline'),
+        description: tr('medPlayer.savedToDevice', {'title': m!.title}),
         tone: 'success',
       );
     });
@@ -261,7 +262,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(left: 4),
-                child: Text('Sleep timer', style: T.title.c(C.ivory)),
+                child: Text(tr('medPlayer.sleepTimer'), style: T.title.c(C.ivory)),
               ),
               const SizedBox(height: 16),
               Row(
@@ -288,7 +289,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: Text(
-                            min == 0 ? 'Off' : '${min}m',
+                            min == 0 ? tr('medPlayer.sleepOff') : tr('medPlayer.sleepMinutesShort', {'n': min}),
                             style: T.label.copyWith(
                               fontWeight: FontWeight.w700,
                               color: C.ivory,
@@ -363,14 +364,14 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
                         icon: LucideIcons.chevronDown,
                         tone: Tone.dark,
                         onTap: _close,
-                        label: 'Close',
+                        label: tr('common.close'),
                       ),
                       const Spacer(),
                       CircleBtn(
                         icon: fav ? Icons.favorite_rounded : LucideIcons.heart,
                         iconColor: fav ? C.terracotta : C.ivory,
                         tone: Tone.dark,
-                        label: 'Favorite',
+                        label: tr('medPlayer.favorite'),
                         onTap: () => app.toggleFavorite('med:${m!.id}'),
                       ),
                       const SizedBox(width: 8),
@@ -395,7 +396,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
                                   : LucideIcons.cloudDownload,
                               iconColor: downloaded ? C.sage : C.ivory,
                               tone: Tone.dark,
-                              label: 'Download',
+                              label: tr('medPlayer.download'),
                               onTap: _download,
                             ),
                       if (m!.category == 'Sleep') ...[
@@ -404,7 +405,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
                           icon: LucideIcons.timer,
                           iconColor: sleepAt != null ? C.sage : C.ivory,
                           tone: Tone.dark,
-                          label: 'Sleep timer',
+                          label: tr('medPlayer.sleepTimer'),
                           onTap: _sleep,
                         ),
                       ],
@@ -412,7 +413,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
                   ),
                   const SizedBox(height: 24),
                   Eyebrow(
-                    '${m!.category} · ${m!.minutes} min',
+                    '${trTag(m!.category)} · ${tr('common.minShort', {'n': m!.minutes})}',
                     color: C.ivory.withValues(alpha: 0.6),
                   ),
                   const SizedBox(height: 8),
@@ -485,7 +486,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
                       const SizedBox(width: 40),
                       Pressable(
                         onTap: _toggle,
-                        semanticLabel: running ? 'Pause' : 'Play',
+                        semanticLabel: running ? tr('common.pause') : tr('common.play'),
                         child: Container(
                           width: 84,
                           height: 84,
@@ -512,7 +513,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
                   if (locked) ...[
                     const SizedBox(height: 24),
                     EnsoButton(
-                      label: 'Unlock with TaiChi Flow Plus',
+                      label: tr('medPlayer.unlockWithTaiChiFlowPlus'),
                       variant: BtnVariant.gold,
                       onTap: () => context.push('/paywall?from=meditation'),
                     ),
@@ -520,7 +521,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
                   if (sleepAt != null) ...[
                     const SizedBox(height: 16),
                     Text(
-                      'Sleep timer · stops at ${formatClock(sleepAt!)}',
+                      tr('medPlayer.sleepTimerStopsAt', {'time': formatClock(sleepAt!)}),
                       style: T.caption.c(C.ivory.withValues(alpha: 0.6)),
                     ),
                   ],
@@ -541,7 +542,7 @@ class _SeekBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Pressable(
     onTap: onTap,
-    semanticLabel: back ? 'Back 15 seconds' : 'Forward 15 seconds',
+    semanticLabel: back ? tr('medPlayer.back15Seconds') : tr('medPlayer.forward15Seconds'),
     child: SizedBox(
       width: 48,
       height: 48,

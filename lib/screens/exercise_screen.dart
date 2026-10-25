@@ -8,6 +8,7 @@ import '../widgets/exercise_body.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
 import 'plan_detail_screen.dart';
+import '../i18n/i18n.dart';
 
 class ExerciseScreen extends StatelessWidget {
   const ExerciseScreen({super.key, required this.exerciseId});
@@ -62,7 +63,7 @@ class ExerciseScreen extends StatelessWidget {
           ),
           BottomCta(
             child: EnsoButton(
-              label: 'Practice for ${(e.durationSec * 2 / 60).round()} min',
+              label: tr('exercise.practiceForMinutes', {'n': (e.durationSec * 2 / 60).round()}),
               icon: Icons.play_arrow_rounded,
               onTap: () => context.push('/player/ex:${e.id}'),
             ),

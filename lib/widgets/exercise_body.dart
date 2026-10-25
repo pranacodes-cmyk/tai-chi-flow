@@ -7,6 +7,7 @@ import '../theme/tokens.dart';
 import 'demo_film.dart';
 import 'sheet.dart';
 import 'ui.dart';
+import '../i18n/i18n.dart';
 
 Future<void> showExerciseSheet(BuildContext context, Exercise e) =>
     showEnsoSheet<void>(context, builder: (_) => ExerciseBody(exercise: e));
@@ -39,7 +40,7 @@ class ExerciseBody extends StatelessWidget {
             runSpacing: 8,
             children: [
               for (final f in e.focus) _Tag(f, C.jadeSoft, C.jadeDeep),
-              _Tag(e.isAffirmation ? 'Affirmation' : e.level, C.sand, C.ink),
+              _Tag(e.isAffirmation ? trTag('Affirmation') : trTag(e.level), C.sand, C.ink),
             ],
           ),
           const SizedBox(height: 12),
@@ -74,7 +75,7 @@ class ExerciseBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Eyebrow(e.isAffirmation ? 'Practice' : 'How to', color: C.jade),
+                Eyebrow(e.isAffirmation ? tr('exerciseBody.practice') : tr('exerciseBody.howTo'), color: C.jade),
                 const SizedBox(height: 12),
                 for (final (i, s) in e.steps.indexed)
                   Padding(
@@ -119,7 +120,7 @@ class ExerciseBody extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _InfoBox('Breath', e.breath)),
+              Expanded(child: _InfoBox(tr('exerciseBody.breath'), e.breath)),
               const SizedBox(width: 12),
               Expanded(child: _BenefitsBox(e.benefits)),
             ],
@@ -149,7 +150,7 @@ class _CoachTip extends StatelessWidget {
           children: [
             const Icon(LucideIcons.lightbulb, size: 15, color: C.jadeDeep),
             const SizedBox(width: 6),
-            Eyebrow("Coach's tip", color: C.jadeDeep),
+            Flexible(child: Eyebrow(tr('exerciseBody.coachsTip'), color: C.jadeDeep)),
           ],
         ),
         if (cue != null) ...[
@@ -190,7 +191,7 @@ class _BenefitsBox extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Eyebrow('Benefits'),
+        Eyebrow(tr('exerciseBody.benefits')),
         const SizedBox(height: 6),
         for (final b in benefits)
           Padding(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../data/models.dart';
+import '../i18n/i18n.dart';
 
 /// Every line the coach speaks, built in one place so both clients say exactly the same words.
 /// Natural-voice clips are pre-rendered per line and looked up by [voiceKey], so wording
@@ -23,12 +24,18 @@ String voiceKey(String text) {
 
 enum CoachBreath { inhale, exhale, hold }
 
+/// Strip the localized "Repeat after me:" lead-in from an affirmation cue.
+String _affirmationWords(String cue) {
+  final lead = tr('coach.repeatAfterMe');
+  return cue.startsWith(lead) ? cue.substring(lead.length).trim() : cue;
+}
+
 class CoachLines {
   CoachLines._();
 
   static List<String> begin(Exercise first) => [
-    "Let's begin. First up:",
-    '${first.name}.',
+    tr('coach.begin'),
+    tr('coach.name', {'name': first.name}),
   ];
 
   static List<String> instructions(Exercise ex, [SessionItem? item]) => [
@@ -38,8 +45,11 @@ class CoachLines {
 
   static List<String> start(Exercise ex, [SessionItem? item]) =>
       ex.isAffirmation
-      ? ['Spoken affirmation.', ex.cue]
-      : ['${ex.name}.', instructions(ex, item).firstOrNull ?? ex.cue];
+      ? [tr('coach.spokenAffirmation'), ex.cue]
+      : [
+          tr('coach.name', {'name': ex.name}),
+          instructions(ex, item).firstOrNull ?? ex.cue,
+        ];
 
   static List<String> step(Exercise ex, int k, [SessionItem? item]) {
     final lines = instructions(ex, item);
@@ -48,20 +58,22 @@ class CoachLines {
 
   static List<String> halfway(Exercise ex, String affirmation) =>
       ex.isAffirmation
-      ? ['Once more.', ex.cue.replaceFirst('Repeat after me: ', '')]
+      ? [tr('coach.onceMore'), _affirmationWords(ex.cue)]
       : [affirmation];
 
   static List<String> rest(Exercise next) => [
-    'Rest. Up next:',
-    '${next.name}.',
+    tr('coach.rest'),
+    tr('coach.name', {'name': next.name}),
   ];
 
-  static List<String> finish() => ['Session complete. Beautifully done.'];
+  static List<String> finish() => [tr('coach.finish')];
 
   static List<String> breath(CoachBreath phase) => [
     phase == CoachBreath.inhale
-        ? 'Breathe in'
-        : (phase == CoachBreath.exhale ? 'Breathe out' : 'Hold'),
+        ? tr('coach.breatheIn')
+        : (phase == CoachBreath.exhale
+              ? tr('coach.breatheOut')
+              : tr('coach.hold')),
   ];
 
   /// Onboarding: the coach's reply to a picked answer.
@@ -72,26 +84,27 @@ class CoachLines {
   static List<String> onbChapter(OnbChapter c) =>
       c.breath ? const [] : [c.line];
 
-  /// Onboarding: the host's cues during the opening breath (his own voice, not the workout coach's).
+  /// Onboarding: the coach's cues during the opening breath.
   static List<String> onbBreath(CoachBreath phase) => [
     phase == CoachBreath.inhale
-        ? 'Breathe in slowly, through your nose.'
-        : 'And gently, let it all go.',
+        ? tr('coach.onbBreatheIn')
+        : tr('coach.onbBreatheOut'),
   ];
 
   /// Onboarding: after the opening breath.
-  static List<String> onbArrived() => [
-    'Beautiful. Now, tell me a little about you.',
-  ];
+  static List<String> onbArrived() => [tr('coach.onbArrived')];
 
   static List<String> guide(Guide g) => [
-    '${g.title}. ${g.intro}',
+    tr('coach.guideIntro', {'title': g.title, 'intro': g.intro}),
     for (final s in g.sections)
-      '${s.heading.replaceFirst(RegExp(r'^\d+ · '), '')}. ${s.body}',
-    'Remember: ${g.takeaways.join('. ')}.',
+      tr('coach.guideSection', {
+        'heading': s.heading.replaceFirst(RegExp(r'^\d+ · '), ''),
+        'body': s.body,
+      }),
+    tr('coach.remember', {
+      'list': g.takeaways.join(tr('coach.listSeparator')),
+    }),
   ];
 
-  static List<String> preview() => [
-    'Let your arms float up as if resting on water, then sink as you soften your knees.',
-  ];
+  static List<String> preview() => [tr('coach.preview')];
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../services/app_links.dart';
+import '../i18n/i18n.dart';
 
 /// Public insert-only inbox. The publishable key cannot read messages.
 class FeedbackService {
@@ -30,7 +31,7 @@ class FeedbackService {
     // A retry of a previously accepted message is successful without duplicating it.
     if (response.statusCode == 409 && response.body.contains('23505')) return;
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Message could not be sent. Please try again.');
+      throw Exception(tr('feedback.sendError'));
     }
   }
 }

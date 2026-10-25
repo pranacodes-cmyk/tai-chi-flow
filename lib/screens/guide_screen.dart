@@ -11,6 +11,7 @@ import '../theme/tokens.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
 import 'plan_detail_screen.dart';
+import '../i18n/i18n.dart';
 
 /// Short original article from the "Learn the art" shelf (web /guide/$guideId).
 class GuideScreen extends StatefulWidget {
@@ -113,7 +114,7 @@ class _GuideScreenState extends State<GuideScreen> {
                                       borderRadius: BorderRadius.circular(99),
                                     ),
                                     child: Text(
-                                      g.tag.toUpperCase(),
+                                      trTag(g.tag).toUpperCase(),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: T.tiny.copyWith(
@@ -126,7 +127,8 @@ class _GuideScreenState extends State<GuideScreen> {
                                   ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Container(
+                                  Flexible(
+                                    child: Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 10,
                                       vertical: 4,
@@ -145,19 +147,25 @@ class _GuideScreenState extends State<GuideScreen> {
                                           color: C.ink,
                                         ),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          '${g.minutes} min read',
-                                          style: T.tiny.copyWith(color: C.ink),
+                                        Flexible(
+                                          child: Text(
+                                            tr('guide.minRead', {'n': g.minutes}),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: T.tiny.copyWith(color: C.ink),
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
+                                  ),
+                                  const SizedBox(width: 8),
                                   const Spacer(),
                                   Semantics(
                                     button: true,
                                     label: listening
-                                        ? 'Stop listening'
-                                        : 'Listen to this guide',
+                                        ? tr('guide.stopListening')
+                                        : tr('guide.listenToGuide'),
                                     child: Pressable(
                                       onTap: () => _toggleListen(g),
                                       child: AnimatedContainer(
@@ -189,7 +197,7 @@ class _GuideScreenState extends State<GuideScreen> {
                                             ),
                                             const SizedBox(width: 6),
                                             Text(
-                                              listening ? 'Stop' : 'Listen',
+                                              listening ? tr('guide.stop') : tr('guide.listen'),
                                               style: T.tiny.copyWith(
                                                 fontWeight: FontWeight.w700,
                                                 color: listening
@@ -266,7 +274,7 @@ class _GuideScreenState extends State<GuideScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Eyebrow(
-                                'Remember',
+                                tr('guide.remember'),
                                 color: C.ivory.withValues(alpha: 0.7),
                               ),
                               const SizedBox(height: 12),
@@ -302,7 +310,7 @@ class _GuideScreenState extends State<GuideScreen> {
                           ),
                         ),
                         const SizedBox(height: 32),
-                        Text('Keep learning', style: T.title.s(20)),
+                        Text(tr('guide.keepLearning'), style: T.title.s(20)),
                         const SizedBox(height: 12),
                         for (final m in more)
                           Padding(
@@ -351,7 +359,7 @@ class _GuideScreenState extends State<GuideScreen> {
                                               ),
                                               const SizedBox(width: 4),
                                               Text(
-                                                '${m.tag} · ${m.minutes} min',
+                                                tr('guide.tagMinutes', {'tag': trTag(m.tag), 'n': m.minutes}),
                                                 style: T.tiny.w(
                                                   FontWeight.w500,
                                                 ),
@@ -381,7 +389,7 @@ class _GuideScreenState extends State<GuideScreen> {
           if (cat != null)
             BottomCta(
               child: EnsoButton(
-                label: 'Practice ${cat.name}',
+                label: tr('guide.practiceCategory', {'name': cat.name}),
                 trailing: LucideIcons.arrowRight,
                 onTap: () => context.push('/category/${cat.id}'),
               ),

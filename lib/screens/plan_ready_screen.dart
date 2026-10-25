@@ -15,12 +15,13 @@ import '../theme/text.dart';
 import '../theme/tokens.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
 const _checklist = [
-  'Analyzing your goals',
-  'Adapting to your body',
-  'Choosing your movements',
-  'Building your daily schedule',
+  'planReady.analyzingGoals',
+  'planReady.adaptingBody',
+  'planReady.choosingMovements',
+  'planReady.buildingSchedule',
 ];
 
 class PlanReadyScreen extends StatefulWidget {
@@ -137,13 +138,13 @@ class _Generating extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               Text(
-                'Creating your personal plan',
+                tr('planReady.creatingPlan'),
                 textAlign: TextAlign.center,
                 style: T.displayMd,
               ),
               const SizedBox(height: 8),
               Text(
-                'Matching 310 movements to your answers…',
+                tr('planReady.matchingMovements'),
                 textAlign: TextAlign.center,
                 style: T.bodySm.c(C.muted),
               ),
@@ -219,7 +220,7 @@ class _Generating extends StatelessWidget {
                                   fontWeight: FontWeight.w600,
                                   color: on || current ? C.ink : C.muted,
                                 ),
-                                child: Text(c),
+                                child: Text(tr(c)),
                               ),
                               ),
                             ],
@@ -394,13 +395,13 @@ class _Result extends StatelessWidget {
     };
     final summary = [
       (
-        'Main goal',
-        (goalLabels[p.goals.firstOrNull ?? ''] ?? 'Overall wellbeing')
+        tr('planReady.mainGoal'),
+        (goalLabels[p.goals.firstOrNull ?? ''] ?? tr('planReady.overallWellbeing'))
             .replaceFirst(RegExp(r'^Improve '), ''),
       ),
-      ('Focus area', zoneLabels[p.zones.firstOrNull ?? ''] ?? 'Full body'),
-      ('Daily time', '${p.dailyMinutes} minutes'),
-      ('Level', plan.level),
+      (tr('planReady.focusArea'), zoneLabels[p.zones.firstOrNull ?? ''] ?? tr('planReady.fullBody')),
+      (tr('planReady.dailyTime'), tr('common.minutes', {'n': p.dailyMinutes})),
+      (tr('planReady.level'), trTag(plan.level)),
     ];
     final week = plan.days.take(7).toList();
 
@@ -431,7 +432,7 @@ class _Result extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Plan ready',
+                      tr('planReady.planReadyBadge'),
                       style: T.tiny.copyWith(
                         fontWeight: FontWeight.w700,
                         color: C.jadeDeep,
@@ -445,11 +446,12 @@ class _Result extends StatelessWidget {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text:
-                          '${p.name.isNotEmpty ? '${p.name}, your' : 'Your'} plan is ',
+                      text: p.name.isNotEmpty
+                          ? tr('planReady.yourPlanIsReadyNamed', {'name': p.name})
+                          : tr('planReady.yourPlanIsReady'),
                     ),
                     TextSpan(
-                      text: 'ready',
+                      text: tr('planReady.ready'),
                       style: T.serifAccent.copyWith(
                         fontSize: 36,
                         color: C.jade,
@@ -461,35 +463,16 @@ class _Result extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               if (losing)
-                Text.rich(
-                  TextSpan(
-                    children: [
-                      const TextSpan(
-                        text: 'Based on your answers, you could reach ',
-                      ),
-                      TextSpan(
-                        text: formatWeight(p.targetWeightKg, p.units),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: C.ink,
-                        ),
-                      ),
-                      const TextSpan(text: ' by '),
-                      TextSpan(
-                        text: DateFormat('MMMM d').format(targetDate),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: C.ink,
-                        ),
-                      ),
-                      const TextSpan(text: '.'),
-                    ],
-                  ),
+                Text(
+                  tr('planReady.weightForecast', {
+                    'weight': formatWeight(p.targetWeightKg, p.units),
+                    'date': DateFormat('MMMM d', appLocale).format(targetDate),
+                  }),
                   style: T.body.c(C.muted),
                 )
               else
                 Text(
-                  'Expect noticeably better balance and flexibility within 4 weeks of gentle daily practice.',
+                  tr('planReady.balanceForecast'),
                   style: T.body.c(C.muted),
                 ),
               const SizedBox(height: 24),
@@ -497,7 +480,7 @@ class _Result extends StatelessWidget {
                 curve: curve,
                 losing: losing,
                 imperial: p.imperial,
-                endLabel: DateFormat('MMM d').format(targetDate),
+                endLabel: DateFormat('MMM d', appLocale).format(targetDate),
               ),
               const SizedBox(height: 20),
               LayoutBuilder(
@@ -569,7 +552,7 @@ class _Result extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Eyebrow(
-                                    'Your program',
+                                    tr('planReady.yourProgram'),
                                     color: C.ivory.withValues(alpha: 0.75),
                                   ),
                                   const SizedBox(height: 4),
@@ -598,13 +581,13 @@ class _Result extends StatelessWidget {
                               for (final (i, x) in [
                                 (
                                   LucideIcons.calendarDays,
-                                  '${plan.days.length} days',
+                                  tr('common.days', {'n': plan.days.length}),
                                 ),
                                 (
                                   LucideIcons.clock,
-                                  '${plan.minutesPerDay} min/day',
+                                  tr('planReady.minPerDay', {'n': plan.minutesPerDay}),
                                 ),
-                                (LucideIcons.target, plan.level),
+                                (LucideIcons.target, trTag(plan.level)),
                               ].indexed) ...[
                                 if (i > 0)
                                   const VerticalDivider(
@@ -640,10 +623,10 @@ class _Result extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
-                    child: Text('Your first week', style: T.title.s(20)),
+                    child: Text(tr('planReady.yourFirstWeek'), style: T.title.s(20)),
                   ),
                   Text(
-                    '${plan.minutesPerDay} min a day',
+                    tr('planReady.minADay', {'n': plan.minutesPerDay}),
                     style: T.caption.copyWith(
                       fontWeight: FontWeight.w600,
                       color: C.jade,
@@ -747,7 +730,11 @@ class _Result extends StatelessWidget {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          '${d.restore ? 'Restore day · ' : ''}${math.max(1, (totalSeconds(d.items) / 60).round())} min · ${d.items.length} moves',
+                                          tr('planReady.dayMeta', {
+                                            'restore': d.restore,
+                                            'minutes': math.max(1, (totalSeconds(d.items) / 60).round()),
+                                            'moves': d.items.length,
+                                          }),
                                           style: T.tiny.w(FontWeight.w500),
                                         ),
                                       ],
@@ -764,7 +751,7 @@ class _Result extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(99),
                                       ),
                                       child: Text(
-                                        'Today',
+                                        tr('common.today'),
                                         style: T.tiny.copyWith(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
@@ -782,7 +769,7 @@ class _Result extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              Text("What you'll feel", style: T.title.s(20)),
+              Text(tr('planReady.whatYoullFeel'), style: T.title.s(20)),
               const SizedBox(height: 14),
               for (final (i, b) in plan.benefits.indexed)
                 Padding(
@@ -817,7 +804,7 @@ class _Result extends StatelessWidget {
         BottomCta(
           child: Shimmer(
             child: EnsoButton(
-              label: 'Get my plan',
+              label: tr('planReady.getMyPlan'),
               onTap: () {
                 app.completeOnboarding(planId);
                 context.go('/paywall?from=onboarding');
@@ -867,8 +854,8 @@ class _PredictionChartState extends State<_PredictionChart>
               Expanded(
                 child: Text(
                   widget.losing
-                      ? 'Your weight forecast'
-                      : 'Balance & flexibility',
+                      ? tr('planReady.weightForecastTitle')
+                      : tr('planReady.balanceFlexibilityTitle'),
                   style: T.title,
                 ),
               ),
@@ -882,7 +869,7 @@ class _PredictionChartState extends State<_PredictionChart>
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: Text(
-                  'Personalized',
+                  tr('planReady.personalized'),
                   style: T.tiny.copyWith(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -903,7 +890,7 @@ class _PredictionChartState extends State<_PredictionChart>
           ),
           const SizedBox(height: 8),
           Text(
-            'Forecast based on members with similar goals practicing daily. Individual results vary.',
+            tr('planReady.forecastDisclaimer'),
             style: T.tiny.w(FontWeight.w400),
           ),
         ],
@@ -984,8 +971,8 @@ class _ChartPainter extends CustomPainter {
     final endT = ((t - 0.63) / 0.2).clamp(0.0, 1.0);
     if (endT > 0) dot(pts.last, 8 * Curves.easeOutBack.transform(endT), C.jade);
     String fmt(double v) => w.imperial
-        ? '${(v * 2.20462).round()} lb'
-        : '${v == v.roundToDouble() ? v.toInt() : v} kg';
+        ? tr('planReady.weightLb', {'n': (v * 2.20462).round()})
+        : tr('planReady.weightKg', {'n': v == v.roundToDouble() ? v.toInt() : v});
     void text(
       String s,
       Offset o, {
@@ -1026,14 +1013,14 @@ class _ChartPainter extends CustomPainter {
       );
     }
     text(
-      w.losing ? 'Now' : 'Today',
+      w.losing ? tr('planReady.now') : tr('common.today'),
       const Offset(l, H - 6),
       color: w.losing ? C.muted : C.terracotta,
       size: w.losing ? 11 : 12,
       weight: w.losing ? FontWeight.w500 : FontWeight.w700,
     );
     text(
-      w.losing ? w.endLabel : 'Week 4',
+      w.losing ? w.endLabel : tr('planReady.week4'),
       const Offset(W - r, H - 6),
       end: true,
       color: C.muted,

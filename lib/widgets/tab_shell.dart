@@ -9,6 +9,22 @@ import '../data/content.dart';
 import '../services/audio_service.dart';
 import '../theme/text.dart';
 import '../theme/tokens.dart';
+import '../i18n/i18n.dart';
+
+String _tabLabel(String key) {
+  switch (key) {
+    case 'Today':
+      return tr('tabs.today');
+    case 'Courses':
+      return tr('tabs.courses');
+    case 'Meditate':
+      return tr('tabs.meditate');
+    case 'Profile':
+      return tr('tabs.profile');
+    default:
+      return key;
+  }
+}
 
 /// Floating glass tab bar (web `TabBar`) hosting the 4 tab branches.
 class TabShell extends StatelessWidget {
@@ -113,7 +129,7 @@ class TabShell extends StatelessWidget {
                                       child: Semantics(
                                         button: true,
                                         selected: shell.currentIndex == i,
-                                        label: tabs[i].label,
+                                        label: _tabLabel(tabs[i].label),
                                         child: GestureDetector(
                                           behavior: HitTestBehavior.opaque,
                                           onTap: () {
@@ -139,7 +155,7 @@ class TabShell extends StatelessWidget {
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                  tabs[i].label,
+                                                  _tabLabel(tabs[i].label),
                                                   style: T.tiny.copyWith(
                                                     fontSize: 11,
                                                     color:
@@ -258,8 +274,8 @@ class NowPlayingPill extends StatelessWidget {
                                 ),
                                 Text(
                                   st.playing
-                                      ? 'Soundscape · playing'
-                                      : 'Soundscape · paused',
+                                      ? tr('tabs.soundscapePlaying')
+                                      : tr('tabs.soundscapePaused'),
                                   style: T.tiny.copyWith(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w400,
@@ -272,8 +288,8 @@ class NowPlayingPill extends StatelessWidget {
                           Semantics(
                             button: true,
                             label: st.playing
-                                ? 'Pause soundscape'
-                                : 'Play soundscape',
+                                ? tr('tabs.pauseSoundscape')
+                                : tr('tabs.playSoundscape'),
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () {
@@ -307,7 +323,7 @@ class NowPlayingPill extends StatelessWidget {
                           ),
                           Semantics(
                             button: true,
-                            label: 'Stop soundscape',
+                            label: tr('tabs.stopSoundscape'),
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () {

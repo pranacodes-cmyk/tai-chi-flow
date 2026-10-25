@@ -10,6 +10,7 @@ import '../state/app_state.dart';
 import '../theme/text.dart';
 import '../theme/tokens.dart';
 import 'ui.dart';
+import '../i18n/i18n.dart';
 
 class QuickCard extends StatelessWidget {
   const QuickCard(this.q, {super.key, this.width = 220, this.height = 280});
@@ -132,8 +133,8 @@ class PlanCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         single
-                            ? '${plan.minutesPerDay} min'
-                            : '${plan.days.length} days',
+                            ? tr('common.minShort', {'n': plan.minutesPerDay})
+                            : tr('common.days', {'n': plan.days.length}),
                         style: T.tiny.c(C.ivory),
                       ),
                     ],
@@ -151,8 +152,8 @@ class PlanCard extends StatelessWidget {
                   children: [
                     Text(
                       single
-                          ? '${plan.level} · ${plan.subtitle}'
-                          : '${plan.minutesPerDay} min/day · ${plan.level}',
+                          ? '${trTag(plan.level)} · ${plan.subtitle}'
+                          : '${tr('cards.minPerDay', {'n': plan.minutesPerDay})} · ${trTag(plan.level)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: T.tiny.c(C.ivory.withValues(alpha: 0.75)),
@@ -313,7 +314,7 @@ class MeditationRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${m.category} · ${m.minutes} min',
+                    '${trTag(m.category)} · ${tr('common.minShort', {'n': m.minutes})}',
                     style: T.tiny.c(C.jade),
                   ),
                 ],
@@ -400,10 +401,10 @@ class ThumbRow extends StatelessWidget {
 
 /// Who a course suits at a glance: standing, chair, wall or mat.
 String equipmentLabel(String equipment) => switch (equipment) {
-  'chair' => 'Chair',
-  'wall' => 'Wall',
-  'mat' => 'Mat',
-  _ => 'Standing',
+  'chair' => trTag('Chair'),
+  'wall' => trTag('Wall'),
+  'mat' => trTag('Mat'),
+  _ => trTag('Standing'),
 };
 
 /// Full-width cover card for a multi-day course (web `CourseCard`).
@@ -417,7 +418,7 @@ class CourseCard extends StatelessWidget {
     final started = progress > 0;
     return Semantics(
       button: true,
-      label: '${plan.title}, ${plan.days.length} days',
+      label: tr('cards.planDaysLabel', {'title': plan.title, 'days': plan.days.length}),
       child: Pressable(
         onTap: () => context.push('/plan/${plan.id}'),
         child: Container(
@@ -451,7 +452,7 @@ class CourseCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          '${plan.days.length} days · ${plan.minutesPerDay} min',
+                          tr('cards.daysAndMinutes', {'days': plan.days.length, 'minutes': plan.minutesPerDay}),
                           style: T.tiny.c(C.ivory),
                         ),
                       ],
@@ -468,7 +469,7 @@ class CourseCard extends StatelessWidget {
                         vertical: 5,
                       ),
                       child: Text(
-                        '${(progress * 100).round()}% done',
+                        tr('cards.percentDone', {'percent': (progress * 100).round()}),
                         style: T.tiny.c(C.ivory),
                       ),
                     ),
@@ -487,7 +488,7 @@ class CourseCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text(
-                        '${plan.freeDays} days free',
+                        tr('cards.daysFree', {'n': plan.freeDays}),
                         style: T.tiny.copyWith(
                           color: C.jadeDeep,
                           fontWeight: FontWeight.w700,
@@ -520,7 +521,7 @@ class CourseCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${plan.level} · ${equipmentLabel(plan.equipment)}'
+                        '${trTag(plan.level)} · ${equipmentLabel(plan.equipment)}'
                             .toUpperCase(),
                         style: T.eyebrow.c(C.ivory.withValues(alpha: 0.78)),
                       ),

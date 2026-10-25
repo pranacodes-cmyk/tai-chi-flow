@@ -56,3 +56,6 @@ android/key.properties
 *.p8
 *.mobileprovision
 *.cer
+
+# Filled only by the store release workflow (coach voice asset pack)
+android/voice_pack/src/

@@ -11,8 +11,13 @@ import '../theme/tokens.dart';
 import '../widgets/enso_switch.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
-const _rates = [('Slow', 0.8), ('Natural', 0.95), ('Brisk', 1.1)];
+List<(String, double)> _rates() => [
+  (tr('settings.paceSlow'), 0.8),
+  (tr('settings.paceNatural'), 0.95),
+  (tr('settings.paceBrisk'), 1.1),
+];
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -59,10 +64,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Sound & voice', style: T.displayLg),
+                  Text(tr('settings.title'), style: T.displayLg),
                   const SizedBox(height: 4),
                   Text(
-                    'Shape how every session feels.',
+                    tr('settings.subtitle'),
                     style: T.bodySm.c(C.muted),
                   ),
                 ],
@@ -85,29 +90,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         children: [
                           _SwitchRow(
-                            'Voice coach',
-                            'Spoken cues, breath guidance & affirmations',
+                            tr('settings.voiceCoach'),
+                            tr('settings.voiceCoachDesc'),
                             a.voice,
                             (v) => app.setAudio((x) => x.voice = v),
                           ),
                           const Divider(height: 1, color: C.line),
                           _SwitchRow(
-                            'Countdown beeps',
-                            'Soft ticks in the last 3 seconds',
+                            tr('settings.countdownBeeps'),
+                            tr('settings.countdownBeepsDesc'),
                             a.beeps,
                             (v) => app.setAudio((x) => x.beeps = v),
                           ),
                           const Divider(height: 1, color: C.line),
                           _SwitchRow(
-                            'Haptics',
-                            'Gentle vibration on transitions',
+                            tr('settings.haptics'),
+                            tr('settings.hapticsDesc'),
                             a.haptics,
                             (v) => app.setAudio((x) => x.haptics = v),
                           ),
                           const Divider(height: 1, color: C.line),
                           _SwitchRow(
-                            'Background music',
-                            'Calming soundscape during workouts',
+                            tr('settings.backgroundMusic'),
+                            tr('settings.backgroundMusicDesc'),
                             a.music,
                             (v) => app.setAudio((x) => x.music = v),
                           ),
@@ -116,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  label('Voice pace'),
+                  label(tr('settings.voicePace')),
                   Container(
                     height: 48,
                     padding: const EdgeInsets.all(4),
@@ -126,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     child: Row(
                       children: [
-                        for (final r in _rates)
+                        for (final r in _rates())
                           Expanded(
                             child: Pressable(
                               onTap: () =>
@@ -160,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 12),
                   EnsoButton(
-                    label: 'Preview voice',
+                    label: tr('settings.previewVoice'),
                     icon: LucideIcons.volume2,
                     variant: BtnVariant.light,
                     size: BtnSize.md,
@@ -168,7 +173,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Voice.say(CoachLines.preview(), rate: a.voiceRate),
                   ),
                   const SizedBox(height: 24),
-                  label('Workout soundscape'),
+                  label(tr('settings.workoutSoundscape')),
                   GridView.count(
                     crossAxisCount: 2,
                     shrinkWrap: true,
@@ -255,7 +260,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  label('Music volume'),
+                  label(tr('settings.musicVolume')),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,

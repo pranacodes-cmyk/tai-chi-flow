@@ -15,6 +15,7 @@ import '../widgets/cards.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/tab_shell.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
 class MeditateScreen extends StatefulWidget {
   const MeditateScreen({super.key});
@@ -89,10 +90,10 @@ class _MeditateScreenState extends State<MeditateScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Meditate', style: T.displayLg),
+                  Text(tr('meditate.title'), style: T.displayLg),
                   const SizedBox(height: 4),
                   Text(
-                    'Breathe, rest and return to yourself.',
+                    tr('meditate.subtitle'),
                     style: T.bodySm.c(C.muted),
                   ),
                 ],
@@ -131,7 +132,7 @@ class _MeditateScreenState extends State<MeditateScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Eyebrow(
-                                      'Featured · ${featured.minutes} min',
+                                      tr('meditate.featuredMinutes', {'n': featured.minutes}),
                                       color: C.ivory.withValues(alpha: 0.7),
                                     ),
                                     const SizedBox(height: 6),
@@ -205,12 +206,12 @@ class _MeditateScreenState extends State<MeditateScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Breathing coach',
+                                tr('meditate.breathingCoach'),
                                 style: T.title.c(C.ivory),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Box, 4-7-8 & calm breathing · 1–5 min',
+                                tr('meditate.breathingCoachSubtitle'),
                                 style: T.caption.c(
                                   C.ivory.withValues(alpha: 0.8),
                                 ),
@@ -230,7 +231,7 @@ class _MeditateScreenState extends State<MeditateScreen> {
               children: [
                 for (final m in c.meditationCategories)
                   ChipPill(
-                    label: m,
+                    label: trTag(m),
                     active: cat == m,
                     onTap: () => setState(() => cat = m),
                   ),
@@ -258,7 +259,7 @@ class _MeditateScreenState extends State<MeditateScreen> {
               ),
             ),
             const SizedBox(height: 26),
-            const SectionHeader('Soundscapes'),
+            SectionHeader(tr('meditate.soundscapes')),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: GridView.count(
@@ -349,7 +350,7 @@ class _MeditateScreenState extends State<MeditateScreen> {
             ),
             if (offline.isNotEmpty) ...[
               const SizedBox(height: 36),
-              const SectionHeader('Available offline'),
+              SectionHeader(tr('meditate.availableOffline')),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(

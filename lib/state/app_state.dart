@@ -164,6 +164,9 @@ class AppState extends ChangeNotifier {
   List<String> downloads = [];
   PrivacyChoice privacy = const PrivacyChoice();
 
+  /// Chosen app language code, or null to follow the device language.
+  String? language;
+
   Timer? _saveTimer;
 
   static Future<AppState> load() async {
@@ -203,6 +206,7 @@ class AppState extends ChangeNotifier {
     'weightLog': weightLog.map((w) => w.toJson()).toList(),
     'downloads': downloads,
     'privacy': privacy.toJson(),
+    'language': language,
   };
 
   void _fromJson(Map<String, dynamic> j) {
@@ -251,6 +255,7 @@ class AppState extends ChangeNotifier {
     privacy = PrivacyChoice.fromJson(
       (j['privacy'] as Map?)?.cast<String, dynamic>() ?? {},
     );
+    language = j['language'] as String?;
   }
 
   void _commit() {
@@ -415,6 +420,12 @@ class AppState extends ChangeNotifier {
     _commit();
   }
 
+  /// Saves the app language (null follows the device language).
+  void setLanguage(String? code) {
+    language = code;
+    _commit();
+  }
+
   void toggleDownload(String id) {
     downloads = downloads.contains(id)
         ? downloads.where((d) => d != id).toList()
@@ -440,7 +451,8 @@ class AppState extends ChangeNotifier {
     favorites = [];
     weightLog = [];
     downloads = [];
-    // The privacy answer is a consent record, not practice data, so a reset keeps it.
+    // The privacy answer is a consent record and the language a device preference, not practice
+    // data, so a reset keeps both.
     _commit();
   }
 }

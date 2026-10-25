@@ -6,7 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../data/content.dart';
+import '../i18n/i18n.dart';
 import '../logic/coach.dart';
+import '../logic/logic.dart' show fallbackVoiceLocales, fallbackVoiceRank;
 
 /// Every player mixes with the others instead of taking Android audio focus.
 /// With the plugin default (focus "gain") the coach's voice clip stole focus from the
@@ -215,41 +217,53 @@ class Voice {
       await AudioSetup.ensure(_player);
       await _player.setReleaseMode(ReleaseMode.stop);
       _sub = _player.onPlayerComplete.listen((_) => _next(_token));
-      await _tts.setLanguage('en-US');
       await _tts.setPitch(1.0);
       await _tts.setVolume(1.0);
       await _tts.awaitSpeakCompletion(false);
-      final voices = await _tts.getVoices;
-      if (voices is List) {
-        // Only US, then UK English: a regional default (e.g. Indian or Australian English) would
-        // read the coach's lines in an accent the app never uses (web `pickVoice`).
-        int rank(Map v) {
-          final l = '${v['locale']}'.toLowerCase().replaceAll('_', '-');
-          return l.startsWith('en-us') ? 0 : (l.startsWith('en-gb') ? 1 : 2);
-        }
-
-        final en =
-            voices.whereType<Map>().where((v) => rank(v) < 2).toList()
-              ..sort((a, b) => rank(a) - rank(b));
-        final pick =
-            en
-                .where(
-                  (v) => RegExp(
-                    'female|en-us-x-tpf|en-gb-x-gba|sfg',
-                    caseSensitive: false,
-                  ).hasMatch('${v['name']}'),
-                )
-                .firstOrNull ??
-            en.firstOrNull;
-        if (pick != null) {
-          await _tts.setVoice({
-            'name': '${pick['name']}',
-            'locale': '${pick['locale']}',
-          });
-        }
-      }
     } catch (e) {
       debugPrint('TaiChi Flow voice init: $e');
+    }
+  }
+
+  static String? _voiceLang;
+
+  /// Device voice for lines without a clip, in the app language. English uses only US, then UK
+  /// voices: a regional default (e.g. Indian or Australian English) would read the coach's lines
+  /// in an accent the app never uses (web `pickVoice`, rule in `fallbackVoiceRank`).
+  static Future<void> _pickVoice() async {
+    final lang = appLang;
+    if (_voiceLang == lang) return;
+    _voiceLang = lang;
+    try {
+      await _tts.setLanguage(fallbackVoiceLocales(lang).first);
+      final voices = await _tts.getVoices;
+      if (voices is! List) return;
+      final ok = [
+        for (final v in voices.whereType<Map>())
+          if (fallbackVoiceRank(lang, '${v['locale']}') != null) v,
+      ]..sort(
+          (a, b) =>
+              fallbackVoiceRank(lang, '${a['locale']}')! -
+              fallbackVoiceRank(lang, '${b['locale']}')!,
+        );
+      final pick =
+          ok
+              .where(
+                (v) => RegExp(
+                  'female|en-us-x-tpf|en-gb-x-gba|sfg',
+                  caseSensitive: false,
+                ).hasMatch('${v['name']}'),
+              )
+              .firstOrNull ??
+          ok.firstOrNull;
+      if (pick != null) {
+        await _tts.setVoice({
+          'name': '${pick['name']}',
+          'locale': '${pick['locale']}',
+        });
+      }
+    } catch (e) {
+      debugPrint('TaiChi Flow voice language: $e');
     }
   }
 
@@ -309,6 +323,7 @@ class Voice {
       _tts.setCompletionHandler(() => _next(t));
       _tts.setCancelHandler(() {});
       _tts.setErrorHandler((_) => _next(t));
+      await _pickVoice();
       await _tts.setSpeechRate((_rate * 0.5).clamp(0.2, 0.8));
       await _tts.speak(line);
     } catch (e) {

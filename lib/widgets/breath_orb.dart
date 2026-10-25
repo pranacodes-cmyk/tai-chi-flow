@@ -5,14 +5,15 @@ import 'package:flutter/material.dart';
 
 import '../theme/text.dart';
 import '../theme/tokens.dart';
+import '../i18n/i18n.dart';
 
 enum BreathPhase { inhale, hold, exhale, rest }
 
-const _labels = {
-  BreathPhase.inhale: 'Breathe in',
-  BreathPhase.hold: 'Hold',
-  BreathPhase.exhale: 'Breathe out',
-  BreathPhase.rest: 'Rest',
+String _phaseLabel(BreathPhase phase) => switch (phase) {
+  BreathPhase.inhale => tr('breathOrb.breatheIn'),
+  BreathPhase.hold => tr('breathOrb.hold'),
+  BreathPhase.exhale => tr('breathOrb.breatheOut'),
+  BreathPhase.rest => tr('breathOrb.rest'),
 };
 
 /// Drives an [inhale, hold, exhale, hold] cycle once per second (web useBreathCycle).
@@ -24,7 +25,7 @@ class BreathCycle extends ChangeNotifier {
   int left;
   Timer? _t;
 
-  String get label => _labels[phase]!;
+  String get label => _phaseLabel(phase);
   int get duration => pattern[phase.index];
 
   void setRunning(bool running) {
@@ -118,7 +119,7 @@ class BreathOrb extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    running ? cycle.label : 'Paused',
+                    running ? cycle.label : tr('breathOrb.paused'),
                     style: T.title.c(C.ivory),
                   ),
                   if (running)

@@ -11,25 +11,53 @@ import '../state/app_state.dart';
 import '../theme/text.dart';
 import '../theme/tokens.dart';
 import '../widgets/cards.dart';
-import '../widgets/feedback_sheet.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/tab_shell.dart';
 import '../widgets/ui.dart';
+import '../i18n/i18n.dart';
 
+/// Today, kept to three things: today's lesson, journey progress and short practice.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
+    final c = Content.i;
     final now = DateTime.now();
     final today = dateKey(now);
-    final plan = app.activePlan;
-    final completed = app.activeCompleted;
     final stats = app.stats;
+    final name = app.profile.name;
+    final premium = app.premium.active;
+
+    // Today's lesson: the personal plan, or the journey's free day while one is left.
+    final active = app.activePlan;
+    final activeDone = app.activeCompleted;
+    final activeLocked =
+        activeDone.length < active.days.length &&
+        isDayLocked(
+          active,
+          nextPlanDay(active.days.length, activeDone),
+          premium,
+        );
+    final journey = c.plan(journeyId);
+    final plan =
+        c.plan(
+          todayPlanId(
+            active.id,
+            activeLocked: activeLocked,
+            journeyFreeDays: journey?.freeDays ?? 0,
+            journeyCompleted:
+                app.planProgress[journeyId]?.completedDays ?? const <int>[],
+          ),
+        ) ??
+        active;
+    final completed =
+        app.planProgress[plan.id]?.completedDays ?? const <int>[];
     final dayNumber = nextPlanDay(plan.days.length, completed);
     final day = plan.days[dayNumber - 1];
     final planDone = completed.length >= plan.days.length;
+    final locked = !planDone && isDayLocked(plan, dayNumber, premium);
     final todayDone =
         completed.contains(dayNumber) ||
         app.history.any(
@@ -38,627 +66,20 @@ class HomeScreen extends StatelessWidget {
               h.day == dayNumber &&
               dateKey(h.completedAt) == today,
         );
-    final todayEntries = app.history
-        .where((h) => dateKey(h.completedAt) == today)
-        .toList();
-    final minutesToday =
-        (todayEntries.fold<int>(0, (s, h) => s + h.durationSec) / 60).round();
-    final kcalToday = todayEntries.fold<int>(0, (s, h) => s + h.kcal);
-    final minuteGoal = app.profile.dailyMinutes == 0
-        ? 10
-        : app.profile.dailyMinutes;
-    final kcalGoal = (minuteGoal * 4).clamp(30, 1000);
-    final c = Content.i;
-    final challenge = dailyPick(c.dailyChallenges, now);
-    final challengeKey = '$today:${challenge.id}';
-    final challengeState = app.challenges[challengeKey];
-    final quote = dailyPick(c.quotes, now, 3);
-    final tip = dailyPick(c.tips, now, 7);
-    final evening = now.hour >= 17 || now.hour < 5;
-    final med = c.meditation(
-      evening ? 'evening-wind-down' : 'morning-clarity',
-    )!;
-    final days = app.history.map((h) => dateKey(h.completedAt)).toSet();
-    final weekStart = addDays(now, -(now.weekday % 7));
-    final pct = completed.length / plan.days.length;
-    final name = app.profile.name;
-    final premium = app.premium.active;
-    final heroLocked = !planDone && isDayLocked(plan, dayNumber, premium);
-    // the 60-day daily practice (seated or standing); offer the other one if it's already the main plan
-    var dailyId = dailyPlanId(
-      limitations: app.profile.limitations,
-      style: app.profile.style,
-    );
-    if (dailyId == plan.id) {
-      dailyId = c.dailyPlanIds.firstWhere(
-        (id) => id != plan.id,
-        orElse: () => dailyId,
-      );
-    }
-    final daily = c.plan(dailyId)!;
-    final dailyDone =
-        app.planProgress[daily.id]?.completedDays ?? const <int>[];
-    final dailyDay = nextPlanDay(daily.days.length, dailyDone);
-    final dailyToday = app.history.any(
-      (h) => h.planId == daily.id && dateKey(h.completedAt) == today,
-    );
-    final dailyLocked = isDayLocked(daily, dailyDay, premium);
+    final freeDay = !premium && plan.premium && dayNumber <= plan.freeDays;
+    final newToday = [
+      for (final it in day.items)
+        if (it.p == 'New today') c.exercise(it.e)?.name,
+    ].whereType<String>().toList();
 
-    final leadFree = homeLeadsWithFree(heroLocked);
-    final freeQ = c.quickSessions.firstWhere(
-      (q) => q.id == freePickQuickId(now.hour),
-      orElse: () => c.quickSessions.first,
-    );
-    final starter = c.plan(freeStarterId);
-    final starterDay = starter == null
-        ? null
-        : freeStarterDay(
-            starter.days.length,
-            app.planProgress[starter.id]?.completedDays ?? const <int>[],
-          );
-    final Widget planHero = Reveal(
-              delay: 0.05,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  height: 430,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(34),
-                    boxShadow: S.float,
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      KenBurns(child: EImage(img(plan.image))),
-                      DecoratedBox(
-                        decoration: BoxDecoration(gradient: G.scrim),
-                      ),
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        top: 16,
-                        child: Row(
-                          children: [
-                            Glass(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              child: Text(
-                                planDone
-                                    ? 'Plan complete'
-                                    : 'Day $dayNumber of ${plan.days.length}',
-                                style: T.tiny.c(C.ivory),
-                              ),
-                            ),
-                            const Spacer(),
-                            Ring(
-                              value: pct,
-                              size: 46,
-                              stroke: 4.5,
-                              track: C.ivory.withValues(alpha: 0.25),
-                              bar: C.ivory,
-                              child: Text(
-                                '${(pct * 100).round()}%',
-                                style: T.tiny
-                                    .copyWith(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: C.ivory,
-                                    )
-                                    .tab,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Positioned(
-                        left: 20,
-                        right: 20,
-                        bottom: 20,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Eyebrow(
-                              plan.title,
-                              color: C.ivory.withValues(alpha: 0.7),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              planDone
-                                  ? 'You did it.'
-                                  : 'Day $dayNumber · ${day.title}',
-                              style: T.displayLg.copyWith(
-                                fontSize: 29.6,
-                                color: C.ivory,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                Text(
-                                  formatMinutes(totalSeconds(day.items)),
-                                  style: T.caption.copyWith(
-                                    fontSize: 14,
-                                    color: C.ivory.withValues(alpha: 0.8),
-                                  ),
-                                ),
-                                const Dot(),
-                                Text(
-                                  '${kcalForWeight(day.kcal, app.profile.weightKg)} kcal',
-                                  style: T.caption.copyWith(
-                                    fontSize: 14,
-                                    color: C.ivory.withValues(alpha: 0.8),
-                                  ),
-                                ),
-                                const Dot(),
-                                Text(
-                                  '${day.items.length} moves',
-                                  style: T.caption.copyWith(
-                                    fontSize: 14,
-                                    color: C.ivory.withValues(alpha: 0.8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Pressable(
-                                    onTap: () => planDone
-                                        ? context.go('/courses')
-                                        : heroLocked
-                                        ? context.push('/paywall?from=plan')
-                                        : context.push(
-                                            '/session/${planSessionId(plan.id, dayNumber)}',
-                                          ),
-                                    child: Container(
-                                      height: 56,
-                                      decoration: BoxDecoration(
-                                        color: heroLocked ? null : C.ivory,
-                                        gradient: heroLocked ? G.gold : null,
-                                        borderRadius: BorderRadius.circular(56),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            heroLocked
-                                                ? LucideIcons.crown
-                                                : planDone
-                                                ? LucideIcons.arrowRight
-                                                : (todayDone
-                                                      ? LucideIcons.check
-                                                      : Icons
-                                                            .play_arrow_rounded),
-                                            size:
-                                                planDone ||
-                                                    todayDone ||
-                                                    heroLocked
-                                                ? 20
-                                                : 24,
-                                            color: C.ink,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Flexible(
-                                            child: Text(
-                                            heroLocked
-                                                ? 'Unlock Day $dayNumber'
-                                                : planDone
-                                                ? 'Choose next plan'
-                                                : (todayDone
-                                                      ? 'Done · Practice again'
-                                                      : "Start today's session"),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: T.label.copyWith(
-                                              fontSize: 17,
-                                            ),
-                                          ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                CircleBtn(
-                                  icon: LucideIcons.arrowRight,
-                                  tone: Tone.dark,
-                                  size: 56,
-                                  label: 'View plan',
-                                  onTap: () => context.push('/plan/${plan.id}'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-    final Widget rings = Reveal(
-              delay: 0.12,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: ECard(
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 108,
-                            height: 108,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Ring(
-                                  value: minutesToday / minuteGoal,
-                                  size: 108,
-                                  stroke: 10,
-                                  track: C.jade.withValues(alpha: 0.12),
-                                  bar: C.jade,
-                                ),
-                                Ring(
-                                  value: kcalToday / kcalGoal,
-                                  size: 82,
-                                  stroke: 10,
-                                  track: C.terracotta.withValues(alpha: 0.14),
-                                  bar: C.terracotta,
-                                ),
-                                Ring(
-                                  value: (stats.streak / 7)
-                                      .clamp(0, 1)
-                                      .toDouble(),
-                                  size: 56,
-                                  stroke: 10,
-                                  track: C.gold.withValues(alpha: 0.18),
-                                  bar: C.gold,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                _Legend(
-                                  color: C.jade,
-                                  label: 'Minutes',
-                                  value: '$minutesToday/$minuteGoal',
-                                ),
-                                const SizedBox(height: 10),
-                                _Legend(
-                                  color: C.terracotta,
-                                  label: 'Calories',
-                                  value: '$kcalToday/$kcalGoal',
-                                ),
-                                const SizedBox(height: 10),
-                                _Legend(
-                                  color: C.gold,
-                                  label: 'Streak',
-                                  value:
-                                      '${stats.streak} ${stats.streak == 1 ? 'day' : 'days'}',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      const Divider(height: 1, color: C.line),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          for (var i = 0; i < 7; i++)
-                            // shares the row equally and shrinks on the narrowest phones
-                            Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: Builder(
-                              builder: (_) {
-                                final d = addDays(weekStart, i);
-                                final k = dateKey(d);
-                                final done = days.contains(k);
-                                final isToday = k == today;
-                                final future = d.isAfter(now) && !isToday;
-                                return Column(
-                                  children: [
-                                    Text(
-                                      weekLetters[i],
-                                      style: T.tiny.copyWith(
-                                        fontSize: 11,
-                                        color: isToday ? C.jade : C.muted,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Container(
-                                      width: 36,
-                                      height: 36,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: done
-                                            ? C.jade
-                                            : (isToday || future
-                                                  ? Colors.transparent
-                                                  : C.sand),
-                                        border: isToday && !done
-                                            ? Border.all(
-                                                color: C.jade,
-                                                width: 2,
-                                              )
-                                            : null,
-                                      ),
-                                      child: done
-                                          ? const Icon(
-                                              LucideIcons.check,
-                                              size: 16,
-                                              color: C.ivory,
-                                            )
-                                          : Text(
-                                              '${d.day}',
-                                              style: T.caption
-                                                  .copyWith(
-                                                    fontWeight: FontWeight.w700,
-                                                    color: isToday
-                                                        ? C.jadeDeep
-                                                        : (future
-                                                              ? C.muted
-                                                                    .withValues(
-                                                                      alpha:
-                                                                          0.6,
-                                                                    )
-                                                              : C.muted),
-                                                  )
-                                                  .tab,
-                                            ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            )))),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-    final Widget dailyCard = Reveal(
-              delay: 0.15,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _DailyPracticeCard(
-                  plan: daily,
-                  day: dailyDay,
-                  doneDays: dailyDone.length,
-                  doneToday: dailyToday,
-                  locked: dailyLocked,
-                  weightKg: app.profile.weightKg,
-                  onTap: () => context.push(
-                    dailyLocked
-                        ? '/paywall?from=plan'
-                        : '/session/${planSessionId(daily.id, dailyDay)}',
-                  ),
-                  onOpen: () => context.push('/plan/${daily.id}'),
-                ),
-              ),
-            );
-    final Widget habit = Reveal(
-              delay: 0.18,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 500),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: challengeState == 'done' ? G.jade : null,
-                    color: challengeState == 'done' ? null : C.ivory,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: S.card,
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: challengeState == 'done'
-                                  ? C.ivory.withValues(alpha: 0.15)
-                                  : C.terracottaSoft,
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: challengeState == 'done'
-                                ? const Icon(
-                                    LucideIcons.check,
-                                    size: 28,
-                                    color: C.ivory,
-                                  )
-                                : ContentIcon(
-                                    challenge.icon,
-                                    size: 28,
-                                    color: C.terracotta,
-                                  ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Eyebrow(
-                                  'Mindful habit',
-                                  color: challengeState == 'done'
-                                      ? C.ivory.withValues(alpha: 0.7)
-                                      : C.terracotta,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  challenge.title,
-                                  style: T.title.c(
-                                    challengeState == 'done' ? C.ivory : C.ink,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  challengeState == 'done'
-                                      ? 'Beautifully done. Small steps, big change.'
-                                      : challenge.description,
-                                  style: T.caption.copyWith(
-                                    fontSize: 14,
-                                    height: 1.5,
-                                    color: challengeState == 'done'
-                                        ? C.ivory.withValues(alpha: 0.8)
-                                        : C.muted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (challengeState != 'done') ...[
-                        const SizedBox(height: 16),
-                        Pressable(
-                          onTap: () => app.setChallenge(
-                            challengeKey,
-                            challengeState == 'accepted' ? 'done' : 'accepted',
-                          ),
-                          child: Container(
-                            height: 48,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: challengeState == 'accepted'
-                                  ? C.jade
-                                  : C.ink,
-                              borderRadius: BorderRadius.circular(48),
-                            ),
-                            child: Text(
-                              challengeState == 'accepted'
-                                  ? 'Mark as done'
-                                  : 'Accept challenge',
-                              style: T.label.c(C.ivory),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            );
-    final Widget quick = Reveal(
-              delay: 0.22,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionHeader(
-                    leadFree ? 'More free sessions' : 'Quick sessions',
-                    action: 'See all',
-                    onAction: () => context.go('/courses?view=classes'),
-                  ),
-                  HScroll(
-                    children: [for (final q in c.quickSessions) QuickCard(q)],
-                  ),
-                ],
-              ),
-            );
-    final List<Widget> upsell = [
-              const SizedBox(height: 28),
-              Reveal(
-                delay: 0.24,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Pressable(
-                    onTap: () => context.push('/paywall?from=home'),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: C.ink,
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: S.card,
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned(
-                            right: -60,
-                            top: -60,
-                            child: Container(
-                              width: 144,
-                              height: 144,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: C.gold.withValues(alpha: 0.25),
-                                    blurRadius: 50,
-                                    spreadRadius: 10,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  gradient: G.gold,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Icon(
-                                  LucideIcons.crown,
-                                  size: 24,
-                                  color: C.ink,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Unlock every plan & challenge',
-                                      style: T.label.copyWith(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: C.ivory,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'All courses with TaiChi Flow Plus',
-                                      style: T.caption.c(
-                                        C.ivory.withValues(alpha: 0.7),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Icon(
-                                LucideIcons.arrowRight,
-                                size: 20,
-                                color: C.gold,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-];
+    final pick = freePickQuickId(now.hour);
+    final quick = [
+      ...c.quickSessions.where((q) => q.id == pick),
+      ...c.quickSessions.where((q) => q.id != pick),
+    ];
+    final med =
+        c.meditation(featuredMeditationId(now.hour, premium)) ??
+        c.meditations.first;
 
     return EnsoScaffold(
       body: SingleChildScrollView(
@@ -670,510 +91,67 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Eyebrow(DateFormat('EEEE, MMM d').format(now)),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${greeting(now.hour)}${name.isNotEmpty ? ',' : ''}',
-                          style: T.displayMd,
-                        ),
-                        Text(
-                          name.isNotEmpty ? name : 'friend',
-                          style: T.serifAccent.copyWith(
-                            fontSize: 30,
-                            color: C.jadeDeep,
-                            height: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Row(
-                      children: [
-                        Pressable(
-                          onTap: () => context.push('/history'),
-                          child: Container(
-                            height: 44,
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            decoration: BoxDecoration(
-                              color: C.ivory,
-                              borderRadius: BorderRadius.circular(44),
-                              boxShadow: S.soft,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  stats.streak > 0
-                                      ? Icons.local_fire_department_rounded
-                                      : LucideIcons.flame,
-                                  size: 19,
-                                  color: stats.streak > 0
-                                      ? C.terracotta
-                                      : C.muted,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '${stats.streak}',
-                                  style: T.label
-                                      .copyWith(fontWeight: FontWeight.w700)
-                                      .tab,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Pressable(
-                          onTap: () => context.go('/profile'),
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              gradient: G.jade,
-                              shape: BoxShape.circle,
-                              boxShadow: S.glow,
-                            ),
-                            child: Text(
-                              (name.isNotEmpty ? name : 'E')[0].toUpperCase(),
-                              style: T.label.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: C.ivory,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _Header(now: now, name: name, streak: stats.streak),
             const SizedBox(height: 24),
-
-            if (!leadFree) ...[
-              planHero,
-              const SizedBox(height: 16),
-              rings,
-              const SizedBox(height: 16),
-              dailyCard,
-              const SizedBox(height: 16),
-              habit,
-              const SizedBox(height: 36),
-              quick,
-              if (!premium) ...upsell,
-              const SizedBox(height: 28),
-              const FeedbackInvite(),
-            ] else ...[
-              Reveal(
-                delay: 0.05,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: starter != null && starterDay != null
-                      ? _FreeHero(
-                          title: 'Day $starterDay · ${starter.days[starterDay - 1].title}',
-                          image: starter.image,
-                          eyebrow: '${starter.title} · Day $starterDay of ${starter.days.length}',
-                          meta:
-                              '${formatMinutes(totalSeconds(starter.days[starterDay - 1].items))}  ·  ${kcalForWeight(starter.days[starterDay - 1].kcal, app.profile.weightKg)} kcal  ·  ${starter.days[starterDay - 1].items.length} moves',
-                          cta: starterDay == 1 ? 'Start your free course' : 'Continue · Day $starterDay',
-                          progress: (starterDay - 1) / starter.days.length,
-                          onTap: () => context.push('/session/${planSessionId(starter.id, starterDay)}'),
-                        )
-                      : _FreeHero(
-                          title: freeQ.title,
-                          image: freeQ.image,
-                          eyebrow: "Today's free session",
-                          meta:
-                              '${formatMinutes(totalSeconds(freeQ.items))}  ·  ${kcalForWeight(freeQ.kcal, app.profile.weightKg)} kcal  ·  ${freeQ.items.length} moves',
-                          cta: 'Start free session',
-                          onTap: () => context.push('/session/quick:${freeQ.id}'),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              rings,
-              const SizedBox(height: 36),
-              quick,
-              const SizedBox(height: 28),
-              const FeedbackInvite(),
-              const SizedBox(height: 36),
-              const _MadeForYouHeader(),
-              planHero,
-              const SizedBox(height: 16),
-              dailyCard,
-              ...upsell,
-              const SizedBox(height: 28),
-              habit,
-            ],
-            const SizedBox(height: 28),
-
-            // quote
             Reveal(
-              delay: 0.26,
+              delay: 0.05,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: C.jadeSoft,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Positioned(
-                        right: -72,
-                        bottom: -72,
-                        child: Container(
-                          width: 160,
-                          height: 160,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: C.jade.withValues(alpha: 0.1),
-                              width: 14,
-                            ),
-                          ),
+                child: _LessonHero(
+                  plan: plan,
+                  day: day,
+                  dayNumber: dayNumber,
+                  completedCount: completed.length,
+                  planDone: planDone,
+                  locked: locked,
+                  todayDone: todayDone,
+                  freeDay: freeDay,
+                  newToday: newToday,
+                  weightKg: app.profile.weightKg,
+                  onStart: () => planDone
+                      ? context.go('/courses')
+                      : locked
+                      ? context.push('/paywall?from=plan')
+                      : context.push(
+                          '/session/${planSessionId(plan.id, dayNumber)}',
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            LucideIcons.quote,
-                            size: 28,
-                            color: C.jade.withValues(alpha: 0.4),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            quote.text,
-                            style: T.serifAccent.copyWith(
-                              fontSize: 25.6,
-                              height: 1.2,
-                              color: C.jadeDeep,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            '— ${quote.author}',
-                            style: T.caption.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: C.jadeDeep,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  onOpen: () => context.push('/plan/${plan.id}'),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-
-            // daily tip
+            const SizedBox(height: 14),
             Reveal(
-              delay: 0.27,
+              delay: 0.1,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: ECard(
-                  radius: 26,
-                  shadow: S.soft,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: G.jade,
-                          shape: BoxShape.circle,
-                          boxShadow: S.glow,
-                        ),
-                        child: ContentIcon(tip.icon, size: 20, color: C.ivory),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Eyebrow("Today's tip", color: C.jade),
-                            const SizedBox(height: 4),
-                            Text(
-                              tip.title,
-                              style: T.label.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                height: 1.3,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              tip.body,
-                              style: T.bodySm.copyWith(
-                                fontSize: 14,
-                                color: C.muted,
-                                height: 1.55,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                child: _JourneyProgress(
+                  done: completed.length,
+                  total: plan.days.length,
+                  streak: stats.streak,
+                  onOpen: () => context.push('/plan/${plan.id}'),
                 ),
               ),
             ),
             const SizedBox(height: 36),
-
-            // meditation pick
             Reveal(
-              delay: 0.28,
+              delay: 0.16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SectionHeader(
-                    evening ? 'Wind down tonight' : 'Start with stillness',
-                    action: 'Meditate',
-                    onAction: () => context.go('/meditate'),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Pressable(
-                      onTap: () => context.push('/meditation/${med.id}'),
-                      child: Container(
-                        height: 190,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: S.card,
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            EImage(img(med.image)),
-                            DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    const Color(0xFF111A15)
-                                        .withValues(alpha: 0.85),
-                                    const Color(0xFF111A15)
-                                        .withValues(alpha: 0.1),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              left: 20,
-                              top: 0,
-                              bottom: 0,
-                              width: 220,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        LucideIcons.sparkles,
-                                        size: 12,
-                                        color: C.ivory.withValues(alpha: 0.7),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Eyebrow(
-                                        '${med.category} · ${med.minutes} min',
-                                        color: C.ivory.withValues(alpha: 0.7),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    med.title,
-                                    style: T.displayMd.c(C.ivory),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    med.subtitle,
-                                    style: T.caption.c(
-                                      C.ivory.withValues(alpha: 0.75),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Positioned(
-                              right: 20,
-                              bottom: 20,
-                              child: Container(
-                                width: 48,
-                                height: 48,
-                                decoration: const BoxDecoration(
-                                  color: C.ivory,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.play_arrow_rounded,
-                                  size: 28,
-                                  color: C.ink,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 36),
-
-            // discover
-            Reveal(
-              delay: 0.3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionHeader(
-                    'Practice styles',
-                    action: 'See all',
+                    tr('home.shortPractice'),
+                    action: tr('common.seeAll'),
                     onAction: () => context.go('/courses?view=classes'),
                   ),
-                  HScroll(
-                    gap: 12,
-                    children: [
-                      for (var i = 0; i < c.categories.length; i += 2)
-                        Column(
-                          children: [
-                            CategoryTile(
-                              c.categories[i],
-                              width: 150,
-                              height: 150,
-                            ),
-                            if (i + 1 < c.categories.length) ...[
-                              const SizedBox(height: 12),
-                              CategoryTile(
-                                c.categories[i + 1],
-                                width: 150,
-                                height: 150,
-                              ),
-                            ],
-                          ],
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 36),
-
-            // learn
-            Reveal(
-              delay: 0.34,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SectionHeader('Learn the art'),
-                  HScroll(
-                    gap: 14,
-                    children: [
-                      for (final g in c.guides)
-                        Pressable(
-                          onTap: () => context.push('/guide/${g.id}'),
-                          child: Container(
-                            width: 180,
-                            height: 230,
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                              color: C.ivory,
-                              borderRadius: BorderRadius.circular(26),
-                              boxShadow: S.soft,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  height: 120,
-                                  width: double.infinity,
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      EImage(img(g.image)),
-                                      Positioned(
-                                        left: 10,
-                                        top: 10,
-                                        child: Glass(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-                                          child: Text(
-                                            g.tag.toUpperCase(),
-                                            style: T.tiny.copyWith(
-                                              fontSize: 10,
-                                              letterSpacing: 1,
-                                              fontWeight: FontWeight.w700,
-                                              color: C.ivory,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(14),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        g.title,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: T.label.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          height: 1.3,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        children: [
-                                          const Icon(
-                                            LucideIcons.bookOpen,
-                                            size: 12,
-                                            color: C.muted,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '${g.minutes} min read',
-                                            style: T.tiny.w(FontWeight.w500),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
+                  HScroll(children: [for (final q in quick) QuickCard(q)]),
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _MeditationCard(
+                      med: med,
+                      evening: now.hour >= 17 || now.hour < 5,
+                      onTap: () => context.push('/meditation/${med.id}'),
+                    ),
                   ),
                 ],
               ),
@@ -1181,12 +159,18 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 40),
             Center(
               child: Reveal(
-                delay: 0.6,
+                delay: 0.4,
                 dy: 0,
-                child: Text(
-                  "This isn't a workout. It's meditation in motion.",
-                  textAlign: TextAlign.center,
-                  style: T.serifAccent.copyWith(fontSize: 18.4, color: C.muted),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    tr('home.notAWorkout'),
+                    textAlign: TextAlign.center,
+                    style: T.serifAccent.copyWith(
+                      fontSize: 18.4,
+                      color: C.muted,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1197,290 +181,561 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _DailyPracticeCard extends StatelessWidget {
-  const _DailyPracticeCard({
-    required this.plan,
-    required this.day,
-    required this.doneDays,
-    required this.doneToday,
-    required this.locked,
-    required this.weightKg,
-    required this.onTap,
-    required this.onOpen,
-  });
-  final Plan plan;
-  final int day, doneDays;
-  final bool doneToday, locked;
-  final double weightKg;
-  final VoidCallback onTap, onOpen;
+class _Header extends StatelessWidget {
+  const _Header({required this.now, required this.name, required this.streak});
+  final DateTime now;
+  final String name;
+  final int streak;
 
   @override
   Widget build(BuildContext context) {
-    final d = plan.days[day - 1];
-    final hasAffirmation = d.items.any(
-      (it) => Content.i.exercise(it.e)?.isAffirmation ?? false,
-    );
-    return Pressable(
-      onTap: onOpen,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: C.ivory,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: S.card,
-        ),
-        child: Column(
-          children: [
-            Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RoundedImage(img(plan.image), size: 92, radius: 22),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Eyebrow(
-                        'Daily challenge · Day $day',
-                        color: C.terracotta,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(plan.title, style: T.title),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${formatMinutes(totalSeconds(d.items))} · ${d.items.length} moves${hasAffirmation ? ' · affirmation' : ''}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: T.caption,
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Bar(
-                              value: doneDays / plan.days.length,
-                              height: 6,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            '$doneDays/${plan.days.length}',
-                            style: T.tiny
-                                .copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: C.ink,
-                                )
-                                .tab,
-                          ),
-                        ],
-                      ),
-                    ],
+                Eyebrow(DateFormat('EEEE, MMM d', appLocale).format(now)),
+                const SizedBox(height: 6),
+                Text(
+                  tr('home.greetingLine', {
+                    'greeting': greeting(now.hour),
+                    'hasName': name.isNotEmpty ? 'yes' : 'no',
+                  }),
+                  style: T.displayMd,
+                ),
+                Text(
+                  name.isNotEmpty ? name : tr('home.friendFallback'),
+                  style: T.serifAccent.copyWith(
+                    fontSize: 30,
+                    color: C.jadeDeep,
+                    height: 1.1,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Pressable(
-              onTap: onTap,
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: locked ? null : (doneToday ? C.jadeSoft : C.ink),
-                  gradient: locked ? G.gold : null,
-                  borderRadius: BorderRadius.circular(48),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      locked
-                          ? LucideIcons.crown
-                          : (doneToday
-                                ? LucideIcons.check
-                                : Icons.play_arrow_rounded),
-                      size: locked || doneToday ? 18 : 22,
-                      color: locked
-                          ? C.ink
-                          : (doneToday ? C.jadeDeep : C.ivory),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                      locked
-                          ? 'Unlock Day $day with TaiChi Flow Plus'
-                          : (doneToday
-                                ? 'Done today · Practice Day $day'
-                                : 'Start Day $day · ${d.title}'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: T.label.c(
-                        locked ? C.ink : (doneToday ? C.jadeDeep : C.ivory),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                Semantics(
+                  button: true,
+                  label: tr('home.streakSemantics', {'n': streak}),
+                  child: Pressable(
+                    onTap: () => context.push('/history'),
+                    child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: C.ivory,
+                        borderRadius: BorderRadius.circular(44),
+                        boxShadow: S.soft,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            streak > 0
+                                ? Icons.local_fire_department_rounded
+                                : LucideIcons.flame,
+                            size: 19,
+                            color: streak > 0 ? C.terracotta : C.muted,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$streak',
+                            style: T.label
+                                .copyWith(fontWeight: FontWeight.w700)
+                                .tab,
+                          ),
+                        ],
                       ),
                     ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Semantics(
+                  button: true,
+                  label: tr('home.profileLabel'),
+                  child: Pressable(
+                    onTap: () => context.go('/profile'),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        gradient: G.jade,
+                        shape: BoxShape.circle,
+                        boxShadow: S.glow,
+                      ),
+                      child: Text(
+                        (name.isNotEmpty ? name : 'E')[0].toUpperCase(),
+                        style: T.label.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: C.ivory,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _Legend extends StatelessWidget {
-  const _Legend({
-    required this.color,
-    required this.label,
-    required this.value,
+/// Today's lesson: one big card with the day, what is new today and a single clear action.
+class _LessonHero extends StatelessWidget {
+  const _LessonHero({
+    required this.plan,
+    required this.day,
+    required this.dayNumber,
+    required this.completedCount,
+    required this.planDone,
+    required this.locked,
+    required this.todayDone,
+    required this.freeDay,
+    required this.newToday,
+    required this.weightKg,
+    required this.onStart,
+    required this.onOpen,
   });
-  final Color color;
-  final String label, value;
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: Text(label, style: T.caption.copyWith(fontSize: 14))),
-        Text(value, style: T.label.copyWith(fontWeight: FontWeight.w700).tab),
-      ],
-    );
-  }
-}
+  final Plan plan;
+  final PlanDay day;
+  final int dayNumber, completedCount;
+  final bool planDone, locked, todayDone, freeDay;
+  final List<String> newToday;
+  final double weightKg;
+  final VoidCallback onStart, onOpen;
 
-class _FreeHero extends StatelessWidget {
-  const _FreeHero({
-    required this.title,
-    required this.image,
-    required this.eyebrow,
-    required this.meta,
-    required this.cta,
-    required this.onTap,
-    this.progress,
-  });
-  final String title, image, eyebrow, meta, cta;
-  final double? progress;
-  final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      child: Container(
-        height: 400,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(34),
-          boxShadow: S.float,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            KenBurns(child: EImage(img(image))),
-            DecoratedBox(decoration: BoxDecoration(gradient: G.scrim)),
-            Positioned(
-              left: 16,
-              top: 16,
-              child: Row(
-                children: [
+    final total = plan.days.length;
+    final pct = completedCount / total;
+    final meta = T.caption.copyWith(
+      fontSize: 14,
+      color: C.ivory.withValues(alpha: 0.8),
+    );
+    final cta = locked
+        ? tr('home.unlockDay', {'day': dayNumber})
+        : planDone
+        ? tr('home.chooseNextCourse')
+        : todayDone
+        ? tr('home.doneTapPracticeAgain')
+        : tr('home.startDay', {'day': dayNumber});
+    // grows past its usual height instead of letting long titles or large text run under the top chips
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 456),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(34),
+        boxShadow: S.float,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        alignment: Alignment.bottomLeft,
+        children: [
+          Positioned.fill(child: KenBurns(child: EImage(img(plan.image)))),
+          Positioned.fill(
+            child: DecoratedBox(decoration: BoxDecoration(gradient: G.scrim)),
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            top: 16,
+            child: Row(
+              children: [
+                Flexible(
+                  child: Glass(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: Text(
+                      planDone ? tr('home.courseComplete') : tr('home.dayOfTotal', {'day': dayNumber, 'total': total}),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: T.tiny.c(C.ivory),
+                    ),
+                  ),
+                ),
+                if (freeDay) ...[
+                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: C.ivory,
                       borderRadius: BorderRadius.circular(40),
                     ),
+                    child: Text(tr('common.free'), style: T.tiny.c(C.jadeDeep)),
+                  ),
+                ],
+                const Spacer(),
+                Ring(
+                  value: pct,
+                  size: 46,
+                  stroke: 4.5,
+                  track: C.ivory.withValues(alpha: 0.25),
+                  bar: C.ivory,
+                  child: Text(
+                    '${(pct * 100).round()}%',
+                    style: T.tiny
+                        .copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: C.ivory,
+                        )
+                        .tab,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 78, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Eyebrow(
+                  locked ? tr('home.todaysLessonPlus') : tr('home.todaysLesson'),
+                  color: C.ivory.withValues(alpha: 0.7),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  plan.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: T.label.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: C.ivory.withValues(alpha: 0.9),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  planDone ? tr('home.youDidIt') : tr('home.dayTitle', {'day': dayNumber, 'title': day.title}),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: T.displayLg.copyWith(fontSize: 28, color: C.ivory),
+                ),
+                const SizedBox(height: 8),
+                if (!planDone)
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(formatMinutes(totalSeconds(day.items)), style: meta),
+                      const Dot(),
+                      Text(tr('common.kcal', {'n': kcalForWeight(day.kcal, weightKg)}), style: meta),
+                      const Dot(),
+                      Text(tr('home.moves', {'n': day.items.length}), style: meta),
+                    ],
+                  ),
+                if (!planDone && !locked && newToday.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Glass(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(LucideIcons.sparkles, size: 13, color: C.jadeDeep),
-                        const SizedBox(width: 5),
-                        Text('Made for you', style: T.tiny.c(C.jadeDeep)),
+                        const Icon(
+                          LucideIcons.sparkles,
+                          size: 13,
+                          color: C.ivory,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            tr('home.newToday', {'items': newToday.join(' & ')}),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: T.tiny.c(C.ivory),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Glass(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Text('Free', style: T.tiny.c(C.ivory)),
+                ],
+                if (locked) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    plan.freeDays > 0
+                        ? tr('home.freeDaysDoneUnlock', {'day': dayNumber, 'total': total})
+                        : tr('home.coursePartOfPlus'),
+                    style: T.caption.copyWith(
+                      fontSize: 13.5,
+                      color: C.ivory.withValues(alpha: 0.85),
+                    ),
                   ),
                 ],
-              ),
-            ),
-            Positioned(
-              left: 20,
-              right: 20,
-              bottom: 20,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Eyebrow(eyebrow, color: C.ivory.withValues(alpha: 0.7)),
-                  const SizedBox(height: 8),
-                  Text(title, style: T.displayLg.copyWith(fontSize: 29.6, color: C.ivory)),
-                  const SizedBox(height: 6),
-                  Text(
-                    meta,
-                    style: T.caption.copyWith(fontSize: 14, color: C.ivory.withValues(alpha: 0.8)),
-                  ),
-                  if (progress != null) ...[
-                    const SizedBox(height: 12),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 4,
-                        backgroundColor: C.ivory.withValues(alpha: 0.25),
-                        valueColor: const AlwaysStoppedAnimation(C.ivory),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Semantics(
+                        button: true,
+                        label: cta,
+                        excludeSemantics: true,
+                        child: Pressable(
+                          onTap: onStart,
+                          child: Container(
+                            height: 56,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: locked ? null : C.ivory,
+                              gradient: locked ? G.gold : null,
+                              borderRadius: BorderRadius.circular(56),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  locked
+                                      ? LucideIcons.crown
+                                      : planDone
+                                      ? LucideIcons.arrowRight
+                                      : todayDone
+                                      ? LucideIcons.check
+                                      : Icons.play_arrow_rounded,
+                                  size: locked || planDone || todayDone
+                                      ? 20
+                                      : 24,
+                                  color: C.ink,
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    cta,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: T.label.copyWith(fontSize: 17),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  Container(
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: C.ivory,
-                      borderRadius: BorderRadius.circular(56),
+                    const SizedBox(width: 10),
+                    CircleBtn(
+                      icon: LucideIcons.arrowRight,
+                      tone: Tone.dark,
+                      size: 56,
+                      label: tr('home.viewAllDays', {'total': total}),
+                      onTap: onOpen,
                     ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Compact journey progress: days done, streak and the way into every day of the course.
+class _JourneyProgress extends StatelessWidget {
+  const _JourneyProgress({
+    required this.done,
+    required this.total,
+    required this.streak,
+    required this.onOpen,
+  });
+  final int done, total, streak;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: tr('home.journeyProgressSemantics', {'done': done, 'total': total, 'streak': streak}),
+      excludeSemantics: true,
+      child: Pressable(
+        onTap: onOpen,
+        child: ECard(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Eyebrow(tr('home.yourProgress'), color: C.jade),
+                  ),
+                  Flexible(
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.play_arrow_rounded, size: 24, color: C.ink),
-                        const SizedBox(width: 8),
-                        Flexible(child: Text(cta, maxLines: 1, overflow: TextOverflow.ellipsis, style: T.label.copyWith(fontSize: 17))),
+                        Flexible(
+                          child: Text(
+                            tr('home.viewAllDays', {'total': total}),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: T.caption.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: C.jadeDeep,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(
+                          LucideIcons.chevronRight,
+                          size: 16,
+                          color: C.jadeDeep,
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 14,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    tr('home.doneOfTotalDays', {'done': done, 'total': total}),
+                    style: T.title.copyWith(fontSize: 19),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        streak > 0
+                            ? Icons.local_fire_department_rounded
+                            : LucideIcons.flame,
+                        size: 17,
+                        color: streak > 0 ? C.terracotta : C.muted,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        tr('home.streakDayStreak', {'n': streak}),
+                        style: T.caption.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: C.ink,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Bar(value: total == 0 ? 0 : done / total, height: 6),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _MadeForYouHeader extends StatelessWidget {
-  const _MadeForYouHeader();
+class _MeditationCard extends StatelessWidget {
+  const _MeditationCard({
+    required this.med,
+    required this.evening,
+    required this.onTap,
+  });
+  final Meditation med;
+  final bool evening;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Semantics(
+      button: true,
+      label: tr('home.meditationSemantics', {'title': med.title, 'minutes': med.minutes}),
+      excludeSemantics: true,
+      child: Pressable(
+        onTap: onTap,
+        child: Container(
+          height: 172,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: S.card,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              const Icon(LucideIcons.sparkles, size: 13, color: C.gold),
-              const SizedBox(width: 6),
-              Eyebrow('Your personal plan', color: C.gold),
+              EImage(img(med.image)),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF111A15).withValues(alpha: 0.85),
+                      const Color(0xFF111A15).withValues(alpha: 0.1),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 20,
+                top: 0,
+                bottom: 0,
+                right: 84,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Eyebrow(
+                      evening
+                          ? tr('home.windDownMin', {'n': med.minutes})
+                          : tr('home.meditateMin', {'n': med.minutes}),
+                      color: C.ivory.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      med.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: T.displayMd.c(C.ivory),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      med.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: T.caption.c(C.ivory.withValues(alpha: 0.75)),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                right: 20,
+                bottom: 20,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: const BoxDecoration(
+                    color: C.ivory,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    size: 28,
+                    color: C.ink,
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text('Built from your answers', style: T.title.s(20)),
-        ],
+        ),
       ),
     );
   }

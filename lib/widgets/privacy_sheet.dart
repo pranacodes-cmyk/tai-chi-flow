@@ -11,6 +11,7 @@ import '../theme/tokens.dart';
 import 'sheet.dart';
 import 'toast.dart';
 import 'ui.dart';
+import '../i18n/i18n.dart';
 
 /// Privacy prompts (web `PrivacySheet`): the opt-in choice for consent regions
 /// and the explainer shown right before Apple's tracking question on iPhone.
@@ -83,9 +84,9 @@ class _PrivacyChoice extends StatelessWidget {
           Text.rich(
             TextSpan(
               children: [
-                const TextSpan(text: 'Your privacy, '),
+                TextSpan(text: tr('privacy.titlePart1')),
                 TextSpan(
-                  text: 'your choice',
+                  text: tr('privacy.titlePart2'),
                   style: T.serifAccent.copyWith(fontSize: 30, color: C.jade),
                 ),
               ],
@@ -94,32 +95,29 @@ class _PrivacyChoice extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'May TaiChi Flow share a few app events with Meta (Facebook & Instagram) '
-            'to measure which of our ads work?',
+            tr('privacy.shareQuestion'),
             style: T.body.c(C.muted),
           ),
           const SizedBox(height: 18),
-          const _Point(
+          _Point(
             icon: LucideIcons.check,
             tone: C.jade,
-            text: 'Shared: app installed and opened, onboarding finished, first '
-                'session done, plan viewed and purchases (price only).',
+            text: tr('privacy.sharedPoint'),
           ),
-          const _Point(
+          _Point(
             icon: LucideIcons.lock,
             tone: C.terracotta,
-            text: 'Never shared: your answers, health or mobility details, name, '
-                'or practice history. They stay on this phone.',
+            text: tr('privacy.neverSharedPoint'),
           ),
-          const _Point(
+          _Point(
             icon: LucideIcons.rotateCcw,
             tone: C.muted,
-            text: 'Change your mind any time in Profile → Privacy choices.',
+            text: tr('privacy.changeMindPoint'),
           ),
           if (fromSettings) ...[
             const SizedBox(height: 6),
             Text(
-              on ? 'Currently: sharing is on.' : 'Currently: sharing is off.',
+              on ? tr('privacy.currentlyOn') : tr('privacy.currentlyOff'),
               style: T.caption.w(FontWeight.w700),
             ),
             if (supportCode != null) ...[
@@ -127,7 +125,7 @@ class _PrivacyChoice extends StatelessWidget {
               Pressable(
                 onTap: () async {
                   await Clipboard.setData(ClipboardData(text: supportCode!));
-                  Toast.show('Support code copied');
+                  Toast.show(tr('privacy.supportCodeCopied'));
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -139,7 +137,7 @@ class _PrivacyChoice extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          'Support code: $supportCode',
+                          tr('privacy.supportCodeLabel', {'code': supportCode}),
                           style: T.tiny.copyWith(fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -156,7 +154,7 @@ class _PrivacyChoice extends StatelessWidget {
             children: [
               Expanded(
                 child: EnsoButton(
-                  label: "Don't allow",
+                  label: tr('privacy.dontAllow'),
                   variant: BtnVariant.secondary,
                   onTap: () => choose('denied'),
                 ),
@@ -164,7 +162,7 @@ class _PrivacyChoice extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: EnsoButton(
-                  label: 'Allow',
+                  label: tr('privacy.allow'),
                   onTap: () => choose('granted'),
                 ),
               ),
@@ -178,7 +176,7 @@ class _PrivacyChoice extends StatelessWidget {
                 context.push('/legal/privacy');
               },
               child: Text(
-                'Read the privacy policy',
+                tr('privacy.readPolicy'),
                 style: T.caption.copyWith(
                   color: C.jade,
                   fontWeight: FontWeight.w700,
@@ -245,9 +243,9 @@ Future<void> showAttExplainer(BuildContext context) async {
           Text.rich(
             TextSpan(
               children: [
-                const TextSpan(text: 'Help us keep ads '),
+                TextSpan(text: tr('privacy.attTitlePart1')),
                 TextSpan(
-                  text: 'calm',
+                  text: tr('privacy.attTitlePart2'),
                   style: T.serifAccent.copyWith(fontSize: 30, color: C.jade),
                 ),
               ],
@@ -256,15 +254,12 @@ Future<void> showAttExplainer(BuildContext context) async {
           ),
           const SizedBox(height: 10),
           Text(
-            'Next, iPhone asks whether TaiChi Flow may link app events to our ads. '
-            'Allowing it shows us which ads bring people here, so we can show '
-            'fewer, more relevant ones. Your answers and practice stay on your phone '
-            'either way, and every feature works the same whatever you choose.',
+            tr('privacy.attExplainer'),
             style: T.body.c(C.muted),
           ),
           const SizedBox(height: 22),
           EnsoButton(
-            label: 'Continue',
+            label: tr('common.continue'),
             onTap: () {
               asked = true;
               Navigator.of(ctx).pop();

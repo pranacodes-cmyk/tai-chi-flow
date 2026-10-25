@@ -10,6 +10,7 @@ import '../data/content.dart';
 import '../services/audio_service.dart';
 import '../theme/text.dart';
 import '../theme/tokens.dart';
+import '../i18n/i18n.dart';
 
 /// Scale-on-press wrapper (web `.press`: active:scale-0.97).
 class Pressable extends StatefulWidget {
@@ -531,7 +532,7 @@ class BackBtn extends StatelessWidget {
     return CircleBtn(
       icon: LucideIcons.chevronLeft,
       tone: tone,
-      label: 'Back',
+      label: tr('common.back'),
       onTap: onTap ?? () => context.canPop() ? context.pop() : context.go('/'),
     );
   }
@@ -577,8 +578,8 @@ class ChipPill extends StatelessWidget {
 
 /// Gold "PLUS" pill marking paid content; `large` is the version sitting on cover cards.
 class PremiumBadge extends StatelessWidget {
-  const PremiumBadge({super.key, this.label = 'PLUS', this.large = false});
-  final String label;
+  const PremiumBadge({super.key, this.label, this.large = false});
+  final String? label;
   final bool large;
   @override
   Widget build(BuildContext context) {
@@ -610,7 +611,7 @@ class PremiumBadge extends StatelessWidget {
           Icon(LucideIcons.crown, size: large ? 13 : 12, color: C.ink),
           SizedBox(width: large ? 5 : 4),
           Text(
-            label,
+            label ?? tr('ui.plusLabel'),
             style: TextStyle(
               fontFamily: T.family,
               fontSize: large ? 11 : 10,
@@ -642,13 +643,16 @@ class PlusChip extends StatelessWidget {
         children: [
           const Icon(LucideIcons.crown, size: 14, color: C.ink),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: T.family,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: C.ink,
+          // longer languages wrap inside the pill instead of running off the hero
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontFamily: T.family,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: C.ink,
+              ),
             ),
           ),
         ],

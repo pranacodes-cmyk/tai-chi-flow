@@ -4,10 +4,39 @@ import 'dart:io';
 
 import 'package:enso/data/content.dart';
 import 'package:enso/data/models.dart';
+import 'package:enso/i18n/i18n.dart';
 import 'package:enso/logic/coach.dart';
 import 'package:enso/logic/logic.dart';
 import 'package:enso/state/app_state.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// The Yang 24-form in its true order (left/right and repeated forms are separate films).
+const yang24 = [
+  'commencement-opening-form-standing',
+  'parting-the-wild-horses-mane-standing',
+  'white-crane-spreads-wings-standing',
+  'brush-knee-and-twist-step-standing',
+  'play-the-lute-standing',
+  'repulse-the-monkey-standing',
+  'grasp-the-birds-tail-standing',
+  'grasp-the-birds-tail-right-standing',
+  'single-whip-standing',
+  'wave-hands-like-clouds-standing',
+  'single-whip-from-cloud-hands-standing',
+  'high-pat-on-horse-standing',
+  'kick-with-the-right-heel-standing',
+  'strike-the-ears-with-both-fists-standing',
+  'kick-with-the-left-heel-standing',
+  'snake-creeps-down-and-golden-rooster-left-standing',
+  'snake-creeps-down-and-golden-rooster-right-standing',
+  'fair-lady-works-the-shuttles-standing',
+  'needle-at-sea-bottom-standing',
+  'fan-through-back-standing',
+  'deflect-parry-and-punch-standing',
+  'withdraw-and-push-standing',
+  'cross-hands-standing',
+  'closing-form-standing',
+];
 
 HistoryEntry entry(DateTime d) => HistoryEntry(
   id: d.toIso8601String(),
@@ -68,56 +97,49 @@ void main() {
         }
       },
     );
-    test('free offer: 3 quick sessions + the 7-day starter + 4 meditations, everything else fully paid', () {
+    test('free offer: 3 quick sessions + journey Days 1–2 + 4 meditations, everything else fully paid', () {
       final c = Content.i;
-      final starter = c.plans.firstWhere((p) => p.id == 'tai-chi-starter-7');
-      expect(starter.days.length, 7);
       for (final p in c.plans) {
-        final quick =
-            c.quickSessions.any((q) => q.id == p.id) ||
-            p.id == 'tai-chi-starter-7';
+        final quick = c.quickSessions.any((q) => q.id == p.id);
         if (quick) {
           expect([p.premium, p.freeDays], [false, p.days.length]);
+        } else if (p.id == journeyId) {
+          expect([p.premium, p.freeDays, p.days.length], [true, 2, 30]);
         } else {
-          expect([p.premium, p.freeDays], [true, 0]);
+          expect([p.premium, p.freeDays], [true, 0], reason: p.id);
         }
       }
       expect(c.meditations.where((m) => !m.premium).length, 4);
     });
-    test('the free starter teaches section one of the 24-form, one new form a day, Closing after the day-7 flow', () {
-      final days = Content.i.plan('tai-chi-starter-7')!.days;
-      const section = [
-        'commencement-opening-form-standing',
-        'parting-the-wild-horses-mane-standing',
-        'white-crane-spreads-wings-standing',
-        'brush-knee-and-twist-step-standing',
-        'play-the-lute-standing',
-        'repulse-the-monkey-standing',
-      ];
+    test('the 30-day journey teaches all 24 forms in their true order and day 30 flows through all of them', () {
+      final days = Content.i.plan(journeyId)!.days;
       expect(
         days
-            .map(
-              (d) => d.items
-                  .where((it) => it.p == 'New today')
-                  .map((it) => it.e)
-                  .toList(),
-            )
+            .expand((d) => d.items.where((it) => it.p == 'New today'))
+            .map((it) => it.e)
             .toList(),
-        [
-          ...section.map((e) => [e]),
-          ['closing-form-standing'],
-        ],
+        yang24,
       );
       expect(
-        days[6].items.where((it) => it.p == 'Flow').map((it) => it.e).toList(),
-        section,
+        days[29].items.where((it) => it.p == 'Flow').map((it) => it.e).toList(),
+        yang24,
       );
+      expect(days[0].items.first.e, 'silk-reeling-standing');
     });
-    test('no movement plays twice inside one free starter lesson', () {
-      final days = Content.i.plan('tai-chi-starter-7')!.days;
+    test('no movement plays twice inside one journey lesson, and frail-looking warm-ups never appear', () {
+      final days = Content.i.plan(journeyId)!.days;
+      const frail = [
+        'full-body-shaking-qigong',
+        'knock-thighs-qigong',
+        'knock-back-qigong',
+        'hip-circles-qigong',
+        'wise-owl-gazes-backward-qigong',
+        'full-body-breathing-qigong',
+      ];
       for (var i = 0; i < days.length; i++) {
         final ids = days[i].items.map((it) => it.e).toList();
         expect(ids.toSet().length, ids.length, reason: 'day ${i + 1}');
+        expect(ids.where(frail.contains).toList(), isEmpty, reason: 'day ${i + 1}');
       }
     });
     test(
@@ -424,17 +446,19 @@ void main() {
       () => expect(rec(goals: ['weight', 'balance']), 'weight-loss-walking'),
     );
     test(
-      'balance for 50+ starts Tai Chi Foundations',
-      () =>
-          expect(rec(goals: ['balance'], ageGroup: '50+'), 'tai-chi-beginner'),
+      'balance for 50+ starts the 30-day Tai Chi journey',
+      () => expect(
+        rec(goals: ['balance'], ageGroup: '50+'),
+        'tai-chi-journey-30',
+      ),
     );
     test('qigong preference stays standing without mobility restriction', () {
       expect(rec(style: 'qigong'), 'standing-qigong-14');
       expect(rec(style: 'qigong', limitations: ['mobility']), 'seated-tai-chi');
     });
-    test('standing newcomers start with Tai Chi Foundations', () {
-      expect(rec(), 'tai-chi-beginner');
-      expect(rec(style: 'tai-chi', goals: ['stress']), 'tai-chi-beginner');
+    test('standing newcomers start with the 30-day Tai Chi journey', () {
+      expect(rec(), 'tai-chi-journey-30');
+      expect(rec(style: 'tai-chi', goals: ['stress']), 'tai-chi-journey-30');
     });
     test('daily practice is seated for limited mobility', () {
       expect(
@@ -860,17 +884,28 @@ void main() {
       expect(freePickQuickId(21), 'evening-relax-stretch');
       expect(freePickQuickId(2), 'evening-relax-stretch');
     });
-    test('features the next unfinished starter day, then hands back to quick sessions', () {
-      expect(freeStarterDay(7, []), 1);
-      expect(freeStarterDay(7, [1, 2]), 3);
-      expect(freeStarterDay(7, [1, 3]), 2);
-      expect(freeStarterDay(7, [1, 2, 3, 4, 5, 6, 7]), null);
-      final s = Content.i.plan(freeStarterId)!;
-      expect([s.premium, s.freeDays, s.days.length], [false, 7, 7]);
+    test('new people start on the 30-day journey', () {
+      expect(defaultPlanId, journeyId);
+      expect(Content.i.plan(defaultPlanId), isNotNull);
     });
-    test('leads with free only when the personal plan is locked', () {
-      expect(homeLeadsWithFree(true), true);
-      expect(homeLeadsWithFree(false), false);
+    test('Today shows the personal plan unless it is locked and a free journey day is left', () {
+      String pick(bool locked, List<int> done) => todayPlanId(
+        'standing-qigong-14',
+        activeLocked: locked,
+        journeyFreeDays: 2,
+        journeyCompleted: done,
+      );
+      expect(pick(false, []), 'standing-qigong-14');
+      expect(pick(true, []), journeyId);
+      expect(pick(true, [1]), journeyId);
+      expect(pick(true, [1, 2]), 'standing-qigong-14');
+    });
+    test('finishing Day 2 previews the locked Day 3; Day 1, Plus members and the last day get no preview', () {
+      final journey = Content.i.plan(journeyId)!;
+      expect(lockedNextDay(journey, 2, false), 3);
+      expect(lockedNextDay(journey, 1, false), null);
+      expect(lockedNextDay(journey, 2, true), null);
+      expect(lockedNextDay(journey, 30, false), null);
     });
   });
 
@@ -892,5 +927,89 @@ void main() {
     expect(featuredMeditationId(20, false), 'evening-wind-down');
     expect(featuredMeditationId(20, true), 'moonlit-lake');
     expect(featuredMeditationId(8, false), 'morning-clarity');
+  });
+
+  // Mirrors src/lib/i18n.test.ts.
+  group('languages', () {
+    test('fills placeholders and keeps unknown ones visible', () {
+      expect(formatMessage('Hi {name}, {n} min', {'name': 'Mohit', 'n': 12}), 'Hi Mohit, 12 min');
+      expect(formatMessage('Hi {name}', {}), 'Hi {name}');
+    });
+    test("picks plural forms by each language's rules", () {
+      const days = '{n, plural, one {# day} other {# days}}';
+      expect(formatMessage(days, {'n': 1}, 'en'), '1 day');
+      expect(formatMessage(days, {'n': 2}, 'en'), '2 days');
+      expect(formatMessage(days, {'n': 0}, 'en'), '0 days');
+      expect(formatMessage('{n, plural, one {# jour} other {# jours}}', {'n': 0}, 'fr'), '0 jour');
+      expect(formatMessage('{n, plural, one {# dia} other {# dias}}', {'n': 1}, 'pt'), '1 dia');
+      expect(formatMessage('{n, plural, other {#日}}', {'n': 1}, 'ja'), '1日');
+      expect(formatMessage('{n, plural, =0 {none} one {# Tag} other {# Tage}}', {'n': 0}, 'de'), 'none');
+      expect(pluralCategory('de', 1), 'one');
+      expect(pluralCategory('it', 1.5), 'other');
+      expect(pluralCategory('ja', 1), 'other');
+    });
+    test('agrees day counts in number on the real screens (1 day, 2 days)', () {
+      Map<String, dynamic> bundle(String lang) =>
+          jsonDecode(File('assets/data/i18n/content.$lang.json').readAsStringSync()) as Map<String, dynamic>;
+      Content.loadFromJson(bundle('fr'), 'fr');
+      expect(tr('home.streakDayStreak', {'n': 1}), 'Série de 1 jour');
+      expect(tr('home.streakDayStreak', {'n': 2}), 'Série de 2 jours');
+      expect(tr('home.doneOfTotalDays', {'done': 1, 'total': 30}), '1 jour sur 30');
+      Content.loadFromJson(bundle('de'), 'de');
+      expect(tr('home.streakDayStreak', {'n': 1}), '1 Tag in Folge');
+      Content.loadFromJson(json);
+      expect(tr('home.streakDayStreak', {'n': 1}), '1-day streak');
+      expect(tr('home.doneOfTotalDays', {'done': 1, 'total': 30}), '1 of 30 days');
+    });
+    test('finds the arguments a message uses, inside plural and select branches too', () {
+      expect(messageArgs('{price}/{period, select, month {month} other {year}} for {name}'), ['name', 'period', 'price']);
+      expect(messageArgs('{n, plural, one {# day with {who}} other {# days}}'), ['n', 'who']);
+    });
+    test('handles selects with nested placeholders', () {
+      const m = '{hasName, select, yes {{name}, your plan} other {Your plan}}';
+      expect(formatMessage(m, {'hasName': 'yes', 'name': 'Mo'}), 'Mo, your plan');
+      expect(formatMessage(m, {'hasName': 'no'}), 'Your plan');
+    });
+    test('looks keys up in the active language and splits lists and link templates', () {
+      setI18n('de', {'a.b': 'Hallo {name}', 'a.list': 'S, M, D', 'a.legal': 'Mit {terms} und {privacy}.'});
+      expect(tr('a.b', {'name': 'Ana'}), 'Hallo Ana');
+      expect(tr('missing.key'), 'missing.key');
+      expect(trList('a.list'), ['S', 'M', 'D']);
+      expect(trParts('a.legal').map((p) => p.name ?? p.text).toList(), ['Mit ', 'terms', ' und ', 'privacy', '.']);
+      Content.loadFromJson(json);
+    });
+    test('ships English plus every translated language, each loading in its own language', () {
+      expect(supportedLanguages, ['en', 'es', 'pt', 'de', 'fr', 'it', 'ja']);
+      for (final lang in supportedLanguages.skip(1)) {
+        final file = File('assets/data/i18n/content.$lang.json');
+        Content.loadFromJson(jsonDecode(file.readAsStringSync()) as Map<String, dynamic>, lang);
+        expect(appLang, lang);
+        expect(Content.i.plans.map((p) => p.id), [for (final p in json['plans'] as List) p['id']]);
+        final web = File('../src/data/i18n/content.$lang.json');
+        if (web.existsSync()) expect(file.readAsStringSync(), web.readAsStringSync());
+      }
+      Content.loadFromJson(json);
+      expect(appLang, 'en');
+    });
+    test('uses the saved choice, else the first device language we ship, else English', () {
+      expect(resolveLanguage('ja', ['de-DE']), 'ja');
+      expect(resolveLanguage(null, ['hi-IN', 'de-AT', 'en-US']), 'de');
+      expect(resolveLanguage(null, ['pt-PT']), 'pt');
+      expect(resolveLanguage(null, ['es_419']), 'es');
+      expect(resolveLanguage('xx', ['fr-CA']), 'fr');
+      expect(resolveLanguage(null, ['hi-IN', 'zh-CN']), 'en');
+    });
+    test('falls back to a device voice in the app language, English only in US or UK accents', () {
+      expect(fallbackVoiceRank('en', 'en-US'), 0);
+      expect(fallbackVoiceRank('en', 'en_GB'), 1);
+      expect(fallbackVoiceRank('en', 'en-IN'), isNull);
+      expect(fallbackVoiceRank('es', 'es-MX'), 0);
+      expect(fallbackVoiceRank('es', 'es-ES'), 3);
+      expect(fallbackVoiceRank('pt', 'pt-BR'), 0);
+      expect(fallbackVoiceRank('pt', 'pt-PT'), 1);
+      expect(fallbackVoiceRank('ja', 'ja-JP'), 0);
+      expect(fallbackVoiceRank('ja', 'en-US'), isNull);
+      expect(fallbackVoiceRank('de', 'de'), 1);
+    });
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../i18n/i18n.dart';
 import 'tokens.dart';
 
 /// Typography matching the web utilities (display-xl, display-lg, display-md, title, eyebrow, serif-accent).
@@ -80,13 +81,26 @@ class T {
     fontWeight: FontWeight.w600,
     color: C.muted,
   );
-  static const serifAccent = TextStyle(
+  static const _serifAccent = TextStyle(
     fontFamily: serif,
     fontStyle: FontStyle.italic,
     fontWeight: FontWeight.w400,
     letterSpacing: -0.2,
     color: C.ink,
   );
+
+  /// Japanese has no italic tradition (the system font would be slanted artificially), so the
+  /// accent keeps its weight and colour but stands upright in Japanese.
+  static const _serifAccentUpright = TextStyle(
+    fontFamily: serif,
+    fontStyle: FontStyle.normal,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0,
+    color: C.ink,
+  );
+
+  static TextStyle get serifAccent =>
+      appLang == 'ja' ? _serifAccentUpright : _serifAccent;
 
   static const tabular = [FontFeature.tabularFigures()];
 }

@@ -4,6 +4,7 @@ import '../services/audio_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 import '../data/content.dart';
 import '../logic/logic.dart';
@@ -18,6 +19,7 @@ import '../widgets/toast.dart';
 import '../widgets/confetti.dart';
 import '../widgets/ui.dart';
 import '../widgets/paywall_film.dart';
+import '../i18n/i18n.dart';
 
 /// Paywall variants:
 /// - regular: yearly with a 7-day free trial + monthly
@@ -121,7 +123,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     if (!ok) {
       final error = PurchaseService.lastError;
       if (error != null) {
-        Toast.show("Purchase didn't go through", description: error);
+        Toast.show(tr('paywall.purchaseFailed'), description: error);
       }
       return;
     }
@@ -141,12 +143,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   String _terms(Offer offer) {
     if (offer.id == 'lifetime') {
-      return '${offer.price} once · Yours forever. No subscription.';
+      return tr('paywall.termsLifetime', {'price': offer.price});
     }
     if (offer.trialDays > 0) {
-      return '${offer.trialDays} days free, then ${offer.price}/${offer.period}.\nCancel anytime before the trial ends.';
+      return tr('paywall.termsTrial', {'days': offer.trialDays, 'price': offer.price, 'period': offer.period});
     }
-    return '${offer.price}/${offer.period} · Auto-renews. Cancel anytime.';
+    return tr('paywall.termsStandard', {'price': offer.price, 'period': offer.period});
   }
 
   @override
@@ -177,7 +179,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       height: MediaQuery.sizeOf(context).height > 720 ? math.max(bounds.maxWidth * 9 / 16, math.min(MediaQuery.sizeOf(context).height * 0.4, 420.0)) : math.min(bounds.maxWidth * 9 / 16, MediaQuery.sizeOf(context).height <= 600 ? 180.0 : 230.0),
                       child: Stack(fit: StackFit.expand, children: [
                         const PaywallFilm(),
-                        Positioned(top: topInset(context) + 6, right: 16, child: CircleBtn(icon: LucideIcons.x, tone: Tone.dark, label: 'Close', onTap: busy ? null : _close)),
+                        Positioned(top: topInset(context) + 6, right: 16, child: CircleBtn(icon: LucideIcons.x, tone: Tone.dark, label: tr('common.close'), onTap: busy ? null : _close)),
                         // dark glass keeps the label readable over any film frame
                         Positioned(left: 14, bottom: 10, child: Glass(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), child: Row(mainAxisSize: MainAxisSize.min, children: [
                           const Icon(LucideIcons.crown, size: 12, color: C.gold),
@@ -187,17 +189,17 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       ]),
                     ),
                     Padding(padding: const EdgeInsets.fromLTRB(20, 12, 20, 0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Find your strength.\nMove with calm.', style: T.displayMd.copyWith(fontSize: 25, height: 1.12)),
+                      Text(tr('paywall.heroTitle'), style: T.displayMd.copyWith(fontSize: 25, height: 1.12)),
                       const SizedBox(height: 12),
                       for (final (icon, text) in [
-                        (LucideIcons.layers, '${Content.i.plans.where((p) => !p.isSingleSession).length} progressive courses · beginner to advanced'),
-                        (LucideIcons.leaf, 'Tai Chi, Qigong & mindful walking'),
-                        (LucideIcons.moon, '${Content.i.meditations.length} guided meditations · unwind deeply'),
+                        (LucideIcons.layers, tr('paywall.progressiveCourses', {'n': Content.i.plans.where((p) => !p.isSingleSession).length})),
+                        (LucideIcons.leaf, tr('paywall.taichiQigongWalking')),
+                        (LucideIcons.moon, tr('paywall.guidedMeditations', {'n': Content.i.meditations.length})),
                       ]) Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [Icon(icon, size: 17, color: C.jade), const SizedBox(width: 10), Expanded(child: Text(text, style: T.bodySm.copyWith(fontSize: 13, fontWeight: FontWeight.w500)))])),
                       SizedBox(height: 22, child: Row(children: [
                         Icon(isExit ? LucideIcons.gift : offer.trialDays > 0 ? LucideIcons.check : LucideIcons.crown, size: 15, color: C.jade),
                         const SizedBox(width: 7),
-                        Expanded(child: Text(isExit ? 'Your exclusive yearly saving' : offer.trialDays > 0 ? '7 days on us · explore all of Plus' : 'Every course. Every class. All yours.', style: T.caption.c(C.jadeDeep))),
+                        Expanded(child: Text(isExit ? tr('paywall.exclusiveYearlySaving') : offer.trialDays > 0 ? tr('paywall.sevenDaysOnUs') : tr('paywall.everyCourseEveryClass'), style: T.caption.c(C.jadeDeep))),
                       ])),
                       const SizedBox(height: 8),
                       IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [for (final (i, o) in _offers.indexed) ...[
@@ -205,11 +207,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         Expanded(child: _OfferCard(offer: o, compact: !isExit, selected: selected == o.id, onTap: busy ? null : () => setState(() => selected = o.id))),
                       ]])),
                       Wrap(alignment: WrapAlignment.center, children: [
-                        if (variant == 'regular' && widget.from == 'onboarding') EnsoButton(label: 'View all plans', variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () => context.push('/paywall?from=${widget.from}&offer=gift')),
-                        EnsoButton(label: 'Restore purchase', variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () async {
+                        if (variant == 'regular' && widget.from == 'onboarding') EnsoButton(label: tr('paywall.viewAllPlans'), variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () => context.push('/paywall?from=${widget.from}&offer=gift')),
+                        EnsoButton(label: tr('paywall.restorePurchase'), variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () async {
                           final app = context.read<AppState>();
                           final restored = await PurchaseService.restore();
-                          Toast.show(restored ? 'Purchase restored' : 'No previous purchase found');
+                          Toast.show(restored ? tr('paywall.purchaseRestored') : tr('paywall.noPreviousPurchaseFound'));
                           if (restored && mounted) { if (!app.premium.active) app.setPremium('yearly'); _leave(); }
                         }),
                       ]),
@@ -230,8 +232,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 children: [
                   EnsoButton(
                     label: offer.trialDays > 0
-                        ? 'Start ${offer.trialDays}-day free trial'
-                        : 'Continue with ${offer.title}',
+                        ? tr('paywall.startTrialDays', {'days': offer.trialDays})
+                        : tr('paywall.continueWith', {'title': offer.title}),
                     loading: busy,
                     onTap: busy ? null : _buy,
                   ),
@@ -245,12 +247,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
                     children: [
-                      for (final (label, doc) in const [
-                        ('Terms of use', 'terms'),
-                        ('Privacy policy', 'privacy'),
+                      for (final (label, doc) in [
+                        (tr('paywall.termsOfUse'), 'terms'),
+                        (tr('paywall.privacyPolicy'), 'privacy'),
                       ])
                         Pressable(
                           onTap: () => context.push('/legal/$doc'),
@@ -286,10 +288,10 @@ class _ExitSurvey extends StatelessWidget {
   const _ExitSurvey();
   @override
   Widget build(BuildContext context) {
-    const reasons = [
-      ('price', LucideIcons.tag, 'The price feels a bit high', 'Show me a better deal'),
-      ('later', LucideIcons.leaf, 'I need to check it first', 'See the 7-day trial'),
-      ('unsure', LucideIcons.circleHelp, "I'm not sure it's for me", 'Explore the trial offer'),
+    final reasons = [
+      ('price', LucideIcons.tag, tr('paywall.reasonPriceLabel'), tr('paywall.reasonPriceHint')),
+      ('later', LucideIcons.leaf, tr('paywall.reasonLaterLabel'), tr('paywall.reasonLaterHint')),
+      ('unsure', LucideIcons.circleHelp, tr('paywall.reasonUnsureLabel'), tr('paywall.reasonUnsureHint')),
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
@@ -311,10 +313,10 @@ class _ExitSurvey extends StatelessWidget {
             child: const Icon(LucideIcons.heartHandshake, size: 28, color: C.jadeDeep),
           ),
           const SizedBox(height: 16),
-          Text('Before you go…', textAlign: TextAlign.center, style: T.displayMd.copyWith(fontSize: 26)),
+          Text(tr('paywall.beforeYouGo'), textAlign: TextAlign.center, style: T.displayMd.copyWith(fontSize: 26)),
           const SizedBox(height: 6),
           Text(
-            "One quick tap helps us shape your plan.\nWhat's holding you back?",
+            tr('paywall.exitSurveySubtitle'),
             textAlign: TextAlign.center,
             style: T.bodySm.c(C.muted),
           ),
@@ -388,21 +390,21 @@ class _OfferReveal extends StatelessWidget {
     return Material(color: C.cream, child: Stack(children: [
       if (!reduceMotion) const Positioned.fill(child: Confetti(height: 650)),
       SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(28, 24, 28, 20), child: Column(children: [
-        Align(alignment: Alignment.centerRight, child: CircleBtn(icon: LucideIcons.x, label: 'Close offer', onTap: onSkip)),
+        Align(alignment: Alignment.centerRight, child: CircleBtn(icon: LucideIcons.x, label: tr('paywall.closeOffer'), onTap: onSkip)),
         Expanded(child: Center(child: SingleChildScrollView(child: Column(children: [
           TweenAnimationBuilder<double>(tween: Tween(begin: reduceMotion ? 1 : 0, end: 1), duration: Duration(milliseconds: reduceMotion ? 0 : 900), curve: Curves.elasticOut,
             builder: (_, t, child) => Transform.scale(scale: t, child: child),
             child: Container(width: 116, height: 116, decoration: BoxDecoration(shape: BoxShape.circle, color: C.goldSoft, boxShadow: S.soft), child: Icon(lower ? LucideIcons.gift : LucideIcons.crown, size: 52, color: C.jadeDeep))),
           const SizedBox(height: 28),
-          Text(lower ? 'Your lower price\nis ready' : 'Your 7-day free trial\nis ready', textAlign: TextAlign.center, style: T.displayMd.copyWith(fontSize: 30)),
+          Text(lower ? tr('paywall.lowerPriceReady') : tr('paywall.trialReady'), textAlign: TextAlign.center, style: T.displayMd.copyWith(fontSize: 30)),
           const SizedBox(height: 12),
-          Text(lower ? '${offer.price}/year · full Plus access' : '7 days to explore every course, class and meditation.', textAlign: TextAlign.center, style: T.body.c(C.jadeDeep)),
+          Text(lower ? tr('paywall.lowerPriceDetail', {'price': offer.price}) : tr('paywall.trialDetail'), textAlign: TextAlign.center, style: T.body.c(C.jadeDeep)),
           const SizedBox(height: 12),
-          Text(lower ? 'Billed yearly. Auto-renews. Cancel anytime.' : 'For eligible yearly subscribers. Starts only after store confirmation.', textAlign: TextAlign.center, style: T.bodySm.c(C.muted)),
+          Text(lower ? tr('paywall.billedYearlyNote') : tr('paywall.eligibleYearlyNote'), textAlign: TextAlign.center, style: T.bodySm.c(C.muted)),
         ])))),
-        EnsoButton(label: lower ? 'See my lower price' : 'See my trial plan', onTap: onContinue),
+        EnsoButton(label: lower ? tr('paywall.seeLowerPrice') : tr('paywall.seeTrialPlan'), onTap: onContinue),
         const SizedBox(height: 8),
-        EnsoButton(label: 'Continue with free sessions', variant: BtnVariant.ghost, onTap: onSkip),
+        EnsoButton(label: tr('paywall.continueWithFreeSessions'), variant: BtnVariant.ghost, onTap: onSkip),
       ]))),
     ]));
   }
@@ -416,11 +418,10 @@ class _Celebration extends StatelessWidget {
   Widget build(BuildContext context) {
     final trial = offer.trialDays > 0;
     final ends = DateTime.now().add(Duration(days: offer.trialDays));
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final perks = [
-      'Every course and single class',
-      'All guided meditations',
-      if (trial) 'Reminder before your trial ends' else 'Cancel anytime in your store account',
+      tr('paywall.perkEveryCourse'),
+      tr('paywall.perkAllMeditations'),
+      if (trial) tr('paywall.perkTrialReminder') else tr('paywall.perkCancelAnytime'),
     ];
     Widget rise(int i, Widget child) => TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -467,15 +468,15 @@ class _Celebration extends StatelessWidget {
                   ),
                   const SizedBox(height: 28),
                   rise(0, Text(
-                    trial ? 'Your free trial\nhas started' : 'Welcome to Plus',
+                    trial ? tr('paywall.trialStarted') : tr('paywall.welcomeToPlus'),
                     textAlign: TextAlign.center,
                     style: T.displayMd.copyWith(fontSize: 32),
                   )),
                   const SizedBox(height: 10),
                   rise(1, Text(
                     trial
-                        ? 'Enjoy everything free until ${ends.day} ${months[ends.month - 1]}.'
-                        : 'Every course, class and meditation is now yours.',
+                        ? tr('paywall.enjoyUntil', {'date': DateFormat.MMMd(appLocale).format(ends)})
+                        : tr('paywall.everyCourseClassMeditation'),
                     textAlign: TextAlign.center,
                     style: T.body.c(C.muted),
                   )),
@@ -498,7 +499,7 @@ class _Celebration extends StatelessWidget {
                     )),
                   const Spacer(),
                   rise(6, EnsoButton(
-                    label: 'Start practicing',
+                    label: tr('paywall.startPracticing'),
                     onTap: () => Navigator.of(context).pop(),
                   )),
                 ],
@@ -536,9 +537,9 @@ class _OfferCard extends StatelessWidget {
           border: Border.all(color: selected ? C.jade : C.line, width: 2),
         ),
         child: compact ? ConstrainedBox(constraints: const BoxConstraints(minHeight: 72), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, spacing: 4, children: [
-          Row(children: [Expanded(child: Text(offer.id == 'gift' ? 'Yearly' : offer.title, style: T.caption.copyWith(fontWeight: FontWeight.w700, color: C.ink))), Icon(selected ? LucideIcons.circleCheck : LucideIcons.circle, size: 16, color: selected ? C.jade : C.muted)]),
+          Row(children: [Expanded(child: Text(offer.id == 'gift' ? tr('paywall.yearly') : offer.title, style: T.caption.copyWith(fontWeight: FontWeight.w700, color: C.ink))), Icon(selected ? LucideIcons.circleCheck : LucideIcons.circle, size: 16, color: selected ? C.jade : C.muted)]),
           Text(offer.price, style: T.body.copyWith(fontWeight: FontWeight.w700)),
-          Text(offer.trialDays > 0 ? '7 days free' : offer.period == 'once' ? 'Pay once' : 'Per ${offer.period}', style: T.tiny.c(selected ? C.jadeDeep : C.muted)),
+          Text(offer.trialDays > 0 ? tr('paywall.sevenDaysFree') : offer.period == 'once' ? tr('paywall.payOnce') : tr('paywall.perPeriod', {'period': offer.period}), style: T.tiny.c(selected ? C.jadeDeep : C.muted)),
         ])) : Row(
           children: [
             Icon(
@@ -551,16 +552,16 @@ class _OfferCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(offer.id == 'gift' ? 'Yearly' : offer.id == 'exit' ? 'Yearly · special price' : offer.title, style: T.bodySm.copyWith(fontWeight: FontWeight.w700)),
+                  Text(offer.id == 'gift' ? tr('paywall.yearly') : offer.id == 'exit' ? tr('paywall.yearlySpecialPrice') : offer.title, style: T.bodySm.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
                   Text(
                     offer.trialDays > 0
-                        ? '${offer.trialDays}-day free trial'
+                        ? tr('paywall.dayFreeTrial', {'days': offer.trialDays})
                         : offer.save != null
                             ? offer.save!
                             : offer.period == 'once'
-                                ? 'Pay once, keep forever'
-                                : 'Billed ${offer.period == 'month' ? 'monthly' : 'yearly'}',
+                                ? tr('paywall.payOnceKeepForever')
+                                : offer.period == 'month' ? tr('paywall.billedMonthly') : tr('paywall.billedYearly'),
                     style: T.caption.c(selected ? C.jadeDeep : C.muted),
                   ),
                 ],
@@ -578,7 +579,7 @@ class _OfferCard extends StatelessWidget {
                 ]),
                 const SizedBox(height: 4),
                 Text(
-                  offer.period == 'once' ? 'one time' : 'per ${offer.period}',
+                  offer.period == 'once' ? tr('paywall.oneTime') : tr('paywall.perPeriodLower', {'period': offer.period}),
                   style: T.caption,
                 ),
               ],
