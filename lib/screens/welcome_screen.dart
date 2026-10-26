@@ -130,9 +130,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: MediaQuery.sizeOf(context).height),
-              child: IntrinsicHeight(child: Padding(
+              child: Padding(
             padding: EdgeInsets.fromLTRB(28, top + 22, 28, bottom + 26),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Reveal(
@@ -201,7 +202,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ],
                   ),
                 ),
-                const Spacer(),
+                SizedBox(height: MediaQuery.sizeOf(context).height * 0.12),
                 Reveal(
                   delay: 0.35,
                   dy: 12,
@@ -343,7 +344,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
               ],
             ),
-          )),
+          ),
           ),
           ),
         ],
