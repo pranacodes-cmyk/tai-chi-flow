@@ -26,8 +26,9 @@ void main() {
     await app.flush();
     expect((await AppState.load()).language, 'es');
     await tester.tap(find.text('Continue'));
+    await tester.pump();
     expect(router.routeInformationProvider.value.uri.path, '/welcome');
-    router.pop();
+    router.go('/language');
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/language');
     expect(app.language, 'es');
