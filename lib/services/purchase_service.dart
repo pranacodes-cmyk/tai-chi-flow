@@ -13,7 +13,8 @@ import '../i18n/i18n.dart';
 /// Mirrors src/lib/purchases.ts.
 ///
 /// Funnel (mirrors the competitor flow, with truthful terms):
-/// - regular paywall: yearly with a 7-day free trial + monthly
+/// - standard paywall: normal-price yearly + monthly, no trial
+/// - regular paywall: post-survey yearly with a 7-day free trial + monthly
 /// - gift paywall ("View all plans"): discounted yearly, monthly, lifetime — no trial
 /// - exit offer (after "price feels high"): lower yearly — no trial
 class Offer {
@@ -33,7 +34,15 @@ class Offer {
   });
 }
 
-/// Regular paywall plans. The yearly plan carries the 7-day trial.
+/// Initial normal-price paywall uses a separate no-trial store product.
+List<Offer> get standardOffers => [
+  Offer(id: 'standardYearly', title: tr('purchase.planYearly'), price: r'$79.99',
+    period: 'year', perWeek: r'$1.54', badge: tr('purchase.badgeBestValue'),
+    save: tr('purchase.save67')),
+  regularOffers.last,
+];
+
+/// Post-survey trial paywall. The yearly plan carries the 7-day trial.
 List<Offer> get regularOffers => [
   Offer(
     id: 'yearly',
@@ -99,6 +108,7 @@ const _androidKey = 'goog_GyHEQVmzxdmjrBbOftPqYDhdSDI';
 const _iosKey = 'appl_LzxCTyHxRgkmrTZagRVvixodgJa';
 
 /// Offering lookup keys configured in RevenueCat.
+const _offeringStandard = 'standard';
 const _offeringRegular = 'regular';
 const _offeringGift = 'gift';
 const _offeringExit = 'exit';
@@ -155,6 +165,7 @@ class PurchaseService {
     if (id.contains('month')) return 'monthly';
     if (id.contains('exit')) return 'exit';
     if (id.contains('gift')) return 'gift';
+    if (id.contains('standard')) return 'standardYearly';
     return 'yearly';
   }
 
@@ -188,6 +199,10 @@ class PurchaseService {
   }
 
   static Map<String, Offering>? _cache;
+  static bool _trialEligible = false;
+  static bool lastPurchaseWasTrial = false;
+
+  static bool get trialAvailable => !_ready ? kDebugMode : _trialEligible;
 
   /// Pre-fetch offerings so paywalls render with real store prices.
   static Future<void> warmUp() async {
@@ -195,12 +210,26 @@ class PurchaseService {
     try {
       final o = await Purchases.getOfferings();
       _cache = o.all;
+      final annual = _packageFor('yearly')?.storeProduct;
+      _trialEligible = false;
+      if (annual != null) {
+        if (Platform.isIOS) {
+          final eligibility = await Purchases.checkTrialOrIntroductoryPriceEligibility([annual.identifier]);
+          _trialEligible = annual.introductoryPrice?.price == 0 &&
+              eligibility[annual.identifier]?.status == IntroEligibilityStatus.introEligibilityStatusEligible;
+        } else {
+          final period = annual.defaultOption?.freePhase?.billingPeriod?.iso8601;
+          _trialEligible = period == 'P7D' || period == 'P1W';
+        }
+      }
     } catch (_) {
       _cache = null;
+      _trialEligible = false;
     }
   }
 
   static Package? _packageFor(String plan) => switch (plan) {
+    'standardYearly' => _package(_offeringStandard, 'annual'),
     'yearly' => _package(_offeringRegular, 'annual'),
     'monthly' => _package(_offeringGift, 'monthly') ??
         _package(_offeringRegular, 'monthly'),
@@ -242,7 +271,7 @@ class PurchaseService {
           ? o.perWeek
           : _money(product.price / weeks, product.currencyCode, product.priceString),
       badge: o.badge,
-      trialDays: o.trialDays,
+      trialDays: o.trialDays > 0 && !trialAvailable ? 0 : o.trialDays,
       strike: strike,
       save: save,
     );
@@ -265,8 +294,14 @@ class PurchaseService {
 
   static Future<bool> purchase(String plan) async {
     lastError = null;
+    lastPurchaseWasTrial = false;
     if (!_ready) {
+      if (!kDebugMode) {
+        lastError = tr('purchase.genericError');
+        return false;
+      }
       await Future<void>.delayed(const Duration(milliseconds: 1400));
+      lastPurchaseWasTrial = plan == 'yearly';
       return true; // demo mode
     }
     if (_cache == null) await warmUp();
@@ -285,9 +320,8 @@ class PurchaseService {
       final result = await Purchases.purchase(PurchaseParams.package(pkg));
       final ok = result.customerInfo.entitlements.active.containsKey(_entitlement);
       if (ok) {
-        final intro = product.introductoryPrice;
-        final freeTrial = (intro != null && intro.price == 0) ||
-            product.defaultOption?.freePhase != null;
+        final freeTrial = result.customerInfo.entitlements.active[_entitlement]?.periodType == PeriodType.trial;
+        lastPurchaseWasTrial = freeTrial;
         unawaited(TrackingService.purchaseCompleted(
           plan: plan,
           trial: freeTrial,

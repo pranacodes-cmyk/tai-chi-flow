@@ -26,7 +26,7 @@ import '../i18n/i18n.dart';
 /// - gift: discounted yearly, monthly and lifetime — no trial
 /// - exit: one lower yearly offer after "the price feels high" — no trial
 class PaywallScreen extends StatefulWidget {
-  const PaywallScreen({super.key, required this.from, this.offer = 'regular'});
+  const PaywallScreen({super.key, required this.from, this.offer = 'standard'});
   final String from;
   final String offer;
   @override
@@ -42,6 +42,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   List<Offer> get _offers => [
     for (final o in switch (variant) {
+      'standard' => standardOffers,
       'gift' => giftOffers,
       'exit' => [exitOffer],
       _ => regularOffers,
@@ -98,6 +99,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
     if (!mounted) return;
     surveyOpen = false;
     final next = paywallSurveyOffer(reason);
+    if (next == 'regular' && !PurchaseService.trialAvailable) {
+      setState(() { variant = 'standard'; selected = 'standardYearly'; });
+      app.setPaywallOffer('standard');
+      return;
+    }
     if (next == null) return;
     setState(() => reveal = next);
   }
@@ -133,7 +139,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
       PageRouteBuilder<void>(
         opaque: false,
         transitionDuration: const Duration(milliseconds: 380),
-        pageBuilder: (_, _, _) => _Celebration(offer: bought),
+        pageBuilder: (_, _, _) => _Celebration(offer: Offer(
+          id: bought.id, title: bought.title, price: bought.price,
+          period: bought.period, perWeek: bought.perWeek,
+          trialDays: PurchaseService.lastPurchaseWasTrial ? 7 : 0,
+        )),
         transitionsBuilder: (_, a, _, child) =>
             FadeTransition(opacity: a, child: child),
       ),
@@ -207,7 +217,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         Expanded(child: _OfferCard(offer: o, compact: !isExit, selected: selected == o.id, onTap: busy ? null : () => setState(() => selected = o.id))),
                       ]])),
                       Wrap(alignment: WrapAlignment.center, children: [
-                        if (variant == 'regular' && widget.from == 'onboarding') EnsoButton(label: tr('paywall.viewAllPlans'), variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () => context.push('/paywall?from=${widget.from}&offer=gift')),
+                        if ((variant == 'standard' || variant == 'regular') && widget.from == 'onboarding') EnsoButton(label: tr('paywall.viewAllPlans'), variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () => context.push('/paywall?from=${widget.from}&offer=gift')),
                         EnsoButton(label: tr('paywall.restorePurchase'), variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () async {
                           final app = context.read<AppState>();
                           final restored = await PurchaseService.restore();

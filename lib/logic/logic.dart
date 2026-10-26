@@ -254,21 +254,13 @@ String freePickQuickId(int hour) {
   return 'desk-break-routine';
 }
 
-/// The course Today's lesson card shows: the personal plan, unless its next lesson is locked for a free
-/// person while the journey still has a free day left — then the journey's free day leads, so the app
-/// never opens on a paywall before both free lessons are used.
+/// Keep the journey on Today while the personal plan is locked, including after the free days.
+/// An accessible personal plan still leads; selecting the hero never changes saved progress.
 String todayPlanId(
   String activePlanId, {
   required bool activeLocked,
-  required int journeyFreeDays,
-  required List<int> journeyCompleted,
 }) {
-  if (!activeLocked || activePlanId == journeyId) return activePlanId;
-  final done = journeyCompleted.toSet();
-  for (var d = 1; d <= journeyFreeDays; d++) {
-    if (!done.contains(d)) return journeyId;
-  }
-  return activePlanId;
+  return activeLocked ? journeyId : activePlanId;
 }
 
 /// After finishing a plan day: the next day when it exists and is locked for this person (the finish
@@ -694,13 +686,13 @@ bool needsPrivacyChoice(String choice, int noticeVersion, String? country) =>
 /// offer the person saw in onboarding, so the in-app price never differs.
 String paywallVariant(String from, String requested, String? savedOffer) {
   if (from == 'onboarding') return requested;
-  return savedOffer ?? 'regular';
+  return savedOffer ?? 'standard';
 }
 
 /// The "what's holding you back?" question is asked once ever, only when the
 /// regular paywall is closed.
 bool shouldAskExitSurvey(String variant, bool alreadyAsked) =>
-    variant == 'regular' && !alreadyAsked;
+    (variant == 'standard' || variant == 'regular') && !alreadyAsked;
 
 /// Offer reveal only; neither answer grants access or starts a trial.
 String? paywallSurveyOffer(String? reason) => switch (reason) {

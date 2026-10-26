@@ -78,7 +78,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void dispose() {
     _tick?.cancel();
-    Voice.stop();
+    // A finished session hands over to the completion screen while the
+    // closing line is still playing; stopping here would cut it mid-word.
+    if (!finished) Voice.stop();
     Ambient.stop();
     WakelockPlus.disable();
     super.dispose();
@@ -187,8 +189,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
     finished = true;
     _tick?.cancel();
     setState(() => running = false);
-    Sfx.play('sfx-bell-end', 0.7);
-    _say(CoachLines.finish());
+    // Soft bell first, then the closing line once the strike has faded, so
+    // the ring never sits on top of "Session complete".
+    Sfx.play('sfx-bell-end', 0.35);
+    final speak = app.audio.voice;
+    final rate = app.audio.voiceRate;
+    Voice.stop();
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (speak) Voice.say(CoachLines.finish(), rate: rate);
+    });
     final s = session!;
     final totalWork = items.fold<int>(0, (a, it) => a + it.s);
     final ratio = math.min(1.0, work / math.max(1, totalWork));

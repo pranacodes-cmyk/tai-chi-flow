@@ -124,7 +124,7 @@ void main() {
         days[29].items.where((it) => it.p == 'Flow').map((it) => it.e).toList(),
         yang24,
       );
-      expect(days[0].items.first.e, 'silk-reeling-standing');
+      expect(days[0].items.first.e, 'squat-swing-standing');
     });
     test('no movement plays twice inside one journey lesson, and frail-looking warm-ups never appear', () {
       final days = Content.i.plan(journeyId)!.days;
@@ -860,9 +860,12 @@ void main() {
     test('in the app the last onboarding offer is repeated', () {
       expect(paywallVariant('plan', 'regular', 'exit'), 'exit');
       expect(paywallVariant('home', 'regular', 'gift'), 'gift');
-      expect(paywallVariant('home', 'regular', null), 'regular');
+      expect(paywallVariant('home', 'standard', null), 'standard');
+      expect(paywallVariant('home', 'standard', 'regular'), 'regular');
     });
     test('exit survey is asked only once, only on the regular paywall', () {
+      expect(shouldAskExitSurvey('standard', false), isTrue);
+      expect(shouldAskExitSurvey('standard', true), isFalse);
       expect(shouldAskExitSurvey('regular', false), isTrue);
       expect(shouldAskExitSurvey('regular', true), isFalse);
       expect(shouldAskExitSurvey('exit', false), isFalse);
@@ -888,17 +891,26 @@ void main() {
       expect(defaultPlanId, journeyId);
       expect(Content.i.plan(defaultPlanId), isNotNull);
     });
-    test('Today shows the personal plan unless it is locked and a free journey day is left', () {
-      String pick(bool locked, List<int> done) => todayPlanId(
+    test('Today preserves an accessible personal plan and otherwise shows the journey', () {
+      String pick(bool locked) => todayPlanId(
         'standing-qigong-14',
         activeLocked: locked,
-        journeyFreeDays: 2,
-        journeyCompleted: done,
       );
-      expect(pick(false, []), 'standing-qigong-14');
-      expect(pick(true, []), journeyId);
-      expect(pick(true, [1]), journeyId);
-      expect(pick(true, [1, 2]), 'standing-qigong-14');
+      expect(pick(false), 'standing-qigong-14');
+      expect(pick(true), journeyId);
+    });
+    test('after free Days 1 and 2 Today keeps journey progress and locked Day 3, not Chair Yoga', () {
+      final selected = todayPlanId('chair-yoga-weight-loss', activeLocked: true);
+      expect(selected, journeyId);
+      final plan = Content.i.plan(selected);
+      expect(plan, isNotNull);
+      if (plan == null) return;
+      final completed = [1, 2];
+      final next = nextPlanDay(plan.days.length, completed);
+      expect(completed.length, 2);
+      expect(plan.days.length, 30);
+      expect(next, 3);
+      expect(isDayLocked(plan, next, false), true);
     });
     test('finishing Day 2 previews the locked Day 3; Day 1, Plus members and the last day get no preview', () {
       final journey = Content.i.plan(journeyId)!;

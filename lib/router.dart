@@ -165,7 +165,7 @@ GoRouter buildRouter(AppState app) {
           s,
           PaywallScreen(
             from: s.uri.queryParameters['from'] ?? 'app',
-            offer: s.uri.queryParameters['offer'] ?? 'regular',
+            offer: s.uri.queryParameters['offer'] ?? 'standard',
           ),
           modal: true,
         ),

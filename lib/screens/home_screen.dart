@@ -30,7 +30,7 @@ class HomeScreen extends StatelessWidget {
     final name = app.profile.name;
     final premium = app.premium.active;
 
-    // Today's lesson: the personal plan, or the journey's free day while one is left.
+    // Keep the journey's next lesson visible even after its free days are completed.
     final active = app.activePlan;
     final activeDone = app.activeCompleted;
     final activeLocked =
@@ -40,15 +40,11 @@ class HomeScreen extends StatelessWidget {
           nextPlanDay(active.days.length, activeDone),
           premium,
         );
-    final journey = c.plan(journeyId);
     final plan =
         c.plan(
           todayPlanId(
             active.id,
             activeLocked: activeLocked,
-            journeyFreeDays: journey?.freeDays ?? 0,
-            journeyCompleted:
-                app.planProgress[journeyId]?.completedDays ?? const <int>[],
           ),
         ) ??
         active;
@@ -200,12 +196,19 @@ class _Header extends StatelessWidget {
               children: [
                 Eyebrow(DateFormat('EEEE, MMM d', appLocale).format(now)),
                 const SizedBox(height: 6),
-                Text(
-                  tr('home.greetingLine', {
-                    'greeting': greeting(now.hour),
-                    'hasName': name.isNotEmpty ? 'yes' : 'no',
-                  }),
-                  style: T.displayMd,
+                // One line that scales down instead of breaking mid-word (Japanese greetings).
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    tr('home.greetingLine', {
+                      'greeting': greeting(now.hour),
+                      'hasName': name.isNotEmpty ? 'yes' : 'no',
+                    }),
+                    style: T.displayMd,
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
                 ),
                 Text(
                   name.isNotEmpty ? name : tr('home.friendFallback'),
@@ -218,6 +221,7 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 12),
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Row(

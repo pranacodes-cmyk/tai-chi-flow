@@ -47,7 +47,7 @@ class ProfileScreen extends StatelessWidget {
       'exit' => tr('profile.planYearlySpecial'),
       'lifetime' => tr('profile.planLifetime'),
       'monthly' => tr('purchase.planMonthly'),
-      'yearly' => tr('purchase.planYearly'),
+      'yearly' || 'standardYearly' => tr('purchase.planYearly'),
       null => '',
       final p => p[0].toUpperCase() + p.substring(1),
     };
