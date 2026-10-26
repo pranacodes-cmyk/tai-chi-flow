@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:enso/data/content.dart';
 import 'package:enso/router.dart';
 import 'package:enso/state/app_state.dart';
+import 'package:enso/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -30,8 +31,8 @@ void main() {
     for (var i = 0; i < 12; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    // push keeps the base URL in the provider; the delegate owns the actual pushed page.
-    expect(router.routerDelegate.currentConfiguration.uri.path, '/welcome');
+    // Imperative pushes retain the base route URI; assert the real page, not that base URI.
+    expect(find.byType(WelcomeScreen), findsOneWidget);
     router.go('/language');
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/language');
