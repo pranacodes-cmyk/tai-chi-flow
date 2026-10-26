@@ -90,7 +90,7 @@ class LanguageScreen extends StatelessWidget {
               child: EnsoButton(
                 label: tr('common.continue'), trailing: LucideIcons.arrowRight,
                 onTap: () {
-                  app.setLanguage(selected);
+                  if (app.language != selected) app.setLanguage(selected);
                   context.push('/welcome');
                 },
               ),
