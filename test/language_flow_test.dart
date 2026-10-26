@@ -26,7 +26,10 @@ void main() {
     await app.flush();
     expect((await AppState.load()).language, 'es');
     await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    // Welcome intentionally loops its film and shimmer, so never wait for all animation to stop.
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     expect(router.routeInformationProvider.value.uri.path, '/welcome');
     router.go('/language');
     await tester.pumpAndSettle();
