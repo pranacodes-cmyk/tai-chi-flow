@@ -30,7 +30,8 @@ void main() {
     for (var i = 0; i < 12; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(router.routeInformationProvider.value.uri.path, '/welcome');
+    // push keeps the base URL in the provider; the delegate owns the actual pushed page.
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/welcome');
     router.go('/language');
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/language');
