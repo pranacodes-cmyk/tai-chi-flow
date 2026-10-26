@@ -42,7 +42,7 @@ void main() {
   final premium = c.plans.firstWhere((p) => p.premium).id;
   final quick = c.quickSessions.first.id;
   final routes = [
-    '/welcome', '/', '/courses', '/courses?view=classes', '/meditate', '/profile', '/history', '/achievements',
+    '/language', '/welcome', '/', '/courses', '/courses?view=classes', '/meditate', '/profile', '/history', '/achievements',
     '/movements', '/reminders', '/settings', '/edit-profile', '/plan/$starter', '/plan/$premium',
     '/category/${c.categories.first.id}', '/exercise/${c.exercises.first.id}', '/guide/${c.guides.first.id}',
     '/legal/privacy', '/paywall?from=onboarding&offer=regular', '/paywall?offer=gift', '/paywall?offer=exit',
@@ -62,7 +62,7 @@ void main() {
         SharedPreferences.setMockInitialValues({
           'enso-state-v1': jsonEncode({
             'language': lang,
-            'onboarded': true,
+            'onboarded': route != '/language' && route != '/welcome',
             'activePlanId': starter,
             'planProgress': {starter: {'startedAt': '2026-10-20T08:00:00.000Z', 'completedDays': [1, 2]}},
           }),

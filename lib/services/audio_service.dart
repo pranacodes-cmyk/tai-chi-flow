@@ -8,7 +8,9 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../data/content.dart';
 import '../i18n/i18n.dart';
 import '../logic/coach.dart';
+import '../logic/lesson_media.dart' show voicePath;
 import '../logic/logic.dart' show fallbackVoiceLocales, fallbackVoiceRank;
+import 'media_store.dart';
 
 /// Every player mixes with the others instead of taking Android audio focus.
 /// With the plugin default (focus "gain") the coach's voice clip stole focus from the
@@ -311,7 +313,19 @@ class Voice {
     if (!Content.i.voice.contains(key)) return _fallback(line, t);
     try {
       await _player.setPlaybackRate((_rate / 0.95).clamp(0.8, 1.25));
-      await _player.play(AssetSource(voiceAsset(key)), volume: 1.0);
+      // downloaded lesson clip → bundled clip → streamed from the media server (then saved)
+      final rel = voicePath(key);
+      final saved = MediaStore.cached(rel);
+      final Source src;
+      if (saved != null) {
+        src = DeviceFileSource(saved.path);
+      } else if (MediaStore.isBundled(rel)) {
+        src = AssetSource(voiceAsset(key));
+      } else {
+        MediaStore.cacheInBackground(rel);
+        src = UrlSource(MediaStore.url(rel));
+      }
+      await _player.play(src, volume: 1.0);
     } catch (e) {
       debugPrint('TaiChi Flow voice clip: $e');
       if (t == _token) await _fallback(line, t);

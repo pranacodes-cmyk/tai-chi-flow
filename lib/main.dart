@@ -11,6 +11,7 @@ import 'data/content.dart';
 import 'logic/logic.dart' show resolveLanguage, supportedLanguages;
 import 'router.dart';
 import 'services/audio_service.dart';
+import 'services/media_store.dart';
 import 'services/notification_service.dart';
 import 'services/purchase_service.dart';
 import 'services/tracking_service.dart';
@@ -25,6 +26,7 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   await Content.load();
+  await MediaStore.init();
   await initializeDateFormatting();
   await PurchaseService.init();
   final app = await AppState.load();

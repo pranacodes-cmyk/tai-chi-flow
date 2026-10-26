@@ -707,11 +707,12 @@ void main() {
   });
 
   group('demo films', () {
-    test('every movement has its own bundled demo film', () {
+    test('every movement has its own demo film, bundled or on the lesson media server', () {
+      final remote = ((jsonDecode(File('test/lesson-media.json').readAsStringSync()) as Map)['video'] as List).toSet();
       final moves = Content.i.exercises.where((e) => !e.isAffirmation).toList();
       expect(moves.every((e) => e.demo != null), isTrue);
       for (final d in moves.map((e) => e.demo!).toSet()) {
-        expect(File('assets/video/$d.mp4').existsSync(), isTrue, reason: d);
+        expect(File('assets/video/$d.mp4').existsSync() || remote.contains(d), isTrue, reason: d);
       }
     });
     test('the paywall film and its poster are bundled, with no browser-only WebM', () {
@@ -772,8 +773,13 @@ void main() {
         check(CoachLines.guide(g));
       }
       expect(missing, isEmpty);
+      final remote = ((jsonDecode(File('test/lesson-media.json').readAsStringSync()) as Map)['voice'] as List).toSet();
       for (final k in Content.i.voice) {
-        expect(File('assets/voice/$k.m4a').existsSync(), isTrue, reason: k);
+        expect(File('assets/voice/$k.m4a').existsSync() || remote.contains(k), isTrue, reason: k);
+      }
+      // onboarding and breathing never wait on a download
+      for (final l in [...CoachLines.breath(CoachBreath.inhale), ...CoachLines.breath(CoachBreath.exhale), ...CoachLines.onbArrived()]) {
+        expect(File('assets/voice/${voiceKey(l)}.m4a').existsSync(), isTrue, reason: l);
       }
     });
     test('every movement has 3 to 5 spoken steps and a coach tip', () {

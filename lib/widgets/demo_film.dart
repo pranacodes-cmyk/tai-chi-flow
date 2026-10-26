@@ -6,6 +6,7 @@ import 'package:video_player/video_player.dart';
 
 import '../data/content.dart';
 import '../data/models.dart';
+import '../services/media_store.dart';
 import '../theme/tokens.dart';
 import 'ui.dart';
 
@@ -47,12 +48,21 @@ class _DemoFilmState extends State<DemoFilm> {
     final film = widget.exercise.film;
     if (film == null) return;
     final options = VideoPlayerOptions(mixWithOthers: true);
-    final c = film.asset
-        ? VideoPlayerController.asset(film.src, videoPlayerOptions: options)
-        : VideoPlayerController.networkUrl(
-            Uri.parse(film.src),
-            videoPlayerOptions: options,
-          );
+    // Our films: bundled (onboarding) → downloaded lesson copy → streamed from the media server.
+    final rel = film.asset ? film.src.replaceFirst('assets/', '') : null;
+    final saved = rel == null ? null : MediaStore.cached(rel);
+    final VideoPlayerController c;
+    if (rel != null && MediaStore.isBundled(rel)) {
+      c = VideoPlayerController.asset(film.src, videoPlayerOptions: options);
+    } else if (saved != null) {
+      c = VideoPlayerController.file(saved, videoPlayerOptions: options);
+    } else {
+      if (rel != null) MediaStore.cacheInBackground(rel);
+      c = VideoPlayerController.networkUrl(
+        Uri.parse(rel != null ? MediaStore.url(rel) : film.src),
+        videoPlayerOptions: options,
+      );
+    }
     _c = c;
     c.setLooping(true);
     c.setVolume(0);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'data/content.dart';
 import 'logic/logic.dart';
 import 'screens/achievements_screen.dart';
 import 'screens/breathe_screen.dart';
@@ -21,11 +22,14 @@ import 'screens/paywall_screen.dart';
 import 'screens/plan_detail_screen.dart';
 import 'screens/plan_ready_screen.dart';
 import 'screens/player_screen.dart';
+import 'widgets/lesson_prepare.dart';
+import 'logic/lesson_media.dart';
 import 'screens/profile_screen.dart';
 import 'screens/reminders_screen.dart';
 import 'screens/session_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/welcome_screen.dart';
+import 'screens/language_screen.dart';
 import 'state/app_state.dart';
 import 'theme/tokens.dart';
 import 'widgets/tab_shell.dart';
@@ -80,8 +84,8 @@ GoRouter buildRouter(AppState app) {
     refreshListenable: app,
     redirect: (context, state) {
       final loc = state.matchedLocation;
-      if (!app.onboarded && _tabRoots.contains(loc)) return '/welcome';
-      if (app.onboarded && (loc == '/welcome' || loc == '/onboarding')) {
+      if (!app.onboarded && _tabRoots.contains(loc)) return '/language';
+      if (app.onboarded && (loc == '/language' || loc == '/welcome' || loc == '/onboarding')) {
         return '/';
       }
       if (loc.startsWith('/player/')) {
@@ -148,6 +152,10 @@ GoRouter buildRouter(AppState app) {
         pageBuilder: (c, s) => _page(s, const HistoryScreen()),
       ),
       GoRoute(
+        path: '/language',
+        pageBuilder: (c, s) => _page(s, const LanguageScreen()),
+      ),
+      GoRoute(
         path: '/welcome',
         pageBuilder: (c, s) => _page(s, const WelcomeScreen()),
       ),
@@ -206,7 +214,10 @@ GoRouter buildRouter(AppState app) {
         path: '/player/:id',
         pageBuilder: (c, s) => _page(
           s,
-          PlayerScreen(sessionId: s.pathParameters['id']!),
+          LessonPrepare(
+            paths: sessionPaths(s.pathParameters['id']!),
+            child: PlayerScreen(sessionId: s.pathParameters['id']!),
+          ),
           modal: true,
         ),
       ),
@@ -221,7 +232,15 @@ GoRouter buildRouter(AppState app) {
         path: '/meditation/:id',
         pageBuilder: (c, s) => _page(
           s,
-          MeditationPlayerScreen(meditationId: s.pathParameters['id']!),
+          LessonPrepare(
+            paths: meditationPaths(
+              s.pathParameters['id']!,
+              app.premium.active,
+            ),
+            child: MeditationPlayerScreen(
+              meditationId: s.pathParameters['id']!,
+            ),
+          ),
           modal: true,
         ),
       ),
@@ -252,4 +271,18 @@ GoRouter buildRouter(AppState app) {
       ),
     ],
   );
+}
+
+/// Lesson media a session player needs (empty for unknown ids, so the player shows its own error).
+List<String> sessionPaths(String id) {
+  final session = resolveSession(id);
+  if (session == null) return const [];
+  return sessionMediaPaths(session.items, Content.i.exercise, Content.i.voice);
+}
+
+/// A locked meditation opens straight to its own Plus prompt, so nothing is downloaded for it.
+List<String> meditationPaths(String id, bool premium) {
+  final m = Content.i.meditation(id);
+  if (m == null || isMeditationLocked(id, premium)) return const [];
+  return meditationMediaPaths(m, Content.i.voice);
 }
