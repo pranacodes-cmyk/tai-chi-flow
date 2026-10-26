@@ -127,7 +127,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
             ),
           ),
-          Padding(
+          SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: MediaQuery.sizeOf(context).height),
+              child: IntrinsicHeight(child: Padding(
             padding: EdgeInsets.fromLTRB(28, top + 22, 28, bottom + 26),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,7 +138,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 Reveal(
                   delay: 0.2,
                   dy: -8,
-                  child: Row(
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Image.asset(
                         img('logo-taichi-light.png'),
@@ -152,7 +158,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           letterSpacing: -0.34,
                         ),
                       ),
-                      const Spacer(),
                       Semantics(
                         button: true,
                         label: tr('settings.language'),
@@ -338,6 +343,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
               ],
             ),
+          )),
+          ),
           ),
         ],
       ),
