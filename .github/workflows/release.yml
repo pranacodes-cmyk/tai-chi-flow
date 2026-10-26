@@ -104,7 +104,8 @@ jobs:
           print(f"voice clips in asset pack: {len(pack)} ({packed/1e6:.1f} MB)")
           print(f"voice clips left in base: {len(base_voice)}")
           print(f"base module compressed: {base/1e6:.1f} MB")
-          if len(pack) < 1000 or base_voice or base > 190e6:
+          # Lesson voice now lives on R2; the pack keeps only offline onboarding/UI/breath cues.
+          if len(pack) < 100 or base_voice or base > 190e6:
               sys.exit("bundle layout check failed")
           EOF
       - name: Check upload signature
