@@ -227,7 +227,16 @@ class EImage extends StatelessWidget {
           ),
         );
       },
-      errorBuilder: (_, _, _) => Container(color: C.sand),
+      errorBuilder: (_, _, _) => asset.startsWith('assets/images/')
+          ? Image.network(
+              imgUrl(imgKey(asset)),
+              fit: fit,
+              alignment: alignment ?? Content.i.focusOf(imgKey(asset)),
+              width: double.infinity,
+              height: double.infinity,
+              errorBuilder: (_, _, _) => Container(color: C.sand),
+            )
+          : Container(color: C.sand),
     );
   }
 }

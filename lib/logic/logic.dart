@@ -702,3 +702,15 @@ String? paywallSurveyOffer(String? reason, {bool trialAvailable = true}) => swit
   'later' || 'unsure' => trialAvailable ? 'regular' : 'exit',
   _ => null,
 };
+
+/// Content file layout version this app build understands; bump only when the shape changes incompatibly.
+const int kContentSchema = 1;
+
+/// Whether a published remote content update should replace the content the app shipped with:
+/// only a strictly newer revision, in a layout this build can read, so an old remote update never
+/// overrides newer bundled content and a future layout never crashes an old build.
+bool shouldUseRemoteContent(int bundledRev, int? remoteRev, int? remoteSchema,
+    [int appSchema = kContentSchema]) {
+  if (remoteRev == null || remoteSchema == null) return false;
+  return remoteRev > bundledRev && remoteSchema <= appSchema;
+}

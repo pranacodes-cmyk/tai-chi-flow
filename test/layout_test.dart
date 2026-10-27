@@ -51,13 +51,17 @@ void main() {
   // English at both widths; every other language (longer German/French words, Japanese glyphs)
   // at the tightest width.
   final runs = [
-    for (final w in [320.0, 360.0]) ('en', Size(w, 640)),
-    for (final lang in ['de', 'fr', 'es', 'pt', 'it', 'ja']) (lang, const Size(320, 640)),
+    for (final w in [320.0, 360.0]) ('en', Size(w, 640), TargetPlatform.android, EdgeInsets.zero),
+    for (final lang in ['de', 'fr', 'es', 'pt', 'it', 'ja']) (lang, const Size(320, 640), TargetPlatform.android, EdgeInsets.zero),
+    // SE-sized display and a notched iPhone: iOS safe areas must not cover controls.
+    ('en', const Size(320, 568), TargetPlatform.iOS, const EdgeInsets.only(top: 20)),
+    for (final lang in ['en', 'de', 'fr', 'es', 'pt', 'it', 'ja'])
+      (lang, const Size(375, 812), TargetPlatform.iOS, const EdgeInsets.only(top: 44, bottom: 34)),
   ];
 
-  for (final (lang, size) in runs) {
+  for (final (lang, size, platform, padding) in runs) {
     for (final route in routes) {
-      testWidgets('no overflow at ${size.width.toInt()}px, 130% text, $lang: $route', (tester) async {
+      testWidgets('no overflow at ${size.width.toInt()}x${size.height.toInt()}, ${platform.name}, 130% text, $lang: $route', (tester) async {
         Content.loadFromJson(contentFor(lang), lang);
         SharedPreferences.setMockInitialValues({
           'enso-state-v1': jsonEncode({
@@ -84,10 +88,15 @@ void main() {
         await tester.pumpWidget(ChangeNotifierProvider.value(
           value: app,
           child: MaterialApp.router(
+            theme: ThemeData(platform: platform),
             routerConfig: router,
             builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.3)),
-              child: child!,
+              data: MediaQuery.of(context).copyWith(
+                textScaler: const TextScaler.linear(1.3),
+                padding: padding,
+                viewPadding: padding,
+              ),
+              child: child ?? const SizedBox.shrink(),
             ),
           ),
         ));

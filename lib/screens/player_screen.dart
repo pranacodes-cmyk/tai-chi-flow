@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../services/analytics_service.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -67,6 +68,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     super.initState();
     if (session == null) return;
     WakelockPlus.enable();
+    AnalyticsService.capture('lesson_started', {'session_id': widget.sessionId, 'items': items.length});
     Sfx.play('sfx-bell-start', 0.6);
     Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted) _say(CoachLines.begin(Content.i.exercise(items[0].e)!));

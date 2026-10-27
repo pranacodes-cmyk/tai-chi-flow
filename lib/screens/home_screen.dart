@@ -205,12 +205,18 @@ class _Header extends StatelessWidget {
                     softWrap: false,
                   ),
                 ),
-                Text(
-                  name.isNotEmpty ? name : tr('home.friendFallback'),
-                  style: T.serifAccent.copyWith(
-                    fontSize: 30,
-                    color: C.jadeDeep,
-                    height: 1.1,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    name.isNotEmpty ? name : tr('home.friendFallback'),
+                    maxLines: 1,
+                    softWrap: false,
+                    style: T.serifAccent.copyWith(
+                      fontSize: 30,
+                      color: C.jadeDeep,
+                      height: 1.1,
+                    ),
                   ),
                 ),
               ],

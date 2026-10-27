@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../services/analytics_service.dart';
 import 'package:flutter/material.dart';
 import '../services/audio_service.dart';
 import 'package:go_router/go_router.dart';
@@ -61,6 +62,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     }
     selected = _offers.first.id;
     TrackingService.paywallViewed(variant);
+    AnalyticsService.capture('paywall_viewed', {'variant': variant, 'from': widget.from});
     // Real store prices replace the placeholders as soon as they load.
     PurchaseService.warmUp().then((_) {
       if (mounted) setState(() {});
@@ -86,6 +88,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   Future<void> _close() async {
     if (surveyOpen) return;
     final app = context.read<AppState>();
+    AnalyticsService.capture('paywall_closed', {'variant': variant, 'from': widget.from});
     if (!shouldAskExitSurvey(variant, app.exitSurveyAsked)) {
       _leave();
       return;
@@ -102,6 +105,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     await PurchaseService.warmUp();
     if (!mounted) return;
     final next = paywallSurveyOffer(reason, trialAvailable: PurchaseService.trialAvailable);
+    AnalyticsService.capture('exit_survey_answered', {'reason': reason ?? 'dismissed', 'offer': next, 'from': widget.from});
     if (next == null) return;
     setState(() => reveal = next);
   }
@@ -116,16 +120,20 @@ class _PaywallScreenState extends State<PaywallScreen> {
     });
     context.read<AppState>().setPaywallOffer(next);
     TrackingService.paywallViewed(next);
+    AnalyticsService.capture('offer_revealed', {'variant': next, 'from': widget.from});
+    AnalyticsService.capture('paywall_viewed', {'variant': next, 'from': widget.from});
   }
 
   Future<void> _buy() async {
     if (busy) return;
     setState(() => busy = true);
+    AnalyticsService.capture('purchase_tapped', {'plan': selected, 'variant': variant, 'from': widget.from});
     final ok = await PurchaseService.purchase(selected);
     if (!mounted) return;
     setState(() => busy = false);
     if (!ok) {
       final error = PurchaseService.lastError;
+      AnalyticsService.capture(error == null ? 'purchase_cancelled' : 'purchase_failed', {'plan': selected, 'variant': variant, 'from': widget.from});
       if (error != null) {
         Toast.show(tr('paywall.purchaseFailed'), description: error);
       }
@@ -212,7 +220,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       const SizedBox(height: 8),
                       IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [for (final (i, o) in _offers.indexed) ...[
                         if (i > 0) const SizedBox(width: 8),
-                        Expanded(child: _OfferCard(offer: o, compact: !isExit, selected: selected == o.id, onTap: busy ? null : () => setState(() => selected = o.id))),
+                        Expanded(child: _OfferCard(offer: o, compact: !isExit, selected: selected == o.id, onTap: busy ? null : () { setState(() => selected = o.id); AnalyticsService.capture('plan_selected', {'plan': o.id, 'variant': variant}); })),
                       ]])),
                       Wrap(alignment: WrapAlignment.center, children: [
                         if ((variant == 'standard' || variant == 'regular') && widget.from == 'onboarding') EnsoButton(label: tr('paywall.viewAllPlans'), variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () => context.push('/paywall?from=${widget.from}&offer=gift')),

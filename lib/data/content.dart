@@ -4,6 +4,7 @@ import 'package:flutter/painting.dart' show Alignment;
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../i18n/i18n.dart';
+import '../services/content_updates.dart';
 import 'models.dart';
 
 /// The shared content in the app language: `content.json` (English) or `i18n/content.<lang>.json`,
@@ -97,9 +98,29 @@ class Content {
       ? 'assets/data/content.json'
       : 'assets/data/i18n/content.$lang.json';
 
+  /// Revision of the content bundled in this build (newer published updates replace it).
+  static int bundledRev = 0;
+
+  /// Revision actually in use (bundled, or a downloaded update).
+  static int rev = 0;
+
+  /// Loads the bundled content, then a saved newer published update when one is valid; a broken
+  /// update falls back to the bundled content so the app always opens.
   static Future<void> load([String lang = 'en']) async {
     final raw = await rootBundle.loadString(assetFor(lang));
-    i = Content._(jsonDecode(raw) as Map<String, dynamic>, lang);
+    final bundled = jsonDecode(raw) as Map<String, dynamic>;
+    bundledRev = (bundled['contentRev'] as num?)?.toInt() ?? 0;
+    final remote = await ContentUpdates.saved(lang, bundledRev);
+    if (remote != null) {
+      try {
+        i = Content._(remote, lang);
+        rev = (remote['contentRev'] as num).toInt();
+        loaded = true;
+        return;
+      } catch (_) {}
+    }
+    i = Content._(bundled, lang);
+    rev = bundledRev;
     loaded = true;
   }
 
@@ -185,6 +206,12 @@ String img(String key) {
   if (key.startsWith('logo')) return 'assets/images/$key.png';
   final known = !Content.loaded || Content.i.imageFocus.containsKey(key);
   return 'assets/images/${known ? key : 'hero-today'}.jpg';
+}
+
+/// Online copy of an image key, used when a published content update names imagery this build
+/// does not bundle (publish-content.py uploads every content image).
+String imgUrl(String key) =>
+    '${ContentUpdates.base.replaceFirst(RegExp(r'/content$'), '')}/v1/images/$key.jpg';
 }
 
 String audioAsset(String key) => 'audio/$key.mp3';

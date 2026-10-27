@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/analytics_service.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -38,6 +39,7 @@ class _RateBodyState extends State<_RateBody> {
   Future<void> _submit() async {
     final nav = Navigator.of(context);
     widget.app.setRatedApp();
+    AnalyticsService.capture('app_rated', {'stars': stars, 'to_store': ratingGoesToStore(stars)});
     nav.pop();
     if (ratingGoesToStore(stars)) {
       Toast.show(tr('rate.thankYou'), description: tr('rate.helpsOthers'), tone: 'success');

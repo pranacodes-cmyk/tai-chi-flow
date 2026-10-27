@@ -8,10 +8,6 @@ import '../theme/text.dart';
 import '../theme/tokens.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
-import '../widgets/language_sheet.dart';
-import '../logic/logic.dart';
-import '../state/app_state.dart';
-import 'package:provider/provider.dart';
 import '../i18n/i18n.dart';
 
 const _pillars = ['Balance', 'Flexibility', 'Calm'];
@@ -157,46 +153,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           fontWeight: FontWeight.w700,
                           color: C.ivory,
                           letterSpacing: -0.34,
-                        ),
-                      ),
-                      Semantics(
-                        button: true,
-                        label: tr('settings.language'),
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => showLanguageSheet(context),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(minHeight: 44),
-                            child: Center(
-                              child: Glass(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      LucideIcons.languages,
-                                      size: 16,
-                                      color: C.ivory,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      languageNames[context.watch<AppState>().language ?? resolveLanguage(null, deviceLanguageTags())] ?? 'English',
-                                      style: T.tiny.copyWith(color: C.ivory),
-                                    ),
-                                    const SizedBox(width: 2),
-                                    Icon(
-                                      LucideIcons.chevronDown,
-                                      size: 14,
-                                      color: C.ivory.withValues(alpha: 0.8),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
                         ),
                       ),
                     ],

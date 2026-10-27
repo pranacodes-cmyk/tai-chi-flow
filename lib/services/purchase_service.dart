@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../services/analytics_service.dart';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
@@ -36,10 +37,11 @@ class Offer {
 
 /// Initial normal-price paywall uses a separate no-trial store product.
 List<Offer> get standardOffers => [
-  Offer(id: 'standardYearly', title: tr('purchase.planYearly'), price: r'$79.99',
-    period: 'year', perWeek: r'$1.54', badge: tr('purchase.badgeBestValue'),
-    save: tr('purchase.save67')),
-  regularOffers.last,
+  Offer(id: 'standardYearly', title: tr('purchase.planYearly'), price: r'$59.99',
+    period: 'year', perWeek: r'$1.15', badge: tr('purchase.badgeBestValue'),
+    save: tr('purchase.savePercent', {'pct': 37})),
+  regularOffers[1],
+  lifetimeOffer,
 ];
 
 /// Post-survey trial paywall. The yearly plan carries the 7-day trial.
@@ -47,21 +49,32 @@ List<Offer> get regularOffers => [
   Offer(
     id: 'yearly',
     title: tr('purchase.planYearly'),
-    price: r'$79.99',
+    price: r'$59.99',
     period: 'year',
-    perWeek: r'$1.54',
+    perWeek: r'$1.15',
     badge: tr('purchase.badgeBestValue'),
     trialDays: 7,
-    save: tr('purchase.save67'),
+    save: tr('purchase.savePercent', {'pct': 37}),
   ),
   Offer(
     id: 'monthly',
     title: tr('purchase.planMonthly'),
-    price: r'$9.99',
+    price: r'$7.99',
     period: 'month',
-    perWeek: r'$2.50',
+    perWeek: r'$1.84',
   ),
+  lifetimeOffer,
 ];
+
+/// One-time Lifetime plan, offered on the main paywalls and "View all plans".
+Offer get lifetimeOffer => Offer(
+  id: 'lifetime',
+  title: tr('purchase.planLifetime'),
+  price: r'$99.99',
+  period: 'once',
+  perWeek: tr('purchase.payOnce'),
+  badge: tr('purchase.badgeOneTime'),
+);
 
 /// "View all plans" gift screen — discounted, no trial.
 List<Offer> get giftOffers => [
@@ -72,24 +85,17 @@ List<Offer> get giftOffers => [
     period: 'year',
     perWeek: r'$0.77',
     badge: tr('purchase.badgeGiftDiscount'),
-    strike: r'$79.99',
-    save: tr('purchase.save50Off'),
+    strike: r'$59.99',
+    save: tr('purchase.percentOff', {'pct': 33}),
   ),
   Offer(
     id: 'monthly',
     title: tr('purchase.planMonthly'),
-    price: r'$9.99',
+    price: r'$7.99',
     period: 'month',
-    perWeek: r'$2.50',
+    perWeek: r'$1.84',
   ),
-  Offer(
-    id: 'lifetime',
-    title: tr('purchase.planLifetime'),
-    price: r'$99.99',
-    period: 'once',
-    perWeek: tr('purchase.payOnce'),
-    badge: tr('purchase.badgeOneTime'),
-  ),
+  lifetimeOffer,
 ];
 
 /// Shown after the exit survey answer "the price feels high" — no trial.
@@ -99,8 +105,8 @@ Offer get exitOffer => Offer(
   price: r'$34.99',
   period: 'year',
   perWeek: r'$0.67',
-  strike: r'$79.99',
-  save: tr('purchase.save56'),
+  strike: r'$59.99',
+  save: tr('purchase.savePercent', {'pct': 42}),
 );
 
 /// RevenueCat public SDK keys (safe to ship in the binary).
@@ -235,7 +241,9 @@ class PurchaseService {
         _package(_offeringRegular, 'monthly'),
     'gift' => _package(_offeringGift, 'annual'),
     'exit' => _package(_offeringExit, 'annual'),
-    'lifetime' => _package(_offeringGift, 'lifetime'),
+    'lifetime' => _package(_offeringGift, 'lifetime') ??
+        _package(_offeringStandard, 'lifetime') ??
+        _package(_offeringRegular, 'lifetime'),
     _ => null,
   };
 
@@ -311,6 +319,7 @@ class PurchaseService {
       return false;
     }
     final product = pkg.storeProduct;
+    AnalyticsService.capture('checkout_started', {'plan': plan, 'price': product.price, 'currency': product.currencyCode});
     unawaited(TrackingService.checkoutStarted(
       plan: plan,
       price: product.price,
@@ -322,6 +331,14 @@ class PurchaseService {
       if (ok) {
         final freeTrial = result.customerInfo.entitlements.active[_entitlement]?.periodType == PeriodType.trial;
         lastPurchaseWasTrial = freeTrial;
+        AnalyticsService.capture('purchase_completed', {
+          'plan': plan,
+          'trial': freeTrial,
+          'lifetime': plan == 'lifetime',
+          'price': product.price,
+          'currency': product.currencyCode,
+          if (!freeTrial) r'$revenue': product.price,
+        });
         unawaited(TrackingService.purchaseCompleted(
           plan: plan,
           trial: freeTrial,

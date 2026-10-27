@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../services/analytics_service.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -47,6 +48,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.capture('meditation_opened', {'meditation_id': widget.meditationId});
     if (m?.breath != null) {
       cycle = BreathCycle(
         m!.breath!,

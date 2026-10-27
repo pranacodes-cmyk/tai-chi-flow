@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../services/analytics_service.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -206,8 +207,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         index++;
       });
       _onStep();
+      AnalyticsService.capture('onboarding_step_viewed', {'step': steps[index].id, 'step_index': index, 'steps_total': steps.length});
     } else {
       _finished = true;
+      AnalyticsService.capture('onboarding_questions_finished', {'steps_total': steps.length});
       context.go('/plan-ready');
     }
   }

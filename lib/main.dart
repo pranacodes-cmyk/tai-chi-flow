@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'services/analytics_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -11,6 +12,7 @@ import 'data/content.dart';
 import 'logic/logic.dart' show resolveLanguage, supportedLanguages;
 import 'router.dart';
 import 'services/audio_service.dart';
+import 'services/content_updates.dart';
 import 'services/media_store.dart';
 import 'services/notification_service.dart';
 import 'services/purchase_service.dart';
@@ -34,6 +36,8 @@ Future<void> main() async {
   if (lang != 'en') await Content.load(lang);
   Haptics.enabled = app.audio.haptics;
   unawaited(TrackingService.init(app));
+  unawaited(AnalyticsService.init(app));
+  unawaited(ContentUpdates.check(Content.i.lang, Content.bundledRev));
   unawaited(
     PurchaseService.syncEntitlement(
       isActive: () => app.premium.active,
@@ -69,7 +73,13 @@ class EnsoApp extends StatefulWidget {
 }
 
 class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
-  late final GoRouter _router = buildRouter(widget.app);
+  late final GoRouter _router = buildRouter(widget.app)
+    ..routerDelegate.addListener(_trackScreen);
+
+  void _trackScreen() {
+    final uri = _router.routerDelegate.currentConfiguration.uri;
+    AnalyticsService.screen(uri.path);
+  }
 
   @override
   void initState() {
@@ -96,6 +106,7 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
     _switchingLanguage = true;
     try {
       await Content.load(want);
+      unawaited(ContentUpdates.check(want, Content.bundledRev));
     } finally {
       _switchingLanguage = false;
     }
@@ -129,6 +140,7 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       widget.app.flush();
+      AnalyticsService.paused();
     }
     if (state == AppLifecycleState.resumed) unawaited(TrackingService.resumed());
   }

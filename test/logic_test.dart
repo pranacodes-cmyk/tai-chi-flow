@@ -1058,4 +1058,16 @@ void main() {
       expect(fallbackVoiceRank('de', 'de'), 1);
     });
   });
+
+  group('remote content updates', () {
+    test('adopts only a strictly newer revision', () {
+      expect(shouldUseRemoteContent(3, 4, 1), isTrue);
+      expect(shouldUseRemoteContent(3, 3, 1), isFalse);
+      expect(shouldUseRemoteContent(5, 4, 1), isFalse);
+    });
+    test('ignores a newer layout or a missing manifest', () {
+      expect(shouldUseRemoteContent(1, 2, 2), isFalse);
+      expect(shouldUseRemoteContent(1, null, 1), isFalse);
+    });
+  });
 }

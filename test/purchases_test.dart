@@ -4,8 +4,8 @@ import 'package:enso/services/purchase_service.dart';
 void main() {
   test('initial annual is full price and has no trial', () {
     expect(standardOffers.first.id, 'standardYearly');
-    expect(standardOffers.first.price, r'$79.99');
-    expect(standardOffers.map((o) => o.trialDays), [0, 0]);
+    expect(standardOffers.first.price, r'$59.99');
+    expect(standardOffers.map((o) => o.trialDays), [0, 0, 0]);
   });
   test('initial and trial annual purchase identities are distinct', () {
     expect(standardOffers.first.id, isNot(regularOffers.first.id));
