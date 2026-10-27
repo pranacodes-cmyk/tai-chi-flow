@@ -63,10 +63,6 @@ class HomeScreen extends StatelessWidget {
               dateKey(h.completedAt) == today,
         );
     final freeDay = !premium && plan.premium && dayNumber <= plan.freeDays;
-    final newToday = [
-      for (final it in day.items)
-        if (it.p == 'New today') c.exercise(it.e)?.name,
-    ].whereType<String>().toList();
 
     final pick = freePickQuickId(now.hour);
     final quick = [
@@ -102,7 +98,6 @@ class HomeScreen extends StatelessWidget {
                   locked: locked,
                   todayDone: todayDone,
                   freeDay: freeDay,
-                  newToday: newToday,
                   weightKg: app.profile.weightKg,
                   onStart: () => planDone
                       ? context.go('/courses')
@@ -306,7 +301,6 @@ class _LessonHero extends StatelessWidget {
     required this.locked,
     required this.todayDone,
     required this.freeDay,
-    required this.newToday,
     required this.weightKg,
     required this.onStart,
     required this.onOpen,
@@ -315,7 +309,6 @@ class _LessonHero extends StatelessWidget {
   final PlanDay day;
   final int dayNumber, completedCount;
   final bool planDone, locked, todayDone, freeDay;
-  final List<String> newToday;
   final double weightKg;
   final VoidCallback onStart, onOpen;
 
@@ -415,22 +408,23 @@ class _LessonHero extends StatelessWidget {
                   locked ? tr('home.todaysLessonPlus') : tr('home.todaysLesson'),
                   color: C.ivory.withValues(alpha: 0.7),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   plan.title,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: T.label.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: C.ivory.withValues(alpha: 0.9),
-                  ),
+                  style: T.displayLg.copyWith(fontSize: 30, color: C.ivory),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   planDone ? tr('home.youDidIt') : tr('home.dayTitle', {'day': dayNumber, 'title': day.title}),
-                  maxLines: 3,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: T.displayLg.copyWith(fontSize: 28, color: C.ivory),
+                  style: T.label.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: C.ivory.withValues(alpha: 0.92),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 if (!planDone)
@@ -444,34 +438,6 @@ class _LessonHero extends StatelessWidget {
                       Text(tr('home.moves', {'n': day.items.length}), style: meta),
                     ],
                   ),
-                if (!planDone && !locked && newToday.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Glass(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          LucideIcons.sparkles,
-                          size: 13,
-                          color: C.ivory,
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            tr('home.newToday', {'items': newToday.join(' & ')}),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: T.tiny.c(C.ivory),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
                 if (locked) ...[
                   const SizedBox(height: 10),
                   Text(

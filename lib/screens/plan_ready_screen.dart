@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -15,6 +16,7 @@ import '../theme/text.dart';
 import '../theme/tokens.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/ui.dart';
+import '../widgets/confetti.dart';
 import '../i18n/i18n.dart';
 
 const _checklist = [
@@ -34,15 +36,42 @@ class _PlanReadyScreenState extends State<PlanReadyScreen>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   double progress = 0;
+  bool celebrating = false, done = false;
+  int _lastTick = 0, _lastStep = 0;
+  late final bool _haptics = context.read<AppState>().audio.haptics;
 
   @override
   void initState() {
     super.initState();
     _ticker = createTicker((elapsed) {
       final p = (elapsed.inMilliseconds / 4800 * 100).clamp(0.0, 100.0);
+      // haptics follow the ring: a soft tick every 5%, a firmer tap as each checklist step completes
+      final tick = (p / 5).floor();
+      final step = (p / 24).floor().clamp(0, 4);
+      if (_haptics && step > _lastStep && step <= 4) {
+        HapticFeedback.mediumImpact();
+      } else if (_haptics && tick > _lastTick && p < 100) {
+        HapticFeedback.selectionClick();
+      }
+      _lastTick = tick;
+      _lastStep = step;
       setState(() => progress = p);
-      if (p >= 100) _ticker.stop();
+      if (p >= 100) {
+        _ticker.stop();
+        _celebrate();
+      }
     })..start();
+  }
+
+  /// 100%: a strong double tap, confetti and "Your plan is ready" before the plan itself.
+  Future<void> _celebrate() async {
+    if (_haptics) {
+      HapticFeedback.heavyImpact();
+      Future.delayed(const Duration(milliseconds: 140), HapticFeedback.heavyImpact);
+    }
+    setState(() => celebrating = true);
+    await Future.delayed(const Duration(milliseconds: 2000));
+    if (mounted) setState(() => done = true);
   }
 
   @override
@@ -53,7 +82,6 @@ class _PlanReadyScreenState extends State<PlanReadyScreen>
 
   @override
   Widget build(BuildContext context) {
-    final done = progress >= 100;
     return PopScope(
       canPop: false,
       child: EnsoScaffold(
@@ -72,10 +100,55 @@ class _PlanReadyScreenState extends State<PlanReadyScreen>
           ),
           child: done
               ? const _Result(key: ValueKey('res'))
-              : _Generating(key: const ValueKey('gen'), progress: progress),
+              : celebrating
+                  ? const _PlanReadyBurst(key: ValueKey('burst'))
+                  : _Generating(key: const ValueKey('gen'), progress: progress),
         ),
       ),
     );
+  }
+}
+
+/// Short celebration between the loading ring and the plan: confetti, a check that pops in
+/// with an elastic bounce and "Your plan is ready" (web mirrors it).
+class _PlanReadyBurst extends StatelessWidget {
+  const _PlanReadyBurst({super.key});
+  @override
+  Widget build(BuildContext context) {
+    final name = context.read<AppState>().profile.name;
+    return Stack(children: [
+      const Positioned.fill(child: Confetti(height: 900)),
+      Center(child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.elasticOut,
+            builder: (_, v, child) => Transform.scale(scale: v, child: child),
+            child: Container(
+              width: 112,
+              height: 112,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: C.jade, boxShadow: S.card),
+              child: const Icon(LucideIcons.check, size: 56, color: C.ivory),
+            ),
+          ),
+          const SizedBox(height: 28),
+          Reveal(
+            delay: 0.25,
+            dy: 10,
+            child: Text.rich(
+              TextSpan(children: [
+                TextSpan(text: name.isNotEmpty ? tr('planReady.yourPlanIsReadyNamed', {'name': name}) : tr('planReady.yourPlanIsReady')),
+                TextSpan(text: tr('planReady.ready'), style: T.serifAccent.copyWith(fontSize: 38, color: C.jade)),
+              ]),
+              textAlign: TextAlign.center,
+              style: T.displayLg,
+            ),
+          ),
+        ]),
+      )),
+    ]);
   }
 }
 

@@ -15,6 +15,7 @@ import '../theme/text.dart';
 import '../theme/tokens.dart';
 import 'breath_orb.dart';
 import 'scaffold.dart';
+import 'preparation_breath.dart';
 import 'ui.dart';
 
 /// Gate in front of a lesson or meditation player (web `LessonPrepare`): when the lesson's
@@ -50,7 +51,7 @@ class _LessonPrepareState extends State<LessonPrepare> {
         if (ph == BreathPhase.exhale) Voice.say(CoachLines.breath(CoachBreath.exhale));
       },
     )..setRunning(true);
-    Future.delayed(const Duration(milliseconds: 400), () {
+    Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted && app.audio.voice && !_ready) {
         Voice.say(CoachLines.breath(CoachBreath.inhale));
       }
@@ -104,57 +105,47 @@ class _LessonPrepareState extends State<LessonPrepare> {
     if (_ready) return widget.child;
     final pct = downloadPercent(_done, _missing.length);
     return EnsoScaffold(
-      background: C.forest,
-      lightIcons: true,
-      gradient: G.forest,
+      background: C.ivory,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, box) {
-            final orb = math.min(260.0, math.min(box.maxWidth - 64, box.maxHeight * 0.42));
-            return Padding(
+            final cycle = _cycle;
+            return SingleChildScrollView(child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: box.maxHeight),
+              child: Padding(
               padding: EdgeInsets.fromLTRB(24, 10, 24, bottomInset(context) + 20),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: CircleBtn(
-                      icon: LucideIcons.x,
-                      tone: Tone.dark,
-                      label: tr('prepare.cancel'),
-                      onTap: _close,
-                    ),
+                  Row(children: [
+                    CircleBtn(icon: LucideIcons.chevronLeft, label: tr('prepare.cancel'), onTap: _close),
+                    Expanded(child: Text('TaiChi Flow', textAlign: TextAlign.center, style: T.title.copyWith(letterSpacing: 0))),
+                    const SizedBox(width: 44),
+                  ]),
+                  SizedBox(height: math.max(24, box.maxHeight * 0.05)),
+                  Text(
+                    tr(_failed ? 'prepare.failedTitle' : 'prepare.title'),
+                    textAlign: TextAlign.center,
+                    style: T.displayMd.copyWith(letterSpacing: 0),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 10),
+                  Text(tr(_failed ? 'prepare.failedBody' : 'prepare.subtitle'), textAlign: TextAlign.center, style: T.bodySm.c(C.muted)),
+                  SizedBox(height: math.max(20, box.maxHeight * 0.045)),
                   if (_failed) ...[
-                    Icon(LucideIcons.wifiOff, size: 44, color: C.ivory.withValues(alpha: 0.85)),
-                    const SizedBox(height: 18),
-                    Text(
-                      tr('prepare.failedTitle'),
-                      textAlign: TextAlign.center,
-                      style: T.displayMd.c(C.ivory),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      tr('prepare.failedBody'),
-                      textAlign: TextAlign.center,
-                      style: T.bodySm.c(C.ivory.withValues(alpha: 0.7)),
-                    ),
-                  ] else ...[
-                    BreathOrb(cycle: _cycle!, running: true, size: orb),
-                    const SizedBox(height: 22),
-                    Text(
-                      tr('prepare.title'),
-                      textAlign: TextAlign.center,
-                      style: T.displayMd.c(C.ivory),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      tr('prepare.subtitle'),
-                      textAlign: TextAlign.center,
-                      style: T.bodySm.c(C.ivory.withValues(alpha: 0.7)),
-                    ),
+                    SizedBox(height: math.min(180, box.maxHeight * 0.28), child: const Center(child: Icon(LucideIcons.wifiOff, size: 44, color: C.jade))),
+                  ] else if (cycle != null) ...[
+                    ListenableBuilder(listenable: cycle, builder: (_, _) => Column(children: [
+                      PreparationBreath(expanded: cycle.phase == BreathPhase.inhale || cycle.phase == BreathPhase.hold, duration: cycle.duration),
+                      const SizedBox(height: 20),
+                      Text(cycle.label, textAlign: TextAlign.center, style: T.serifAccent.copyWith(fontSize: 30, color: C.jadeDeep, letterSpacing: 0)),
+                      const SizedBox(height: 12),
+                      Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(cycle.duration, (i) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Container(width: 5, height: 5, decoration: BoxDecoration(shape: BoxShape.circle, color: i < cycle.left ? C.jade : C.jadeSoft)),
+                      ))),
+                    ])),
                   ],
-                  const Spacer(),
+                  SizedBox(height: math.max(28, box.maxHeight * 0.07)),
                   if (_failed)
                     EnsoButton(
                       label: tr('prepare.retry'),
@@ -165,24 +156,26 @@ class _LessonPrepareState extends State<LessonPrepare> {
                     Bar(
                       value: pct / 100,
                       height: 6,
-                      track: C.ivory.withValues(alpha: 0.15),
-                      color: C.ivory,
+                      track: C.jadeSoft,
+                      color: C.jade,
                     ),
                     const SizedBox(height: 10),
                     Text(
                       tr('prepare.progress', {'pct': '$pct'}),
-                      style: T.label.c(C.ivory.withValues(alpha: 0.85)).tab,
+                      style: T.label.c(C.jadeDeep).tab,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       tr('prepare.offlineNote'),
                       textAlign: TextAlign.center,
-                      style: T.caption.c(C.ivory.withValues(alpha: 0.55)),
+                      style: T.caption.c(C.muted),
                     ),
                   ],
+                  const SizedBox(height: 16),
+                  EnsoButton(label: tr('prepare.cancel'), variant: BtnVariant.ghost, size: BtnSize.md, onTap: _close),
                 ],
               ),
-            );
+            )));
           },
         ),
       ),

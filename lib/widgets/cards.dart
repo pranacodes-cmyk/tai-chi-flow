@@ -290,20 +290,12 @@ class MeditationRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          m.title,
-                          overflow: TextOverflow.ellipsis,
-                          style: T.label.s(16),
-                        ),
-                      ),
-                      if (m.premium) ...[
-                        const SizedBox(width: 8),
-                        const PremiumBadge(),
-                      ],
-                    ],
+                  // full-width title (two lines) — the Plus badge sits on the meta row so names never truncate
+                  Text(
+                    m.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: T.label.s(16),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -313,9 +305,17 @@ class MeditationRow extends StatelessWidget {
                     style: T.caption,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '${trTag(m.category)} · ${tr('common.minShort', {'n': m.minutes})}',
-                    style: T.tiny.c(C.jade),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        '${trTag(m.category)} · ${tr('common.minShort', {'n': m.minutes})}',
+                        style: T.tiny.c(C.jade),
+                      ),
+                      if (m.premium) const PremiumBadge(),
+                    ],
                   ),
                 ],
               ),

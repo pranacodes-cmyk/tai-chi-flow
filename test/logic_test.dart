@@ -324,6 +324,15 @@ void main() {
         9,
       );
     });
+    test('Shibashi linked lessons contain the first seven and thirteen forms once in finale order', () {
+      final plan = Content.i.plan('shibashi-flow-18');
+      expect(plan, isNotNull);
+      if (plan == null) return;
+      final forms = plan.days[17].items.where((it) => it.p == 'Flow').map((it) => it.e).toList();
+      for (final pair in [[5, 7], [11, 13]]) {
+        expect(plan.days[pair[0]].items.where((it) => forms.contains(it.e)).map((it) => it.e).toList(), forms.take(pair[1]).toList());
+      }
+    });
     test('28-Day Wall Pilates uses 34 movements and never repeats one inside a workout', () {
       final days = Content.i.plan('wall-pilates-28')!.days;
       expect(days.length, 28);
@@ -383,8 +392,23 @@ void main() {
         }
       }
       final brocades = Content.i.plan('standing-qigong-14');
-      expect(brocades?.days[12].items.where((it) => it.p == 'Round 2').length, 9);
+      expect(brocades?.days[12].items.where((it) => it.p == 'Round 2').length, 0);
+      expect(brocades?.days[12].items.where((it) => it.p == 'Flow').map((it) => it.s).toList(), List.filled(9, 70));
     });
+    for (final id in ['shibashi-flow-18', 'standing-qigong-14']) {
+      test('$id never repeats a movement or its film in the same lesson', () {
+        final plan = Content.i.plan(id);
+        expect(plan, isNotNull);
+        if (plan == null) return;
+        for (final day in plan.days) {
+          final ids = day.items.map((it) => it.e).toList();
+          expect(ids.toSet().length, ids.length, reason: '$id day ${day.day}');
+          final films = ids.map((e) => Content.i.exercise(e)?.demo).whereType<String>().toList();
+          expect(films.length, ids.length);
+          expect(films.toSet().length, films.length, reason: '$id day ${day.day} films');
+        }
+      });
+    }
     test('all lesson guidance has a bundled natural voice clip', () {
       final clips = Content.i.voice.toSet();
       for (final p in Content.i.plans) {
@@ -853,6 +877,10 @@ void main() {
     test('checking first reveals the regular trial offer without a purchase', () {
       expect(paywallSurveyOffer('later'), 'regular');
       expect(paywallSurveyOffer('unsure'), 'regular');
+    });
+    test('try first without trial eligibility reveals the lower offer instead of nothing', () {
+      expect(paywallSurveyOffer('later', trialAvailable: false), 'exit');
+      expect(paywallSurveyOffer('unsure', trialAvailable: false), 'exit');
     });
     test('price high reveals the lower exit offer', () {
       expect(paywallSurveyOffer('price'), 'exit');

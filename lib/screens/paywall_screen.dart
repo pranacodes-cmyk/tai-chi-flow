@@ -98,12 +98,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
     );
     if (!mounted) return;
     surveyOpen = false;
-    final next = paywallSurveyOffer(reason);
-    if (next == 'regular' && !PurchaseService.trialAvailable) {
-      setState(() { variant = 'standard'; selected = 'standardYearly'; });
-      app.setPaywallOffer('standard');
-      return;
-    }
+    // re-check eligibility right before choosing, in case offerings finished loading late
+    await PurchaseService.warmUp();
+    if (!mounted) return;
+    final next = paywallSurveyOffer(reason, trialAvailable: PurchaseService.trialAvailable);
     if (next == null) return;
     setState(() => reveal = next);
   }
@@ -189,7 +187,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       height: MediaQuery.sizeOf(context).height > 720 ? math.max(bounds.maxWidth * 9 / 16, math.min(MediaQuery.sizeOf(context).height * 0.4, 420.0)) : math.min(bounds.maxWidth * 9 / 16, MediaQuery.sizeOf(context).height <= 600 ? 180.0 : 230.0),
                       child: Stack(fit: StackFit.expand, children: [
                         const PaywallFilm(),
-                        Positioned(top: topInset(context) + 6, right: 16, child: CircleBtn(icon: LucideIcons.x, tone: Tone.dark, label: tr('common.close'), onTap: busy ? null : _close)),
+                        Positioned(top: topInset(context) + 4, right: 10, child: CircleBtn(icon: LucideIcons.x, tone: Tone.dark, size: 30, iconSize: 15, iconColor: C.ivory.withValues(alpha: 0.85), label: tr('common.close'), onTap: busy ? null : _close)),
                         // dark glass keeps the label readable over any film frame
                         Positioned(left: 14, bottom: 10, child: Glass(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), child: Row(mainAxisSize: MainAxisSize.min, children: [
                           const Icon(LucideIcons.crown, size: 12, color: C.gold),

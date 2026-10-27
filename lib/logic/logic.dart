@@ -694,9 +694,11 @@ String paywallVariant(String from, String requested, String? savedOffer) {
 bool shouldAskExitSurvey(String variant, bool alreadyAsked) =>
     (variant == 'standard' || variant == 'regular') && !alreadyAsked;
 
-/// Offer reveal only; neither answer grants access or starts a trial.
-String? paywallSurveyOffer(String? reason) => switch (reason) {
+/// Offer reveal only; neither answer grants access or starts a trial. When the store says this
+/// person cannot get the free trial (e.g. they subscribed before), "try first" reveals the lower
+/// exit offer instead, so an answer is never silently ignored.
+String? paywallSurveyOffer(String? reason, {bool trialAvailable = true}) => switch (reason) {
   'price' => 'exit',
-  'later' || 'unsure' => 'regular',
+  'later' || 'unsure' => trialAvailable ? 'regular' : 'exit',
   _ => null,
 };
