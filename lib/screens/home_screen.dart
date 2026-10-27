@@ -10,6 +10,7 @@ import '../logic/logic.dart';
 import '../state/app_state.dart';
 import '../theme/text.dart';
 import '../theme/tokens.dart';
+import '../services/purchase_service.dart';
 import '../widgets/cards.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/tab_shell.dart';
@@ -123,6 +124,19 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (!premium) ...[
+              const SizedBox(height: 14),
+              Reveal(
+                delay: 0.13,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _PlusOfferCard(
+                    variant: paywallVariant('home', 'standard', app.paywallOffer),
+                    onOpen: () => context.push('/paywall?from=home'),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 36),
             Reveal(
               delay: 0.16,
@@ -519,6 +533,72 @@ class _LessonHero extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The one Plus offer this person was shown on the paywall (normal, trial, gift or the
+/// lower price revealed after closing it) — never a different deal.
+class _PlusOfferCard extends StatelessWidget {
+  const _PlusOfferCard({required this.variant, required this.onOpen});
+  final String variant;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final offer = PurchaseService.localized(switch (variant) {
+      'exit' => exitOffer,
+      'gift' => giftOffers.first,
+      'regular' => regularOffers.first,
+      _ => standardOffers.first,
+    });
+    final title = switch (variant) {
+      'exit' => tr('paywall.lowerPriceReady'),
+      'regular' => tr('paywall.trialReady'),
+      _ => tr('paywall.everyCourseEveryClass'),
+    }.replaceAll('\n', ' ');
+    final detail = switch (variant) {
+      'exit' => tr('paywall.lowerPriceDetail', {'price': offer.price}),
+      'regular' => tr('paywall.trialDetail'),
+      _ => '${offer.price} ${tr('paywall.perPeriodLower', {'period': offer.period})}',
+    };
+    final cta = switch (variant) {
+      'exit' => tr('paywall.seeLowerPrice'),
+      'regular' => tr('paywall.startTrialDays', {'days': offer.trialDays}),
+      _ => tr('common.continueWithPlus'),
+    };
+    return Semantics(
+      button: true,
+      label: '$title. $detail',
+      excludeSemantics: true,
+      child: Pressable(
+        onTap: onOpen,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+          decoration: BoxDecoration(gradient: G.jade, borderRadius: BorderRadius.circular(30), boxShadow: S.card),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const Icon(LucideIcons.crown, size: 16, color: C.goldSoft),
+              const SizedBox(width: 7),
+              Expanded(child: Eyebrow(tr('paywall.plusBadge'), color: C.goldSoft)),
+              if (offer.strike != null)
+                Text(offer.strike!, style: T.caption.copyWith(color: C.ivory.withValues(alpha: 0.6), decoration: TextDecoration.lineThrough, decorationColor: C.ivory)),
+            ]),
+            const SizedBox(height: 8),
+            Text(title, style: T.title.copyWith(fontSize: 20, color: C.ivory)),
+            const SizedBox(height: 4),
+            Text(detail, style: T.bodySm.copyWith(color: C.ivory.withValues(alpha: 0.85))),
+            const SizedBox(height: 14),
+            Container(
+              height: 48,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(gradient: G.gold, borderRadius: BorderRadius.circular(999)),
+              child: Text(cta, maxLines: 1, overflow: TextOverflow.ellipsis, style: T.bodySm.copyWith(fontWeight: FontWeight.w700, color: C.ink)),
+            ),
+          ]),
+        ),
       ),
     );
   }

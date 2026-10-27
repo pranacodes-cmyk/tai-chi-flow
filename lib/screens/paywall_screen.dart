@@ -218,10 +218,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         Expanded(child: Text(isExit ? tr('paywall.exclusiveYearlySaving') : offer.trialDays > 0 ? tr('paywall.sevenDaysOnUs') : tr('paywall.everyCourseEveryClass'), style: T.caption.c(C.jadeDeep))),
                       ])),
                       const SizedBox(height: 8),
-                      IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [for (final (i, o) in _offers.indexed) ...[
+                      // Subscriptions side by side; Lifetime gets its own full-width row so no price wraps.
+                      IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [for (final (i, o) in _offers.where((o) => o.id != 'lifetime').indexed) ...[
                         if (i > 0) const SizedBox(width: 8),
                         Expanded(child: _OfferCard(offer: o, compact: !isExit, selected: selected == o.id, onTap: busy ? null : () { setState(() => selected = o.id); AnalyticsService.capture('plan_selected', {'plan': o.id, 'variant': variant}); })),
                       ]])),
+                      for (final o in _offers.where((o) => o.id == 'lifetime')) Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: _OfferCard(offer: o, compact: false, selected: selected == o.id, onTap: busy ? null : () { setState(() => selected = o.id); AnalyticsService.capture('plan_selected', {'plan': o.id, 'variant': variant}); }),
+                      ),
                       Wrap(alignment: WrapAlignment.center, children: [
                         if ((variant == 'standard' || variant == 'regular') && widget.from == 'onboarding') EnsoButton(label: tr('paywall.viewAllPlans'), variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () => context.push('/paywall?from=${widget.from}&offer=gift')),
                         EnsoButton(label: tr('paywall.restorePurchase'), variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () async {
@@ -554,7 +559,7 @@ class _OfferCard extends StatelessWidget {
         ),
         child: compact ? ConstrainedBox(constraints: const BoxConstraints(minHeight: 72), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, spacing: 4, children: [
           Row(children: [Expanded(child: Text(offer.id == 'gift' ? tr('paywall.yearly') : offer.title, style: T.caption.copyWith(fontWeight: FontWeight.w700, color: C.ink))), Icon(selected ? LucideIcons.circleCheck : LucideIcons.circle, size: 16, color: selected ? C.jade : C.muted)]),
-          Text(offer.price, style: T.body.copyWith(fontWeight: FontWeight.w700)),
+          FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(offer.price, maxLines: 1, softWrap: false, style: T.body.copyWith(fontWeight: FontWeight.w700).tab)),
           Text(offer.trialDays > 0 ? tr('paywall.sevenDaysFree') : offer.period == 'once' ? tr('paywall.payOnce') : tr('paywall.perPeriod', {'period': offer.period}), style: T.tiny.c(selected ? C.jadeDeep : C.muted)),
         ])) : Row(
           children: [
