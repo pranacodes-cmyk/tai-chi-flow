@@ -59,6 +59,7 @@ class AnalyticsService {
       _id ??= _uuid();
     }
     app.addListener(_onState);
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 15), (_) => flush());
     capture('app_opened', {'first_open': app.history.isEmpty && !app.onboarded});
     identify();

@@ -212,7 +212,6 @@ String img(String key) {
 /// does not bundle (publish-content.py uploads every content image).
 String imgUrl(String key) =>
     '${ContentUpdates.base.replaceFirst(RegExp(r'/content$'), '')}/v1/images/$key.jpg';
-}
 
 String audioAsset(String key) => 'audio/$key.mp3';
 String voiceAsset(String key) => 'voice/$key.m4a';
