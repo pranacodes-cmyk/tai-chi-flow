@@ -51,18 +51,19 @@ class CoachLines {
           instructions(ex, item).firstOrNull ?? ex.cue,
         ];
 
-  /// Spoken while the "watch first" demo plays: the authored line, or "Watch first." + the movement's name.
-  static List<String> watch(Exercise ex, [SessionItem? item]) =>
+  /// Spoken while the "watch first" demo plays: the authored line, or "Watch first." + the
+  /// movement's name; without [announce] (see `announcesTurn` in logic) only the name.
+  static List<String> watch(Exercise ex, [SessionItem? item, bool announce = true]) =>
       (item?.wl ?? '').trim().isNotEmpty
       ? [item!.wl!]
-      : [tr('coach.watchFirst'), tr('coach.name', {'name': ex.name})];
+      : [if (announce) tr('coach.watchFirst'), tr('coach.name', {'name': ex.name})];
 
   /// Spoken as the practice starts after a demo (or for a linked-sequence form): the authored
-  /// line, or "Your turn." + the first instruction.
-  static List<String> go(Exercise ex, [SessionItem? item]) =>
+  /// line, or "Your turn." + the first instruction; without [announce] only the instruction.
+  static List<String> go(Exercise ex, [SessionItem? item, bool announce = true]) =>
       (item?.go ?? '').trim().isNotEmpty
       ? [item!.go!]
-      : [tr('coach.yourTurn'), instructions(ex, item).firstOrNull ?? ex.cue];
+      : [if (announce) tr('coach.yourTurn'), instructions(ex, item).firstOrNull ?? ex.cue];
 
   /// Timed practice cue.
   static List<String> cue(StepCue c) => [c.l];

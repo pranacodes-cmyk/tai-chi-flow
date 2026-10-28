@@ -141,8 +141,12 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
         state == AppLifecycleState.detached) {
       widget.app.flush();
       AnalyticsService.paused();
+      Ambient.background();
     }
-    if (state == AppLifecycleState.resumed) unawaited(TrackingService.resumed());
+    if (state == AppLifecycleState.resumed) {
+      Ambient.foreground();
+      unawaited(TrackingService.resumed());
+    }
   }
 
   @override

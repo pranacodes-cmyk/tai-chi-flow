@@ -44,13 +44,15 @@ class _LessonPrepareState extends State<LessonPrepare> {
     super.initState();
     if (_ready) return;
     _cycle = BreathCycle(
-      const [4, 1, 5, 1],
+      const [4, 2, 6, 2],
       onPhase: (ph) {
         if (!app.audio.voice || _ready || _failed) return;
         if (ph == BreathPhase.inhale) Voice.say(CoachLines.breath(CoachBreath.inhale));
         if (ph == BreathPhase.exhale) Voice.say(CoachLines.breath(CoachBreath.exhale));
       },
     )..setRunning(true);
+    // Soft music while the lesson gets ready, so the wait feels like part of the practice.
+    if (app.audio.music) Ambient.play(app.audio.musicTrack, app.audio.musicVolume * 0.6);
     Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted && app.audio.voice && !_ready) {
         Voice.say(CoachLines.breath(CoachBreath.inhale));
@@ -74,6 +76,7 @@ class _LessonPrepareState extends State<LessonPrepare> {
       );
       if (!mounted || _cancelled) return;
       Voice.stop();
+      Ambient.stop();
       _cycle?.setRunning(false);
       setState(() => _missing = MediaStore.missing(widget.paths));
       if (!_ready) setState(() => _failed = true);
@@ -90,6 +93,7 @@ class _LessonPrepareState extends State<LessonPrepare> {
   void _close() {
     _cancelled = true;
     Voice.stop();
+    Ambient.stop();
     context.canPop() ? context.pop() : context.go('/');
   }
 

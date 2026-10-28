@@ -35,7 +35,16 @@ class PlayerScreen extends StatefulWidget {
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
+class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver {
+  // Minimised or screen locked: pause the practice (music, voice, film, timer);
+  // the person resumes with play when they come back.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      if (running) _togglePlay();
+    }
+  }
+
   late final Session? session = resolveSession(widget.sessionId);
   late final AppState app = context.read<AppState>();
   late PlayerStep step = firstPlayerStep(session!);
@@ -88,6 +97,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (session == null) return;
     WakelockPlus.enable();
     AnalyticsService.capture('lesson_started', {'session_id': widget.sessionId, 'items': items.length});
@@ -108,6 +118,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (!finished) Voice.stop();
     Ambient.stop();
     WakelockPlus.disable();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -176,11 +187,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
         // the first demo of a lesson without a welcome opens with "Let's begin"
         later(index == 0 && session!.intro == null && (item.wl ?? '').isEmpty
             ? CoachLines.begin(ex)
-            : CoachLines.watch(ex, item));
+            : CoachLines.watch(ex, item, announcesTurn(session!.items, next.index)));
       case PlayerPhase.work:
         Sfx.play('sfx-chime', 0.45);
         Haptics.medium();
-        later(item.w != null ? CoachLines.go(ex, item) : CoachLines.start(ex, item));
+        later(item.w != null
+            ? CoachLines.go(ex, item, announcesTurn(session!.items, next.index))
+            : CoachLines.start(ex, item));
       case PlayerPhase.rest:
         Sfx.play('sfx-chime', 0.35);
         _say(CoachLines.rest(ex));
@@ -792,25 +805,58 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ),
                 ),
                 Positioned(
-                  right: 14,
-                  bottom: 12,
-                  child: Pressable(
+                  right: 10,
+                  bottom: 8,
+                  child: CircleBtn(
+                    icon: Icons.skip_next_rounded,
+                    tone: Tone.dark,
+                    label: tr('player.skipDemo'),
+                    size: 36,
+                    iconSize: 18,
                     onTap: _skipNext,
+                  ),
+                ),
+
+              ],
+              if (phase == PlayerPhase.work && !ex.isAffirmation)
+                Positioned(
+                  key: ValueKey('turn-$index'),
+                  left: 14,
+                  top: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(color: C.jade, borderRadius: BorderRadius.circular(40)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const _PulseDot(),
+                        const SizedBox(width: 6),
+                        Text(
+                          tr('coach.yourTurn').replaceAll(RegExp(r'[.。!！]$'), '').toUpperCase(),
+                          style: T.eyebrow.c(C.ivory),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (it.lv != null && (phase == PlayerPhase.watch || phase == PlayerPhase.work))
+                Positioned(
+                  right: 14,
+                  top: 12,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.45),
                     child: Glass(
                       radius: 40,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(tr('player.skipDemo'), style: T.label.s(14).c(C.ivory)),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.skip_next_rounded, size: 18, color: C.ivory),
-                        ],
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      child: Text(
+                        tr('player.level', {'n': it.lv!.n, 'label': it.lv!.l}),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: T.tiny.copyWith(color: C.ivory, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
                 ),
-              ],
               if (ex.isAffirmation && phase == PlayerPhase.work)
                 Container(
                   color: C.forest.withValues(alpha: 0.6),
@@ -831,10 +877,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (it.p != null) ...[
-                Eyebrow(it.p!, color: C.sage),
-                const SizedBox(height: 6),
-              ],
+              // Always reserve the phase line so every course's film is the same height.
+              Eyebrow(it.p ?? '\u00a0', color: C.sage),
+              const SizedBox(height: 6),
               Text(
                 it.t ?? ex.name,
                 maxLines: 2,
@@ -842,24 +887,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 textAlign: TextAlign.center,
                 style: T.title.copyWith(fontSize: 24, color: C.ivory),
               ),
-              if (it.lv != null) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: C.jade.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(40),
-                  ),
-                  child: Text(
-                    tr('player.level', {'n': it.lv!.n, 'label': it.lv!.l}),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: T.tiny.copyWith(color: C.ivory, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
               Container(
-                constraints: const BoxConstraints(minHeight: 72),
+                constraints: const BoxConstraints(minHeight: 84),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 alignment: Alignment.center,
                 child: Text(

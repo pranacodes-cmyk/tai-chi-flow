@@ -1161,5 +1161,21 @@ void main() {
       expect(newSkillItems(const [SessionItem('x', 1, 'New today'), SessionItem('x', 1, 'New today')]).map((it) => it.e).toList(), ['x']);
       expect(formsLearned(guided), 3);
     });
+    test('the coach says Watch first / Your turn only on the first two demo steps', () {
+      expect([for (var k = 0; k < guided.length; k++) announcesTurn(guided, k)], [true, true, false, false]);
+      expect(announcesTurn(const [SessionItem('a', 1), SessionItem('b', 1, null, null, null, null, 10), SessionItem('c', 1, null, null, null, null, 10)], 2), isTrue);
+      final ex = Content.i.exercise('commencement-opening-form-standing')!;
+      const demo = SessionItem('commencement-opening-form-standing', 1, null, null, null, null, 10);
+      expect(CoachLines.go(ex, demo, false), isNot(contains(tr('coach.yourTurn'))));
+      expect(CoachLines.watch(ex, demo, false), isNot(contains(tr('coach.watchFirst'))));
+      expect(CoachLines.go(ex, demo).first, tr('coach.yourTurn'));
+      final days = Content.i.plan(journeyId)!.days;
+      expect(days.first.items.first.go, startsWith('Your turn'));
+      for (final d in days) {
+        for (var k = 0; k < d.items.length; k++) {
+          if (!announcesTurn(d.items, k)) expect((d.items[k].go ?? '').startsWith('Your turn'), isFalse, reason: d.title);
+        }
+      }
+    });
   });
 }

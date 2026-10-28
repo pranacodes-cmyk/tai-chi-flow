@@ -480,6 +480,20 @@ PlayerStep _afterPractice(Session s) {
   return PlayerStep(PlayerPhase.done, last, 0);
 }
 
+/// Demo steps per lesson on which the coach says "Watch first" / "Your turn" out loud.
+const turnAnnouncements = 2;
+
+/// Whether the coach announces "Watch first" / "Your turn" on step [index]: only on the first
+/// [turnAnnouncements] demo steps of a lesson (steps with a `w`), because after that the person
+/// knows the rhythm and the badges on the film say it silently (web `announcesTurn`).
+bool announcesTurn(List<SessionItem> items, int index) {
+  var before = 0;
+  for (var k = 0; k < index && k < items.length; k++) {
+    if (items[k].w != null) before++;
+  }
+  return before < turnAnnouncements;
+}
+
 PlayerStep firstPlayerStep(Session s) {
   if (s.intro != null) return const PlayerStep(PlayerPhase.intro, 0, 0);
   if (s.check) return const PlayerStep(PlayerPhase.checkBefore, 0, 0);

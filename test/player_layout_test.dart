@@ -119,29 +119,23 @@ void main() {
         await settle(10);
         expect(find.text(tr('player.todayYoullLearn')), findsOneWidget);
         await tapLabel(tr('player.imReady'), 'intro');
-        // calm check-in before
-        expect(find.text(tr('player.calmQuestionBefore')), findsOneWidget);
-        await tester.tap(find.text('6'));
-        await tapLabel(tr('player.calmStart'), 'checkBefore');
+        // no calm check-in: the welcome leads straight into the first demo
+        expect(find.text(tr('player.calmQuestionBefore')), findsNothing);
         // every step: watch first, then practice
         for (var k = 0; k < steps; k++) {
-          expect(find.text(tr('player.skipDemo')), findsOneWidget, reason: 'step ${k + 1} opens with its demo');
+          expect(find.bySemanticsLabel(tr('player.skipDemo')), findsOneWidget, reason: 'step ${k + 1} opens with its demo');
           await tapLabel(tr('player.skipDemo'), 'watch ${k + 1}');
           await tapLabel(tr('player.next'), 'work ${k + 1}');
         }
-        // calm check-in after, then the tutor's congratulations
-        expect(find.text(tr('player.calmQuestionAfter')), findsOneWidget);
-        await tester.tap(find.text('8'));
-        await tapLabel(tr('player.calmSeeResults'), 'checkAfter');
+        // straight to the tutor's congratulations
+        expect(find.text(tr('player.calmQuestionAfter')), findsNothing);
         await tapLabel(tr('common.continue'), 'outro');
-        // the results screen with the calm change and today's unlocks
         await settle(12);
-        expect(find.text(tr('complete.yourCalm').toUpperCase()), findsOneWidget);
       } finally {
         FlutterError.onError = prev;
       }
       expect(problems, isEmpty, reason: problems.join('\n'));
-      expect(seen.length, 2 + steps * 2 + 2);
+      expect(seen.length, 1 + steps * 2 + 1);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(seconds: 30));
     });

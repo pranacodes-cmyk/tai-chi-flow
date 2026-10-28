@@ -33,7 +33,16 @@ class MeditationPlayerScreen extends StatefulWidget {
   State<MeditationPlayerScreen> createState() => _MeditationPlayerScreenState();
 }
 
-class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
+class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> with WidgetsBindingObserver {
+  // Minimised or screen locked: pause the practice (music, voice, film, timer);
+  // the person resumes with play when they come back.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      if (running) _setRunning(false);
+    }
+  }
+
   late final Meditation? m = Content.i.meditation(widget.meditationId);
   late final AppState app = context.read<AppState>();
   int elapsed = 0;
@@ -48,6 +57,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     AnalyticsService.capture('meditation_opened', {'meditation_id': widget.meditationId});
     if (m?.breath != null) {
       cycle = BreathCycle(
@@ -77,6 +87,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
     Voice.stop();
     Ambient.stop();
     WakelockPlus.disable();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 

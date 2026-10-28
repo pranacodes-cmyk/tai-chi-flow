@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../i18n/i18n.dart';
 import '../services/content_updates.dart';
+import '../services/media_store.dart';
 import 'models.dart';
 
 /// The shared content in the app language: `content.json` (English) or `i18n/content.<lang>.json`,
@@ -61,6 +62,7 @@ class Content {
       legal = Legal.fromJson(
         (j['legal'] as Map?)?.cast<String, dynamic>() ?? const {},
       ),
+      mediaRev = _revs(j),
       imageFocus = {
         for (final e in ((j['imageFocus'] as Map?) ?? const {}).entries)
           e.key as String: ((e.value as List)[0] as num).toDouble() * 2 - 1,
@@ -90,6 +92,11 @@ class Content {
     }
   }
 
+  static Map<String, String> _revs(Map<String, dynamic> j) => {
+    for (final e in ((j['mediaRev'] as Map?) ?? const {}).entries)
+      e.key as String: e.value as String,
+  };
+
   static late Content i;
   static bool loaded = false;
 
@@ -116,12 +123,14 @@ class Content {
         i = Content._(remote, lang);
         rev = (remote['contentRev'] as num).toInt();
         loaded = true;
+        MediaStore.setRevisions(bundled: _revs(bundled), active: i.mediaRev);
         return;
       } catch (_) {}
     }
     i = Content._(bundled, lang);
     rev = bundledRev;
     loaded = true;
+    MediaStore.setRevisions(bundled: i.mediaRev, active: i.mediaRev);
   }
 
   /// For tests: build from an already-decoded map.
@@ -170,6 +179,9 @@ class Content {
 
   /// Focal point x per image key, already mapped to Alignment space (-1..1).
   final Map<String, double> imageFocus;
+
+  /// Film key → content fingerprint (see `MediaStore`), so re-made films replace old copies.
+  final Map<String, String> mediaRev;
   final Map<String, double> _focusY;
 
   /// Alignment that keeps faces and heads in frame whenever an image is cropped.

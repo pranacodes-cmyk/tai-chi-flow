@@ -15,6 +15,20 @@ class MediaStore {
   MediaStore._();
   static Directory? _dir;
   static Set<String> _bundled = const {};
+  static Map<String, String> _bundledRev = const {};
+  static Map<String, String> _rev = const {};
+
+  /// Film fingerprints of the content bundled in this build and of the content in use (a newer
+  /// published update may name re-made films), set by `Content.load`.
+  static void setRevisions({
+    required Map<String, String> bundled,
+    required Map<String, String> active,
+  }) {
+    _bundledRev = bundled;
+    _rev = active;
+  }
+
+  static String? _want(String path) => filmRev(_rev, path);
 
   static Future<void> init() async {
     try {
@@ -32,17 +46,25 @@ class MediaStore {
     }
   }
 
-  /// `video/x.mp4` → bundled asset path `assets/video/x.mp4` when it ships in the app.
-  static bool isBundled(String path) => _bundled.contains('assets/$path');
+  /// `video/x.mp4` → bundled asset path `assets/video/x.mp4` when it ships in the app and is
+  /// still the film the content wants (a re-made film is downloaded instead).
+  static bool isBundled(String path) =>
+      _bundled.contains('assets/$path') &&
+      sameMedia(_want(path), filmRev(_bundledRev, path));
 
-  static String url(String path) => '$kMediaBase/$path';
+  static String url(String path) => mediaUrl(path, _want(path));
 
-  /// The downloaded copy, or null.
+  /// The downloaded copy when it is still the film the content wants, or null.
   static File? cached(String path) {
     final d = _dir;
     if (d == null) return null;
     final f = File('${d.path}/$path');
-    return f.existsSync() ? f : null;
+    if (!f.existsSync()) return null;
+    final want = _want(path);
+    if (want == null) return f;
+    final tag = File('${f.path}.rev');
+    final have = tag.existsSync() ? tag.readAsStringSync().trim() : null;
+    return sameMedia(want, have) ? f : null;
   }
 
   /// Paths that are neither bundled nor downloaded yet.
@@ -72,7 +94,7 @@ class MediaStore {
     }
 
     try {
-      await Future.wait([for (var i = 0; i < 4; i++) worker()]);
+      await Future.wait([for (var i = 0; i < 8; i++) worker()]);
     } finally {
       client.close();
     }
@@ -93,6 +115,14 @@ class MediaStore {
         final tmp = File('${f.path}.part');
         await tmp.writeAsBytes(res.bodyBytes, flush: true);
         await tmp.rename(f.path);
+        // remember which version this is, so a later re-made film is fetched again
+        final want = _want(p);
+        final tag = File('${f.path}.rev');
+        if (want != null) {
+          await tag.writeAsString(want, flush: true);
+        } else if (tag.existsSync()) {
+          await tag.delete();
+        }
         return;
       } catch (e) {
         last = e;

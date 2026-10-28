@@ -54,4 +54,17 @@ void main() {
     expect(downloadPercent(69, 70), 98);
     expect(downloadPercent(0, 0), 100);
   });
+
+  test('a re-made film gets a new fingerprint, so old bundled or saved copies are not reused', () {
+    const revs = {'mv-x': 'abc123'};
+    expect(filmRev(revs, 'video/mv-x.mp4'), 'abc123');
+    expect(filmRev(revs, 'voice/k.m4a'), isNull);
+    expect(sameMedia('abc123', 'abc123'), isTrue);
+    expect(sameMedia('abc123', 'old999'), isFalse);
+    expect(sameMedia('abc123', null), isFalse);
+    expect(sameMedia(null, null), isTrue);
+    expect(mediaUrl('video/mv-x.mp4', 'abc123'), '$kMediaBase/video/mv-x.mp4?v=abc123');
+    expect(mediaUrl('voice/k.m4a'), '$kMediaBase/voice/k.m4a');
+    expect(Content.i.mediaRev['mv-standing-brush-knee-and-twist-step'], hasLength(10));
+  });
 }

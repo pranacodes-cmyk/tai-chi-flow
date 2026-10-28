@@ -153,6 +153,25 @@ class Ambient {
     );
   }
 
+  /// App went to the background: silence the music at once without forgetting
+  /// that it was playing, so [foreground] can bring it back (onboarding mood).
+  static void background() {
+    _cancelFade();
+    _serial(() => _player.pause());
+  }
+
+  /// App came back: resume only if nobody paused or stopped the music meanwhile
+  /// (players pause themselves when minimised, so they stay quiet).
+  static void foreground() {
+    if (!_playing) return;
+    _serial(() async {
+      if (!_playing) return;
+      await _player.resume();
+      _volume = _ducked ? _target * _duck : _target;
+      await _player.setVolume(_volume);
+    });
+  }
+
   static void stop() {
     final g = ++_gen;
     final wasActive = _playing || _key.isNotEmpty;

@@ -1,6 +1,7 @@
 import '../data/models.dart';
 import '../i18n/i18n.dart';
 import 'coach.dart';
+import 'logic.dart';
 
 /// Lesson media that lives on the R2 media server (Mirrors src/lib/lesson-media.ts).
 /// Paths are relative to the versioned media root: `video/<film>.mp4`, `voice/<key>.m4a`.
@@ -9,6 +10,21 @@ const String kMediaBase =
     'https://pub-6b6ccbaa2b5946dd851b43b1f1219507.r2.dev/v1';
 
 String filmPath(String film) => 'video/$film.mp4';
+
+/// Fingerprint of a film path in a content `mediaRev` map (null for voice clips / unknown films).
+String? filmRev(Map<String, String> revs, String path) =>
+    path.startsWith('video/') && path.endsWith('.mp4')
+    ? revs[path.substring(6, path.length - 4)]
+    : null;
+
+/// Whether a bundled or saved copy with fingerprint [have] is the film content wants ([want]);
+/// content without fingerprints keeps every copy (web `sameMedia`).
+bool sameMedia(String? want, String? have) => want == null || want == have;
+
+/// Server URL of a media path; a fingerprint makes a re-made film a new URL so no cache serves
+/// the old one (web `mediaUrl`).
+String mediaUrl(String path, [String? rev]) =>
+    rev == null ? '$kMediaBase/$path' : '$kMediaBase/$path?v=$rev';
 String voicePath(String key) => 'voice/$key.m4a';
 
 /// Every film and coach clip a session player can use, in play order, without duplicates.
@@ -51,8 +67,9 @@ List<String> sessionMediaPaths(
     }
     if (i == 0) say(CoachLines.begin(ex));
     if (item.w != null) {
-      if (item.w! > 0) say(CoachLines.watch(ex, item));
-      say(CoachLines.go(ex, item));
+      final announce = announcesTurn(items, i);
+      if (item.w! > 0) say(CoachLines.watch(ex, item, announce));
+      say(CoachLines.go(ex, item, announce));
     } else {
       say(CoachLines.start(ex, item));
     }
