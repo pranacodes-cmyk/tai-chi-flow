@@ -106,6 +106,9 @@ class HistoryEntry {
   final int durationSec, kcal;
   int? feeling;
 
+  /// Calm check-in of a guided lesson (1–10), before and after the practice.
+  final int? calmBefore, calmAfter;
+
   HistoryEntry({
     required this.id,
     required this.sessionId,
@@ -118,6 +121,8 @@ class HistoryEntry {
     required this.durationSec,
     required this.kcal,
     this.feeling,
+    this.calmBefore,
+    this.calmAfter,
   });
 
   Map<String, dynamic> toJson() => {
@@ -132,6 +137,8 @@ class HistoryEntry {
     'durationSec': durationSec,
     'kcal': kcal,
     if (feeling != null) 'feeling': feeling,
+    if (calmBefore != null) 'calmBefore': calmBefore,
+    if (calmAfter != null) 'calmAfter': calmAfter,
   };
 
   factory HistoryEntry.fromJson(Map<String, dynamic> j) => HistoryEntry(
@@ -146,6 +153,8 @@ class HistoryEntry {
     durationSec: (j['durationSec'] as num).toInt(),
     kcal: (j['kcal'] as num).toInt(),
     feeling: (j['feeling'] as num?)?.toInt(),
+    calmBefore: (j['calmBefore'] as num?)?.toInt(),
+    calmAfter: (j['calmAfter'] as num?)?.toInt(),
   );
 }
 
@@ -155,6 +164,10 @@ class Session {
   final int restSec, baseKcal;
   final String? planId;
   final int? day;
+
+  /// Guided lessons: tutor welcome / congratulations films and the calm check-in.
+  final LessonTutor? intro, outro;
+  final bool check;
   const Session({
     required this.id,
     required this.kind,
@@ -166,6 +179,9 @@ class Session {
     required this.baseKcal,
     this.planId,
     this.day,
+    this.intro,
+    this.outro,
+    this.check = false,
   });
 }
 
@@ -365,9 +381,153 @@ String recommendFor(Profile p) => recommendPlanId(
 
 // ------------------------------------------------------------ sessions
 
+/// Rest before step [i]: legacy steps rest between movements; a step with a "watch first" demo (`w`, even 0) does not.
+int restBefore(List<SessionItem> items, int i, [int restSec = restBetweenSec]) =>
+    i > 0 && i < items.length && items[i].w == null ? restSec : 0;
+
+/// Whole lesson length: practice + demos + rests.
 int totalSeconds(List<SessionItem> items, [int restSec = restBetweenSec]) {
-  final work = items.fold<int>(0, (s, it) => s + it.s);
-  return work + restSec * math.max(0, items.length - 1);
+  var n = 0;
+  for (var i = 0; i < items.length; i++) {
+    n += items[i].s + (items[i].w ?? 0) + restBefore(items, i, restSec);
+  }
+  return n;
+}
+
+/// Timed cues due at [elapsed] seconds of practice that have not been spoken yet ([spoken] = how many already were).
+List<StepCue> dueCues(SessionItem item, double elapsed, int spoken) => [
+  for (final c in item.c.skip(spoken))
+    if (c.t <= elapsed) c,
+];
+
+/// Calm check-in change (after − before), or null unless both answers are on the 1–10 scale.
+int? calmChange(int? before, int? after) {
+  bool ok(int? n) => n != null && n >= 1 && n <= 10;
+  return ok(before) && ok(after) ? after! - before! : null;
+}
+
+/// Word for a calm answer: 1–3 restless, 4–6 in between, 7–8 calm, 9–10 deeply calm.
+String calmWordKey(int n) => n <= 3
+    ? 'player.calmRestless'
+    : n <= 6
+    ? 'player.calmBetween'
+    : n <= 8
+    ? 'player.calmCalm'
+    : 'player.calmDeep';
+
+/// Highest Yang 24 form number learned in these steps' unlock cards (0 when none).
+int formsLearned(List<SessionItem> items) => items.fold(
+  0,
+  (n, it) => it.u?.k == 'form' && it.u?.n != null ? math.max(n, it.u!.n!) : n,
+);
+
+/// The new skills a lesson teaches, once each: guided steps at teaching level 1, else
+/// legacy steps labelled "New today" (English content), without repeats.
+List<SessionItem> newSkillItems(List<SessionItem> items) {
+  final guided = items.where((it) => it.lv?.n == 1).toList();
+  final pick = guided.isNotEmpty
+      ? guided
+      : items.where((it) => it.p == 'New today').toList();
+  final seen = <String>{};
+  return [
+    for (final it in pick)
+      if (seen.add(it.e)) it,
+  ];
+}
+
+// ------------------------------------------------------------ player phases
+
+/// What the lesson player shows: tutor welcome, calm check-in, the first-step countdown,
+/// the "watch first" demo, the practice, the rest before a legacy step, the celebration card,
+/// the closing check-in, the tutor's congratulations, then done (web `PlayerPhase`).
+enum PlayerPhase { intro, checkBefore, ready, watch, work, rest, unlock, checkAfter, outro, done }
+
+/// One player phase for step [index]; [seconds] 0 = waits for the person (films, check-ins).
+class PlayerStep {
+  final PlayerPhase phase;
+  final int index, seconds;
+  const PlayerStep(this.phase, this.index, this.seconds);
+  @override
+  bool operator ==(Object other) =>
+      other is PlayerStep && other.phase == phase && other.index == index && other.seconds == seconds;
+  @override
+  int get hashCode => Object.hash(phase, index, seconds);
+  @override
+  String toString() => 'PlayerStep(${phase.name}, $index, $seconds)';
+}
+
+const int readySec = 3;
+const int unlockSec = 5;
+
+/// How step [i] begins: its demo, straight into the practice, or (legacy) a countdown/rest first.
+PlayerStep stepEntry(Session s, int i) {
+  final it = s.items[i];
+  if (it.w != null) {
+    return it.w! > 0
+        ? PlayerStep(PlayerPhase.watch, i, it.w!)
+        : PlayerStep(PlayerPhase.work, i, it.s);
+  }
+  if (i == 0) return const PlayerStep(PlayerPhase.ready, 0, readySec);
+  return s.restSec > 0
+      ? PlayerStep(PlayerPhase.rest, i, s.restSec)
+      : PlayerStep(PlayerPhase.work, i, it.s);
+}
+
+PlayerStep _afterPractice(Session s) {
+  final last = s.items.length - 1;
+  if (s.check) return PlayerStep(PlayerPhase.checkAfter, last, 0);
+  if (s.outro != null) return PlayerStep(PlayerPhase.outro, last, 0);
+  return PlayerStep(PlayerPhase.done, last, 0);
+}
+
+PlayerStep firstPlayerStep(Session s) {
+  if (s.intro != null) return const PlayerStep(PlayerPhase.intro, 0, 0);
+  if (s.check) return const PlayerStep(PlayerPhase.checkBefore, 0, 0);
+  return stepEntry(s, 0);
+}
+
+PlayerStep nextPlayerStep(Session s, PlayerStep cur) {
+  final i = cur.index;
+  PlayerStep afterStep() =>
+      i < s.items.length - 1 ? stepEntry(s, i + 1) : _afterPractice(s);
+  switch (cur.phase) {
+    case PlayerPhase.intro:
+      return s.check
+          ? const PlayerStep(PlayerPhase.checkBefore, 0, 0)
+          : stepEntry(s, 0);
+    case PlayerPhase.checkBefore:
+      return stepEntry(s, 0);
+    case PlayerPhase.ready:
+    case PlayerPhase.watch:
+    case PlayerPhase.rest:
+      return PlayerStep(PlayerPhase.work, i, s.items[i].s);
+    case PlayerPhase.work:
+      return s.items[i].u != null
+          ? PlayerStep(PlayerPhase.unlock, i, unlockSec)
+          : afterStep();
+    case PlayerPhase.unlock:
+      return afterStep();
+    case PlayerPhase.checkAfter:
+      return s.outro != null
+          ? PlayerStep(PlayerPhase.outro, i, 0)
+          : PlayerStep(PlayerPhase.done, i, 0);
+    case PlayerPhase.outro:
+    case PlayerPhase.done:
+      return PlayerStep(PlayerPhase.done, i, 0);
+  }
+}
+
+/// Skip forward: a demo jumps to its practice; anything else to the next step (or the closing phases).
+PlayerStep skipPlayerStep(Session s, PlayerStep cur) {
+  if (cur.phase == PlayerPhase.watch) {
+    return PlayerStep(PlayerPhase.work, cur.index, s.items[cur.index].s);
+  }
+  if (cur.phase == PlayerPhase.intro || cur.phase == PlayerPhase.checkBefore) {
+    return nextPlayerStep(s, cur);
+  }
+  return cur.index < s.items.length - 1
+      ? stepEntry(s, cur.index + 1)
+      : _afterPractice(s);
 }
 
 int kcalForWeight(int baseKcal, double weightKg) =>
@@ -418,6 +578,9 @@ Session? resolveSession(String id) {
       items: day.items,
       restSec: restBetweenSec,
       baseKcal: day.kcal,
+      intro: day.intro,
+      outro: day.outro,
+      check: day.check,
       planId: plan.id,
       day: day.day,
     );
@@ -703,8 +866,8 @@ String? paywallSurveyOffer(String? reason, {bool trialAvailable = true}) => swit
   _ => null,
 };
 
-/// Content file layout version this app build understands; bump only when the shape changes incompatibly.
-const int kContentSchema = 1;
+/// Content file layout version this app build understands; bump only when the shape changes incompatibly (2 = guided lessons).
+const int kContentSchema = 2;
 
 /// Whether a published remote content update should replace the content the app shipped with:
 /// only a strictly newer revision, in a layout this build can read, so an old remote update never

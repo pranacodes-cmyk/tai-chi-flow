@@ -60,6 +60,13 @@ class G {
     ],
     stops: const [0, 0.4, 1],
   );
+  /// Tutor film: soft top for the controls, deep bottom for captions (web `--gradient-tutor`).
+  static const tutor = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    stops: [0, 0.22, 0.5, 1],
+    colors: [Color(0x99000000), Color(0x00000000), Color(0x330F1713), Color(0xF20F1713)],
+  );
   static final heroTopBottom = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,

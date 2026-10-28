@@ -15,13 +15,23 @@ void main() {
     );
   });
 
-  test('journey Day 1 downloads its 10 films and 60 coach clips, warm-up film first, no duplicates', () {
+  test('journey Day 1 downloads its 13 films and 84 coach clips, tutor welcome first, no duplicates', () {
     final day = Content.i.plan('tai-chi-journey-30')!.days.first;
-    final paths = sessionMediaPaths(day.items, Content.i.exercise, Content.i.voice);
-    expect(paths.length, 70);
-    expect(paths.where((p) => p.startsWith('video/')).length, 10);
-    expect(paths.first, 'video/mv-standing-squat-swing.mp4');
+    final paths = sessionMediaPaths(day.items, Content.i.exercise, Content.i.voice, intro: day.intro, outro: day.outro);
+    final films = paths.where((p) => p.startsWith('video/')).toList();
+    expect(paths.length, 97);
+    expect(films.length, 13);
+    expect(paths.first, 'video/lf-tutor-welcome.mp4');
+    expect(films.last, 'video/lf-tutor-congrats.mp4');
+    expect(films, containsAll(['video/lf-qi-rub.mp4', 'video/lf-link-open-horse.mp4']));
     expect(paths.toSet().length, paths.length);
+  });
+
+  test("a step with its own lesson film never downloads the movement's usual film too", () {
+    final day = Content.i.plan('tai-chi-journey-30')!.days.first;
+    final qi = day.items.firstWhere((i) => i.f == 'lf-qi-rub');
+    final paths = sessionMediaPaths([qi], Content.i.exercise, Content.i.voice);
+    expect(paths.where((p) => p.startsWith('video/')).toList(), ['video/lf-qi-rub.mp4']);
   });
 
   test('Evening Wind-Down downloads its 13 narration clips', () {

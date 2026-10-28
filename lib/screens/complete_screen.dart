@@ -260,6 +260,13 @@ class CompleteScreen extends StatelessWidget {
                       ),
                     ),
                   ],
+                  if (session != null && !isMed)
+                    _LessonResults(
+                      entry: entry,
+                      session: session,
+                      plan: plan,
+                      showTomorrow: nextLocked == null,
+                    ),
                   if (plan != null && nextLocked != null) ...[
                     const SizedBox(height: 12),
                     Reveal(
@@ -453,6 +460,230 @@ class CompleteScreen extends StatelessWidget {
   }
 }
 
+/// What a guided lesson gave you (web `LessonResults`): the calm check-in before → after, the forms,
+/// skills and sequences unlocked today with progress through the 24 forms, and tomorrow's lesson.
+/// Lessons without check-in or unlocks show nothing here.
+class _LessonResults extends StatelessWidget {
+  const _LessonResults({
+    required this.entry,
+    required this.session,
+    required this.plan,
+    required this.showTomorrow,
+  });
+  final HistoryEntry entry;
+  final Session session;
+  final Plan? plan;
+  final bool showTomorrow;
+
+  @override
+  Widget build(BuildContext context) {
+    final change = calmChange(entry.calmBefore, entry.calmAfter);
+    final unlocks = [for (final it in session.items) if (it.u != null) it.u!];
+    final forms = formsLearned(session.items);
+    final p = plan;
+    final day = entry.day;
+    final tomorrow = showTomorrow &&
+            p != null &&
+            day != null &&
+            day < p.days.length &&
+            session.intro != null
+        ? p.days[day]
+        : null;
+    if (change == null && unlocks.isEmpty && tomorrow == null) return const SizedBox.shrink();
+    final skills = tomorrow == null ? const <SessionItem>[] : newSkillItems(tomorrow.items);
+    return Column(
+      children: [
+        if (change != null) ...[
+          const SizedBox(height: 12),
+          Reveal(
+            delay: 0.75,
+            child: Glass(
+              radius: 24,
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Eyebrow(tr('complete.yourCalm'), color: C.sage),
+                        const SizedBox(height: 8),
+                        // scales down on narrow phones with large text instead of overflowing
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              _CalmValue(value: entry.calmBefore!, label: tr('complete.calmBefore'), dim: true),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(12, 0, 12, 18),
+                                child: Icon(LucideIcons.arrowRight, size: 18, color: C.ivory.withValues(alpha: 0.6)),
+                              ),
+                              _CalmValue(value: entry.calmAfter!, label: tr('complete.calmAfter')),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          change > 0 ? tr('complete.calmUp') : tr('complete.calmSame'),
+                          style: T.caption.c(C.ivory.withValues(alpha: 0.75)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (change > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: C.jade, borderRadius: BorderRadius.circular(40)),
+                      child: Text(
+                        tr('complete.calmer', {'n': change}),
+                        style: T.label.s(14).c(C.ivory).tab,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        if (unlocks.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Reveal(
+            delay: 0.8,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: C.ivory, borderRadius: BorderRadius.circular(24)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Eyebrow(tr('complete.unlockedToday'), color: C.jade),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final u in unlocks)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(color: C.jadeSoft, borderRadius: BorderRadius.circular(40)),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                u.k == 'form'
+                                    ? LucideIcons.award
+                                    : u.k == 'sequence'
+                                    ? LucideIcons.link
+                                    : LucideIcons.sparkles,
+                                size: 14,
+                                color: C.jadeDeep,
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  u.t,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: T.caption.copyWith(fontWeight: FontWeight.w600, color: C.jadeDeep),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (forms > 0) ...[
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Text(tr('complete.formsLearned'), style: T.caption.c(C.ink)),
+                        const Spacer(),
+                        Text('$forms / 24', style: T.label.s(14).c(C.ink).tab),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        for (var k = 1; k <= 24; k++)
+                          Expanded(
+                            child: Container(
+                              height: 6,
+                              margin: const EdgeInsets.symmetric(horizontal: 1),
+                              decoration: BoxDecoration(
+                                color: k <= forms ? C.jade : C.sand,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+        if (tomorrow != null) ...[
+          const SizedBox(height: 12),
+          Reveal(
+            delay: 0.85,
+            child: Glass(
+              radius: 24,
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  RoundedImage(
+                    img(skills.isNotEmpty
+                        ? Content.i.exercise(skills.first.e)?.image ?? p!.image
+                        : p!.image),
+                    size: 64,
+                    radius: 18,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Eyebrow(tr('complete.tomorrow', {'day': tomorrow.day}), color: C.sage),
+                        const SizedBox(height: 4),
+                        Text(
+                          tomorrow.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: T.label.c(C.ivory),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _CalmValue extends StatelessWidget {
+  const _CalmValue({required this.value, required this.label, this.dim = false});
+  final int value;
+  final String label;
+  final bool dim;
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        '$value',
+        style: T.displayMd.copyWith(fontSize: 34, color: C.ivory.withValues(alpha: dim ? 0.55 : 1)).tab,
+      ),
+      Text(label, style: T.tiny.copyWith(fontWeight: FontWeight.w400, color: C.ivory.withValues(alpha: 0.6))),
+    ],
+  );
+}
+
 /// "Day N is ready": the next lesson's preview with a single Plus action, shown after the last free day.
 class _NextDayOffer extends StatelessWidget {
   const _NextDayOffer({
@@ -470,8 +701,7 @@ class _NextDayOffer extends StatelessWidget {
   Widget build(BuildContext context) {
     final day = plan.days[dayNumber - 1];
     final learn = [
-      for (final it in day.items)
-        if (it.p == 'New today') Content.i.exercise(it.e),
+      for (final it in newSkillItems(day.items)) Content.i.exercise(it.e),
     ].whereType<Exercise>().toList();
     final total = plan.days.length;
     return Container(

@@ -215,19 +215,23 @@ class SessionScreen extends StatelessWidget {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            x.ex.name,
+                                            x.it.t ?? x.ex.name,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: T.label,
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            x.ex.isAffirmation
+                                            x.it.lv != null
+                                                ? tr('player.level', {'n': x.it.lv!.n, 'label': x.it.lv!.l})
+                                                : x.ex.isAffirmation
                                                 ? tr('session.affirmationBreath')
                                                 : x.ex.focus
                                                       .take(2)
                                                       .map(trTag)
                                                       .join(' · '),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: T.caption,
                                           ),
                                         ],
@@ -275,11 +279,11 @@ class SessionScreen extends StatelessWidget {
   }
 }
 
-/// Work seconds of the run of items sharing item [start]'s lesson phase.
+/// Seconds (demos included) of the run of items sharing item [start]'s lesson phase.
 int _phaseSeconds(List<SessionItem> items, int start) {
   var total = 0;
   for (var k = start; k < items.length && items[k].p == items[start].p; k++) {
-    total += items[k].s;
+    total += items[k].s + (items[k].w ?? 0);
   }
   return total;
 }

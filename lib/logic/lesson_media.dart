@@ -13,11 +13,14 @@ String voicePath(String key) => 'voice/$key.m4a';
 
 /// Every film and coach clip a session player can use, in play order, without duplicates.
 /// [available] is the set of voice keys that have a pre-rendered clip.
+/// The tutor's welcome comes first and the congratulations last (web `sessionMediaPaths`).
 List<String> sessionMediaPaths(
   List<SessionItem> items,
   Exercise? Function(String id) exercise,
-  Set<String> available,
-) {
+  Set<String> available, {
+  LessonTutor? intro,
+  LessonTutor? outro,
+}) {
   final out = <String>[];
   void add(String p) {
     if (!out.contains(p)) out.add(p);
@@ -30,16 +33,39 @@ List<String> sessionMediaPaths(
     }
   }
 
+  void tutor(LessonTutor? t) {
+    if (t == null) return;
+    add(filmPath(t.film));
+    say(t.lines);
+  }
+
+  tutor(intro);
   for (final (i, item) in items.indexed) {
     final ex = exercise(item.e);
     if (ex == null) continue;
-    if (ex.demo != null && ex.video == null) add(filmPath(ex.demo!));
+    // a lesson film replaces the movement's own film for the whole step
+    if (item.f != null) {
+      add(filmPath(item.f!));
+    } else if (ex.demo != null && ex.video == null) {
+      add(filmPath(ex.demo!));
+    }
     if (i == 0) say(CoachLines.begin(ex));
-    say(CoachLines.start(ex, item));
-    say(CoachLines.instructions(ex, item));
+    if (item.w != null) {
+      if (item.w! > 0) say(CoachLines.watch(ex, item));
+      say(CoachLines.go(ex, item));
+    } else {
+      say(CoachLines.start(ex, item));
+    }
+    if (item.c.isNotEmpty) {
+      say(item.c.map((c) => c.l));
+    } else {
+      say(CoachLines.instructions(ex, item));
+    }
+    if (item.u != null) say(CoachLines.unlock(item.u!));
     if (ex.isAffirmation) say(CoachLines.halfway(ex, ''));
     if (i > 0) say([tr('coach.name', {'name': ex.name})]);
   }
+  tutor(outro);
   return out;
 }
 

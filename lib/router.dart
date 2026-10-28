@@ -277,7 +277,13 @@ GoRouter buildRouter(AppState app) {
 List<String> sessionPaths(String id) {
   final session = resolveSession(id);
   if (session == null) return const [];
-  return sessionMediaPaths(session.items, Content.i.exercise, Content.i.voice);
+  return sessionMediaPaths(
+    session.items,
+    Content.i.exercise,
+    Content.i.voice,
+    intro: session.intro,
+    outro: session.outro,
+  );
 }
 
 /// A locked meditation opens straight to its own Plus prompt, so nothing is downloaded for it.

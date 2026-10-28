@@ -51,6 +51,29 @@ class CoachLines {
           instructions(ex, item).firstOrNull ?? ex.cue,
         ];
 
+  /// Spoken while the "watch first" demo plays: the authored line, or "Watch first." + the movement's name.
+  static List<String> watch(Exercise ex, [SessionItem? item]) =>
+      (item?.wl ?? '').trim().isNotEmpty
+      ? [item!.wl!]
+      : [tr('coach.watchFirst'), tr('coach.name', {'name': ex.name})];
+
+  /// Spoken as the practice starts after a demo (or for a linked-sequence form): the authored
+  /// line, or "Your turn." + the first instruction.
+  static List<String> go(Exercise ex, [SessionItem? item]) =>
+      (item?.go ?? '').trim().isNotEmpty
+      ? [item!.go!]
+      : [tr('coach.yourTurn'), instructions(ex, item).firstOrNull ?? ex.cue];
+
+  /// Timed practice cue.
+  static List<String> cue(StepCue c) => [c.l];
+
+  /// Spoken on the celebration card after a step.
+  static List<String> unlock(StepUnlock u) => [u.l];
+
+  /// The calm check-in before and after a guided lesson.
+  static List<String> checkIn(bool after) =>
+      [tr(after ? 'coach.checkInAfter' : 'coach.checkInBefore')];
+
   static List<String> step(Exercise ex, int k, [SessionItem? item]) {
     final lines = instructions(ex, item);
     return [k >= 0 && k < lines.length ? lines[k] : ex.cue];

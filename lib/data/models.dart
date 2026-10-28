@@ -3,6 +3,36 @@
 List<String> _strings(dynamic v) =>
     (v as List? ?? const []).map((e) => e.toString()).toList();
 
+/// A coach line spoken [t] seconds into a step's practice (web `StepCue`).
+class StepCue {
+  final int t;
+  final String l;
+  const StepCue(this.t, this.l);
+  factory StepCue.fromJson(Map<String, dynamic> j) =>
+      StepCue((j['t'] as num).toInt(), j['l'] as String);
+}
+
+/// Celebrated on a card right after a step (web `StepUnlock`): a learned form ([n] of 24),
+/// a skill or a linked sequence.
+class StepUnlock {
+  final String k, t, l;
+  final int? n;
+  const StepUnlock(this.k, this.t, this.l, [this.n]);
+  factory StepUnlock.fromJson(Map<String, dynamic> j) => StepUnlock(
+    j['k'] as String? ?? 'skill',
+    j['t'] as String? ?? '',
+    j['l'] as String? ?? '',
+    (j['n'] as num?)?.toInt(),
+  );
+}
+
+/// Teaching level of a new skill (1 = learn it slowly, 2 = with the breath).
+class StepLevel {
+  final int n;
+  final String l;
+  const StepLevel(this.n, this.l);
+}
+
 class SessionItem {
   final String e;
   final int s;
@@ -12,18 +42,75 @@ class SessionItem {
 
   /// Authored lesson-specific practice cue; older content omits it.
   final String? g;
-  const SessionItem(this.e, this.s, [this.p, this.g]);
-  factory SessionItem.fromJson(Map<String, dynamic> j) => SessionItem(
-    j['e'] as String,
-    (j['s'] as num).toInt(),
-    j['p'] as String?,
-    j['g'] as String?,
-  );
+
+  /// Title override (e.g. "Find your root" on the stance film).
+  final String? t;
+  final StepLevel? lv;
+
+  /// "Watch first" demo seconds before the practice; 0 = straight in; null = legacy step (rest before it).
+  final int? w;
+
+  /// Spoken during the demo (what to watch for) and as the practice starts.
+  final String? wl, go;
+
+  /// Timed practice cues (replace the step-by-step instructions).
+  final List<StepCue> c;
+
+  /// Dedicated lesson film key (`lf-*`) shown instead of the movement's demo.
+  final String? f;
+  final StepUnlock? u;
+  const SessionItem(
+    this.e,
+    this.s, [
+    this.p,
+    this.g,
+    this.t,
+    this.lv,
+    this.w,
+    this.wl,
+    this.go,
+    this.c = const [],
+    this.f,
+    this.u,
+  ]);
+  factory SessionItem.fromJson(Map<String, dynamic> j) {
+    final lv = j['lv'] as Map?;
+    final u = j['u'] as Map?;
+    return SessionItem(
+      j['e'] as String,
+      (j['s'] as num).toInt(),
+      j['p'] as String?,
+      j['g'] as String?,
+      j['t'] as String?,
+      lv == null
+          ? null
+          : StepLevel((lv['n'] as num?)?.toInt() ?? 1, lv['l'] as String? ?? ''),
+      (j['w'] as num?)?.toInt(),
+      j['wl'] as String?,
+      j['go'] as String?,
+      [
+        for (final x in (j['c'] as List? ?? const []))
+          StepCue.fromJson(x as Map<String, dynamic>),
+      ],
+      j['f'] as String?,
+      u == null ? null : StepUnlock.fromJson(u.cast<String, dynamic>()),
+    );
+  }
 }
 
 List<SessionItem> _items(dynamic v) => (v as List)
     .map((e) => SessionItem.fromJson(e as Map<String, dynamic>))
     .toList();
+
+/// The tutor's welcome / congratulations film around a guided lesson, one spoken caption per line.
+class LessonTutor {
+  final String film;
+  final List<String> lines;
+  const LessonTutor(this.film, this.lines);
+  static LessonTutor? fromJson(dynamic j) => j is Map
+      ? LessonTutor(j['film'] as String? ?? '', _strings(j['lines']))
+      : null;
+}
 
 class Exercise {
   final String id,
@@ -112,13 +199,20 @@ class PlanDay {
   final List<String> focus;
   final List<SessionItem> items;
   final int kcal;
+  final LessonTutor? intro, outro;
+
+  /// Ask "how calm do you feel?" before and after the lesson.
+  final bool check;
   PlanDay.fromJson(Map<String, dynamic> j)
     : day = (j['day'] as num).toInt(),
       title = j['title'],
       restore = j['restore'] as bool,
       focus = _strings(j['focus']),
       items = _items(j['items']),
-      kcal = (j['kcal'] as num).toInt();
+      kcal = (j['kcal'] as num).toInt(),
+      intro = LessonTutor.fromJson(j['intro']),
+      outro = LessonTutor.fromJson(j['outro']),
+      check = j['check'] as bool? ?? false;
 }
 
 class Plan {

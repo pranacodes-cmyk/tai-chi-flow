@@ -113,20 +113,50 @@ void main() {
     });
     test('the 30-day journey teaches all 24 forms in their true order and day 30 flows through all of them', () {
       final days = Content.i.plan(journeyId)!.days;
+      final forms = days.expand((d) => d.items.where((it) => it.u?.k == 'form')).toList();
+      expect(forms.map((it) => it.e).toList(), yang24);
+      expect(forms.map((it) => it.u!.n).toList(), [for (var i = 1; i <= 24; i++) i]);
       expect(
-        days
-            .expand((d) => d.items.where((it) => it.p == 'New today'))
-            .map((it) => it.e)
-            .toList(),
+        days[29].items.where((it) => it.p == 'Your sequence').map((it) => it.e).toList(),
         yang24,
       );
-      expect(
-        days[29].items.where((it) => it.p == 'Flow').map((it) => it.e).toList(),
-        yang24,
-      );
-      expect(days[0].items.first.e, 'squat-swing-standing');
+      expect(days[0].items.first.f, 'lf-qi-rub');
     });
-    test('no movement plays twice inside one journey lesson, and frail-looking warm-ups never appear', () {
+    test('every journey day teaches two new skills, each shown twice (learn it, then with the breath)', () {
+      final days = Content.i.plan(journeyId)!.days;
+      for (var i = 0; i < days.length; i++) {
+        final items = days[i].items;
+        final firsts = [
+          for (var k = 0; k < items.length; k++)
+            if (items[k].lv?.n == 1) k,
+        ];
+        expect(firsts.length, 2, reason: 'day ${i + 1}');
+        for (final k in firsts) {
+          expect([items[k + 1].e, items[k + 1].lv?.n], [items[k].e, 2], reason: 'day ${i + 1}');
+          expect(items.where((x) => x.e == items[k].e && x.lv != null).length, 2, reason: 'day ${i + 1}');
+        }
+      }
+    });
+    test('every journey step shows a demo first, except the forms flowing inside a sequence', () {
+      final days = Content.i.plan(journeyId)!.days;
+      for (var i = 0; i < days.length; i++) {
+        final items = days[i].items;
+        for (var k = 0; k < items.length; k++) {
+          final it = items[k];
+          expect(it.w, isNotNull, reason: 'day ${i + 1} step ${k + 1}');
+          final flowing = it.p == 'Your sequence' && k > 0 && items[k - 1].p == 'Your sequence';
+          expect(it.w! > 0, !flowing, reason: 'day ${i + 1} step ${k + 1}');
+          // sequence forms are named as they start (the student flows on their own); every other step carries timed cues
+          if (it.p == 'Your sequence') {
+            expect(it.go, isNotNull, reason: 'day ${i + 1} step ${k + 1}');
+          } else {
+            expect(it.c, isNotEmpty, reason: 'day ${i + 1} step ${k + 1}');
+          }
+        }
+        expect([days[i].intro?.film, days[i].outro?.film], ['lf-tutor-welcome', 'lf-tutor-congrats']);
+      }
+    });
+    test('outside the two teaching levels no movement plays twice inside one journey lesson, and frail-looking warm-ups never appear', () {
       final days = Content.i.plan(journeyId)!.days;
       const frail = [
         'full-body-shaking-qigong',
@@ -137,9 +167,9 @@ void main() {
         'full-body-breathing-qigong',
       ];
       for (var i = 0; i < days.length; i++) {
-        final ids = days[i].items.map((it) => it.e).toList();
+        final ids = days[i].items.where((it) => it.lv == null).map((it) => it.e).toList();
         expect(ids.toSet().length, ids.length, reason: 'day ${i + 1}');
-        expect(ids.where(frail.contains).toList(), isEmpty, reason: 'day ${i + 1}');
+        expect(days[i].items.map((it) => it.e).where(frail.contains).toList(), isEmpty, reason: 'day ${i + 1}');
       }
     });
     test(
@@ -1066,8 +1096,80 @@ void main() {
       expect(shouldUseRemoteContent(5, 4, 1), isFalse);
     });
     test('ignores a newer layout or a missing manifest', () {
-      expect(shouldUseRemoteContent(1, 2, 2), isFalse);
+      expect(shouldUseRemoteContent(1, 2, 3), isFalse);
+      expect(shouldUseRemoteContent(1, 2, 2), isTrue);
       expect(shouldUseRemoteContent(1, null, 1), isFalse);
+    });
+  });
+
+  // Mirrors the "guided lesson player" describe in src/lib/logic.test.ts
+  group('guided lesson player', () {
+    const guided = [
+      SessionItem('a', 60, null, null, null, null, 10, null, null, [StepCue(5, 'one'), StepCue(30, 'two')]),
+      SessionItem('b', 40, null, null, null, StepLevel(1, 'Learn it slowly'), 12),
+      SessionItem('b', 40, null, null, null, StepLevel(2, 'With the breath'), 8, null, null, [], null, StepUnlock('form', 'B', 'B, learned.', 3)),
+      SessionItem('c', 30, null, null, null, null, 0),
+    ];
+    Session lesson({List<SessionItem> items = guided, LessonTutor? intro, LessonTutor? outro, bool check = false}) => Session(
+      id: 'x',
+      kind: 'plan',
+      title: '',
+      subtitle: '',
+      image: '',
+      items: items,
+      restSec: 10,
+      baseKcal: 1,
+      intro: intro,
+      outro: outro,
+      check: check,
+    );
+    List<String> walk(Session s) {
+      final out = <String>[];
+      var st = firstPlayerStep(s);
+      while (st.phase != PlayerPhase.done && out.length < 50) {
+        out.add('${st.phase.name}:${st.index}:${st.seconds}');
+        st = nextPlayerStep(s, st);
+      }
+      return out;
+    }
+
+    test('a guided lesson runs welcome, check-in, demo before practice, celebration, check-in, congratulations', () {
+      final s = lesson(intro: const LessonTutor('lf-w', ['hi']), outro: const LessonTutor('lf-c', ['bye']), check: true);
+      expect(walk(s), ['intro:0:0', 'checkBefore:0:0', 'watch:0:10', 'work:0:60', 'watch:1:12', 'work:1:40', 'watch:2:8', 'work:2:40', 'unlock:2:5', 'work:3:30', 'checkAfter:3:0', 'outro:3:0']);
+    });
+    test('a legacy lesson counts down 3 seconds, then rests 10 seconds before every next movement', () {
+      final s = lesson(items: const [SessionItem('a', 30), SessionItem('b', 20)]);
+      expect(walk(s), ['ready:0:3', 'work:0:30', 'rest:1:10', 'work:1:20']);
+    });
+    test('lesson length counts demos and only rests before legacy steps', () {
+      expect(totalSeconds(guided), 60 + 10 + 40 + 12 + 40 + 8 + 30);
+      expect(
+        totalSeconds(const [SessionItem('a', 30), SessionItem('b', 20, null, null, null, null, 10), SessionItem('c', 20)]),
+        30 + 20 + 10 + 20 + 10,
+      );
+    });
+    test('skip jumps a demo straight to its practice and the last step to the closing check-in', () {
+      final s = lesson(check: true);
+      expect(skipPlayerStep(s, const PlayerStep(PlayerPhase.watch, 1, 12)), const PlayerStep(PlayerPhase.work, 1, 40));
+      expect(skipPlayerStep(s, const PlayerStep(PlayerPhase.work, 3, 30)), const PlayerStep(PlayerPhase.checkAfter, 3, 0));
+    });
+    test('timed cues are spoken once, when their second arrives', () {
+      expect(dueCues(guided[0], 4, 0), isEmpty);
+      expect(dueCues(guided[0], 6, 0).map((c) => c.l).toList(), ['one']);
+      expect(dueCues(guided[0], 31, 1).map((c) => c.l).toList(), ['two']);
+      expect(dueCues(guided[0], 59, 2), isEmpty);
+    });
+    test('calm change needs both answers on the 1–10 scale', () {
+      expect(calmChange(4, 7), 3);
+      expect(calmChange(6, 6), 0);
+      expect(calmChange(null, 7), isNull);
+      expect(calmChange(0, 7), isNull);
+      expect([1, 3, 4, 6, 7, 8, 9, 10].map(calmWordKey).toList(), ['player.calmRestless', 'player.calmRestless', 'player.calmBetween', 'player.calmBetween', 'player.calmCalm', 'player.calmCalm', 'player.calmDeep', 'player.calmDeep']);
+    });
+    test('new skills are listed once and forms learned reads the unlock cards', () {
+      expect(newSkillItems(guided).map((it) => it.e).toList(), ['b']);
+      expect(newSkillItems(const [SessionItem('x', 1, 'New today'), SessionItem('x', 1, 'New today')]).map((it) => it.e).toList(), ['x']);
+      expect(formsLearned(guided), 3);
     });
   });
 }
