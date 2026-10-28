@@ -364,13 +364,13 @@ String recommendPlanId({
   return defaultPlanId;
 }
 
-/// Which 60-day daily practice suits this person: seated for limited mobility or chair lovers.
+/// Which daily practice suits this person: seated for limited mobility or chair lovers, the 30-Day Journey otherwise.
 String dailyPlanId({
   required List<String> limitations,
   required String style,
 }) => limitations.contains('mobility') || style == 'chair'
     ? 'seated-tai-chi'
-    : 'standing-tai-chi';
+    : defaultPlanId;
 
 String recommendFor(Profile p) => recommendPlanId(
   goals: p.goals,

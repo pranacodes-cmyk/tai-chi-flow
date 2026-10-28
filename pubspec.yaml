@@ -2,7 +2,7 @@ name: enso
 description: "TaiChi Flow — Tai Chi, Qigong, chair yoga, mindful walking and meditation."
 publish_to: 'none'
 
-version: 1.10.0+27
+version: 1.10.1+28
 
 environment:
   sdk: ^3.13.5

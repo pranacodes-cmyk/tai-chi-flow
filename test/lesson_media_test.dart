@@ -15,15 +15,16 @@ void main() {
     );
   });
 
-  test('journey Day 1 downloads its 13 films and 84 coach clips, tutor welcome first, no duplicates', () {
+  test('journey Day 1 downloads its 12 films and 77 coach clips, tutor welcome first, no duplicates', () {
     final day = Content.i.plan('tai-chi-journey-30')!.days.first;
     final paths = sessionMediaPaths(day.items, Content.i.exercise, Content.i.voice, intro: day.intro, outro: day.outro);
     final films = paths.where((p) => p.startsWith('video/')).toList();
-    expect(paths.length, 97);
-    expect(films.length, 13);
+    expect(paths.length, 89);
+    expect(films.length, 12);
     expect(paths.first, 'video/lf-tutor-welcome.mp4');
     expect(films.last, 'video/lf-tutor-congrats.mp4');
-    expect(films, containsAll(['video/lf-qi-rub.mp4', 'video/lf-link-open-horse.mp4']));
+    expect(films, contains('video/lf-qi-rub.mp4'));
+    expect(films, isNot(contains('video/lf-link-open-horse.mp4')));
     expect(paths.toSet().length, paths.length);
   });
 

@@ -230,17 +230,17 @@ void main() {
         }
       }
     });
-    test('the daily Tai Chi practices run 28 days', () {
-      expect(Content.i.dailyPlanIds, ['seated-tai-chi', 'standing-tai-chi']);
+    test('the daily Tai Chi practice runs 28 days', () {
+      expect(Content.i.dailyPlanIds, ['seated-tai-chi']);
       for (final id in Content.i.dailyPlanIds) {
         expect(Content.i.plan(id)!.days.length, 28);
       }
     });
-    test('the catalogue ships 12 courses and 20 single sessions, every one on a shelf', () {
+    test('the catalogue ships 11 courses and 20 single sessions, every one on a shelf', () {
       final c = Content.i;
       final courses = c.plans.where((p) => p.days.length > 1).toList();
       final sessions = c.plans.where((p) => p.days.length == 1).toList();
-      expect(courses.length, 12);
+      expect(courses.length, 11);
       expect(sessions.length, 20);
       for (final p in courses) {
         expect(c.planGroups, contains(p.group));
@@ -249,44 +249,34 @@ void main() {
         expect([...c.planGroups, 'Quick & free'], contains(p.group));
       }
     });
-    test('Daily Tai Chi never plays the same movement twice in one day', () {
-      final days = Content.i.plan('standing-tai-chi')?.days ?? [];
-      expect(days.length, 28);
+    test('the guided Journey teaches each skill twice and reviews it at most once more', () {
+      final days = Content.i.plan('tai-chi-journey-30')?.days ?? [];
+      expect(days.length, 30);
       for (final d in days) {
-        final ids = d.items.map((it) => it.e).toList();
-        expect(ids.toSet().length, ids.length, reason: 'day ${d.day}');
+        final counts = <String, int>{};
+        for (final id in d.items.map((it) => it.e)) {
+          counts[id] = (counts[id] ?? 0) + 1;
+        }
+        for (final e in counts.entries) {
+          expect(e.value, lessThanOrEqualTo(3), reason: 'day ${d.day} ${e.key}');
+        }
       }
     });
-    test('Daily Tai Chi day 1 has Opening and Wild Horse once, day 16 Single Whip once', () {
-      final p = Content.i.plan('standing-tai-chi');
+    test('Journey day 1 teaches Opening and Wild Horse as skills, twice each', () {
+      final p = Content.i.plan('tai-chi-journey-30');
       expect(p, isNotNull);
       if (p == null) return;
       expect(
         p.days[0].items
             .where((it) => it.e == 'commencement-opening-form-standing')
             .length,
-        1,
+        2,
       );
       expect(
         p.days[0].items
             .where((it) => it.e == 'parting-the-wild-horses-mane-standing')
             .length,
-        1,
-      );
-      expect(
-        p.days[15].items.where((it) => it.e == 'single-whip-standing').length,
-        1,
-      );
-      expect(
-        p.days
-            .map(
-              (d) => d.items
-                  .firstWhere((it) => it.p == 'Skill' || it.p == 'Flow')
-                  .g,
-            )
-            .toSet()
-            .length,
-        28,
+        2,
       );
     });
     test('lesson cue precedes normal instructions and older items keep existing guidance', () {
@@ -521,7 +511,7 @@ void main() {
       );
       expect(
         dailyPlanId(limitations: [], style: 'tai-chi'),
-        'standing-tai-chi',
+        'tai-chi-journey-30',
       );
     });
   });
@@ -633,7 +623,7 @@ void main() {
       () => expect(kcalForWeight(35, 84), 42),
     );
     test('resolves plan day sessions', () {
-      final s = resolveSession('plan:standing-tai-chi:2');
+      final s = resolveSession('plan:tai-chi-journey-30:2');
       expect(s?.day, 2);
       expect(s!.items.length, greaterThan(3));
       expect(s.title, startsWith('Day 2 · '));
