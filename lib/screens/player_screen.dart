@@ -959,6 +959,32 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
 /// The celebration after a step (web `UnlockCard`): a learned form with its place in the 24,
 /// a skill, or a linked sequence.
+/// Softly pulsing ivory dot of the "Your turn" badge (web `animate-pulse`).
+class _PulseDot extends StatefulWidget {
+  const _PulseDot();
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final still = MediaQuery.of(context).disableAnimations;
+    final dot = Container(width: 8, height: 8, decoration: const BoxDecoration(color: C.ivory, shape: BoxShape.circle));
+    if (still) return dot;
+    return FadeTransition(opacity: Tween(begin: 0.45, end: 1.0).animate(_c), child: dot);
+  }
+}
+
 class _UnlockCard extends StatelessWidget {
   const _UnlockCard({required this.unlock, required this.onContinue});
   final StepUnlock unlock;
