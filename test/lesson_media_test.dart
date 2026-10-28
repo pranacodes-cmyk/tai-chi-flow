@@ -59,6 +59,7 @@ void main() {
     const revs = {'mv-x': 'abc123'};
     expect(filmRev(revs, 'video/mv-x.mp4'), 'abc123');
     expect(filmRev(revs, 'voice/k.m4a'), isNull);
+    expect(filmRev({'voice:k': 'v9'}, 'voice/k.m4a'), 'v9');
     expect(sameMedia('abc123', 'abc123'), isTrue);
     expect(sameMedia('abc123', 'old999'), isFalse);
     expect(sameMedia('abc123', null), isFalse);

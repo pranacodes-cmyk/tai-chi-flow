@@ -11,10 +11,13 @@ const String kMediaBase =
 
 String filmPath(String film) => 'video/$film.mp4';
 
-/// Fingerprint of a film path in a content `mediaRev` map (null for voice clips / unknown films).
+/// Fingerprint of a media path in a content `mediaRev` map: films by key, refreshed voice clips
+/// as `voice:<key>` (null otherwise; web `filmRev`).
 String? filmRev(Map<String, String> revs, String path) =>
     path.startsWith('video/') && path.endsWith('.mp4')
     ? revs[path.substring(6, path.length - 4)]
+    : path.startsWith('voice/') && path.endsWith('.m4a')
+    ? revs['voice:${path.substring(6, path.length - 4)}']
     : null;
 
 /// Whether a bundled or saved copy with fingerprint [have] is the film content wants ([want]);

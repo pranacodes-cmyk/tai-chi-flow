@@ -126,10 +126,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: MediaQuery.sizeOf(context).height),
+              // IntrinsicHeight lets the Spacer pin the headline block to the bottom on tall
+              // phones while short phones still scroll.
+              child: IntrinsicHeight(
               child: Padding(
             padding: EdgeInsets.fromLTRB(28, top + 22, 28, bottom + 26),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: MainAxisSize.max,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Reveal(
@@ -159,6 +162,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                 ),
                 SizedBox(height: MediaQuery.sizeOf(context).height * 0.12),
+                const Spacer(),
                 Reveal(
                   delay: 0.35,
                   dy: 12,
@@ -300,6 +304,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
               ],
             ),
+          ),
           ),
           ),
           ),
