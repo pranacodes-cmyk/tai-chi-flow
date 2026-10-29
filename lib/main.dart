@@ -34,10 +34,16 @@ Future<void> main() async {
   final app = await AppState.load();
   final lang = resolveLanguage(app.language, deviceLanguageTags());
   if (lang != 'en') await Content.load(lang);
+  // A newer published course update is adopted on this same launch: wait briefly for it, then
+  // reload (offline or slow → the bundled/saved content opens at once; a slow download still
+  // finishes in the background for the next launch).
+  final fresh = await ContentUpdates.check(Content.i.lang, Content.bundledRev)
+      .timeout(const Duration(seconds: 4), onTimeout: () => false);
+  if (fresh) await Content.load(lang);
+  unawaited(MediaStore.prefetchVoicePack(lang));
   Haptics.enabled = app.audio.haptics;
   unawaited(TrackingService.init(app));
   unawaited(AnalyticsService.init(app));
-  unawaited(ContentUpdates.check(Content.i.lang, Content.bundledRev));
   unawaited(
     PurchaseService.syncEntitlement(
       isActive: () => app.premium.active,
@@ -106,7 +112,10 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
     _switchingLanguage = true;
     try {
       await Content.load(want);
-      unawaited(ContentUpdates.check(want, Content.bundledRev));
+      unawaited(MediaStore.prefetchVoicePack(want));
+      if (await ContentUpdates.check(want, Content.bundledRev)) {
+        await Content.load(want);
+      }
     } finally {
       _switchingLanguage = false;
     }

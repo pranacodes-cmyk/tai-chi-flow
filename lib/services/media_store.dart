@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -129,6 +130,27 @@ class MediaStore {
       }
     }
     throw last ?? HttpException('download failed: $p');
+  }
+
+  static final Set<String> _packsStarted = {};
+
+  /// Only English onboarding/UI/breath clips ship in the app; any other language downloads its
+  /// small clip pack (`assets/data/voice-packs.json`, ~2.7 MB) once in the background when it is
+  /// chosen. Until a clip is saved it streams, and offline it falls back to the device voice.
+  static Future<void> prefetchVoicePack(String lang) async {
+    if (lang == 'en' || !_packsStarted.add(lang)) return;
+    try {
+      final packs = jsonDecode(
+        await rootBundle.loadString('assets/data/voice-packs.json'),
+      ) as Map<String, dynamic>;
+      final keys = (packs[lang] as List? ?? const []).cast<String>();
+      final todo = missing([for (final k in keys) voicePath(k)]);
+      if (todo.isEmpty) return;
+      await download(todo, onProgress: (a, b) {}, cancelled: () => false);
+    } catch (e) {
+      _packsStarted.remove(lang); // retried on the next language load or launch
+      debugPrint('TaiChi Flow voice pack $lang: $e');
+    }
   }
 
   /// Saves a streamed file in the background so it plays offline next time (best effort).

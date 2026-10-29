@@ -12,8 +12,8 @@ import '../logic/logic.dart';
 ///
 /// `content/manifest.json` = `{rev, schema, files: {<lang>: {path, bytes}}}`. A check downloads
 /// the app language's file only when [shouldUseRemoteContent] says it is newer, validates it
-/// (size, JSON, matching revision) and saves it; [Content.load] adopts it on the next launch, so
-/// nothing changes under someone mid-session. Any failure keeps the bundled content.
+/// (size, JSON, matching revision) and saves it; launch waits briefly and reloads so the update is
+/// used at once ([Content.load] adopts it). Any failure keeps the bundled content.
 class ContentUpdates {
   ContentUpdates._();
 
@@ -47,38 +47,40 @@ class ContentUpdates {
     }
   }
 
-  /// Downloads a newer published revision for [lang] in the background.
-  static Future<void> check(String lang, int bundledRev) async {
+  /// Downloads a newer published revision for [lang]; true when a newer file was just saved.
+  static Future<bool> check(String lang, int bundledRev) async {
     final d = await _dir();
-    if (d == null) return;
+    if (d == null) return false;
     final client = http.Client();
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
       final res = await client
           .get(Uri.parse('$base/manifest.json?t=$now'))
           .timeout(const Duration(seconds: 10));
-      if (res.statusCode != 200) return;
+      if (res.statusCode != 200) return false;
       final m = jsonDecode(res.body) as Map<String, dynamic>;
       final rev = (m['rev'] as num?)?.toInt();
       final schema = (m['schema'] as num?)?.toInt();
-      if (!shouldUseRemoteContent(bundledRev, rev, schema)) return;
+      if (!shouldUseRemoteContent(bundledRev, rev, schema)) return false;
       final file = (m['files'] as Map?)?[lang] as Map?;
-      if (file == null) return;
+      if (file == null) return false;
       final have = await saved(lang, bundledRev);
-      if (have != null && (have['contentRev'] as num?)?.toInt() == rev) return;
+      if (have != null && (have['contentRev'] as num?)?.toInt() == rev) return false;
       final body = await client
           .get(Uri.parse('$base/${file['path']}'))
           .timeout(const Duration(seconds: 60));
-      if (body.statusCode != 200) return;
-      if (file['bytes'] != null && body.bodyBytes.length != file['bytes']) return;
+      if (body.statusCode != 200) return false;
+      if (file['bytes'] != null && body.bodyBytes.length != file['bytes']) return false;
       final j = jsonDecode(utf8.decode(body.bodyBytes)) as Map<String, dynamic>;
-      if ((j['contentRev'] as num?)?.toInt() != rev || j['plans'] is! List) return;
+      if ((j['contentRev'] as num?)?.toInt() != rev || j['plans'] is! List) return false;
       final tmp = File('${d.path}/$lang.json.part');
       await tmp.writeAsBytes(body.bodyBytes, flush: true);
       await tmp.rename('${d.path}/$lang.json');
       debugPrint('TaiChi Flow content r$rev saved for $lang');
+      return true;
     } catch (e) {
       debugPrint('TaiChi Flow content check: $e');
+      return false;
     } finally {
       client.close();
     }
