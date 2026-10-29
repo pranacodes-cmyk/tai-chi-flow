@@ -17,7 +17,7 @@ String normalizeLine(String text) =>
 String? voiceVariant;
 
 /// FNV-1a (32-bit) over the UTF-8 bytes of the normalised line → "v" + 8 hex chars. A course voice
-/// ([variant], default [voiceVariant]; '' forces the app coach) hashes "<variant>|<line>", so the same
+/// ([variant], default [voiceVariant]; '' forces the app coach) hashes `"<variant>|<line>"`, so the same
 /// words in another voice get their own clip.
 String voiceKey(String text, {String? variant}) {
   final v = variant ?? voiceVariant ?? '';
