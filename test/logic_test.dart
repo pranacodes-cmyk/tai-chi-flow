@@ -116,38 +116,43 @@ void main() {
       final forms = days.expand((d) => d.items.where((it) => it.u?.k == 'form')).toList();
       expect(forms.map((it) => it.e).toList(), yang24);
       expect(forms.map((it) => it.u!.n).toList(), [for (var i = 1; i <= 24; i++) i]);
-      expect(
-        days[29].items.where((it) => it.p == 'Your sequence').map((it) => it.e).toList(),
-        yang24,
-      );
-      expect(days[0].items.first.f, 'lf-qi-rub');
+      expect(days[29].items.where((it) => yang24.contains(it.e)).map((it) => it.e).toList(), yang24);
     });
-    test('every journey day teaches two new skills, each shown twice (learn it, then with the breath)', () {
+    test('journey Day 1 opens calmly with a warm-up and every step plays its movement\'s own film', () {
+      final days = Content.i.plan(journeyId)!.days;
+      expect(days[0].items.take(2).map((it) => [it.e, it.p]).toList(), [
+        ['lifting-the-sky-shibashi', 'Warm-up'],
+        ['painting-a-rainbow-shibashi', 'Warm-up'],
+      ]);
+      expect(days.expand((d) => d.items.where((it) => it.f != null)).toList(), isEmpty);
+    });
+    test("every journey day teaches two new skills, each once (no 'with the breath' replay) with 15 s extra practice", () {
       final days = Content.i.plan(journeyId)!.days;
       for (var i = 0; i < days.length; i++) {
-        final items = days[i].items;
-        final firsts = [
-          for (var k = 0; k < items.length; k++)
-            if (items[k].lv?.n == 1) k,
-        ];
-        expect(firsts.length, 2, reason: 'day ${i + 1}');
-        for (final k in firsts) {
-          expect([items[k + 1].e, items[k + 1].lv?.n], [items[k].e, 2], reason: 'day ${i + 1}');
-          expect(items.where((x) => x.e == items[k].e && x.lv != null).length, 2, reason: 'day ${i + 1}');
+        final taught = days[i].items.where((it) => it.u != null).toList();
+        expect(taught.map((it) => it.p).toList(), ['New today', 'New today'], reason: 'day ${i + 1}');
+        expect(days[i].items.where((it) => it.lv != null), isEmpty, reason: 'day ${i + 1}');
+        for (final it in taught) {
+          expect([70, 80, 90], contains(it.s), reason: 'day ${i + 1} ${it.e}');
         }
       }
+      // Opening Form: was 65 s + a 55 s replay, now one 80 s practice; Wild Horse (long form) 90 s
+      expect(days[0].items.where((it) => it.u != null).map((it) => [it.e, it.s]).toList(), [
+        ['commencement-opening-form-standing', 80],
+        ['parting-the-wild-horses-mane-standing', 90],
+      ]);
     });
-    test('every journey step shows a demo first, except the forms flowing inside a sequence', () {
+    test('every journey step shows a demo first, except forms recalled or run in a practice flow', () {
       final days = Content.i.plan(journeyId)!.days;
       for (var i = 0; i < days.length; i++) {
         final items = days[i].items;
         for (var k = 0; k < items.length; k++) {
           final it = items[k];
           expect(it.w, isNotNull, reason: 'day ${i + 1} step ${k + 1}');
-          final flowing = it.p == 'Your sequence' && k > 0 && items[k - 1].p == 'Your sequence';
-          expect(it.w! > 0, !flowing, reason: 'day ${i + 1} step ${k + 1}');
-          // sequence forms are named as they start (the student flows on their own); every other step carries timed cues
-          if (it.p == 'Your sequence') {
+          final known = it.p == 'Flow' || it.p == 'Review';
+          expect(it.w! > 0, !known, reason: 'day ${i + 1} step ${k + 1}');
+          // known forms are named as they start (the student moves on their own); every other step carries timed cues
+          if (known) {
             expect(it.go, isNotNull, reason: 'day ${i + 1} step ${k + 1}');
           } else {
             expect(it.c, isNotEmpty, reason: 'day ${i + 1} step ${k + 1}');
@@ -156,7 +161,7 @@ void main() {
         expect([days[i].intro?.film, days[i].outro?.film], ['lf-tutor-welcome', 'lf-tutor-congrats']);
       }
     });
-    test('outside the two teaching levels no movement plays twice inside one journey lesson, and frail-looking warm-ups never appear', () {
+    test('no movement plays twice inside one journey lesson, and frail-looking warm-ups never appear', () {
       final days = Content.i.plan(journeyId)!.days;
       const frail = [
         'full-body-shaking-qigong',
@@ -167,7 +172,7 @@ void main() {
         'full-body-breathing-qigong',
       ];
       for (var i = 0; i < days.length; i++) {
-        final ids = days[i].items.where((it) => it.lv == null).map((it) => it.e).toList();
+        final ids = days[i].items.map((it) => it.e).toList();
         expect(ids.toSet().length, ids.length, reason: 'day ${i + 1}');
         expect(days[i].items.map((it) => it.e).where(frail.contains).toList(), isEmpty, reason: 'day ${i + 1}');
       }
@@ -230,17 +235,33 @@ void main() {
         }
       }
     });
+    test('Tai Chi Warrior is a 30-day Expert Plus course voiced by Master Wei (web master-course.test.ts)', () {
+      final p = Content.i.plan('tai-chi-warrior-30')!;
+      expect(p.days.length, 30);
+      expect(p.level, 'Expert');
+      expect(p.group, 'Tai Chi');
+      expect(p.premium, isTrue);
+      expect(p.freeDays, 0);
+      expect(p.voice, 'master');
+      expect(resolveSession('plan:tai-chi-warrior-30:1')!.voice, 'master');
+      expect(resolveSession('plan:tai-chi-journey-30:1')!.voice, isNull);
+      for (final d in p.days) {
+        final ids = d.items.map((i) => i.e).toList();
+        expect(ids.toSet().length, ids.length, reason: 'day ${d.day}');
+        expect(ids.every((e) => e.endsWith('-master')), isTrue, reason: 'day ${d.day}');
+      }
+    });
     test('the daily Tai Chi practice runs 28 days', () {
       expect(Content.i.dailyPlanIds, ['seated-tai-chi']);
       for (final id in Content.i.dailyPlanIds) {
         expect(Content.i.plan(id)!.days.length, 28);
       }
     });
-    test('the catalogue ships 11 courses and 20 single sessions, every one on a shelf', () {
+    test('the catalogue ships 12 courses and 20 single sessions, every one on a shelf', () {
       final c = Content.i;
       final courses = c.plans.where((p) => p.days.length > 1).toList();
       final sessions = c.plans.where((p) => p.days.length == 1).toList();
-      expect(courses.length, 11);
+      expect(courses.length, 12);
       expect(sessions.length, 20);
       for (final p in courses) {
         expect(c.planGroups, contains(p.group));
@@ -262,22 +283,18 @@ void main() {
         }
       }
     });
-    test('Journey day 1 teaches Opening and Wild Horse as skills, twice each', () {
-      final p = Content.i.plan('tai-chi-journey-30');
-      expect(p, isNotNull);
-      if (p == null) return;
-      expect(
-        p.days[0].items
-            .where((it) => it.e == 'commencement-opening-form-standing')
-            .length,
-        2,
-      );
-      expect(
-        p.days[0].items
-            .where((it) => it.e == 'parting-the-wild-horses-mane-standing')
-            .length,
-        2,
-      );
+    test('Journey day 1 teaches Opening and Wild Horse as skills, once each', () {
+      final day = Content.i.plan('tai-chi-journey-30')!.days[0];
+      expect(day.items.where((it) => it.e == 'commencement-opening-form-standing').length, 1);
+      expect(day.items.where((it) => it.e == 'parting-the-wild-horses-mane-standing').length, 1);
+    });
+    test('no lesson in any course plays the same movement twice (the kept step practises longer instead)', () {
+      for (final p in Content.i.plans) {
+        for (var i = 0; i < p.days.length; i++) {
+          final ids = p.days[i].items.map((it) => it.e).toList();
+          expect(ids.toSet().length, ids.length, reason: '${p.id} day ${i + 1}');
+        }
+      }
     });
     test('lesson cue precedes normal instructions and older items keep existing guidance', () {
       final ex = Content.i.exercise('commencement-opening-form-standing');
@@ -771,6 +788,9 @@ void main() {
       expect(voiceKey('Breathe in'), 'v1c9247bd');
       expect(voiceKey('Session complete. Beautifully done.'), 'vd714375a');
       expect(voiceKey('Tai Chi · 太極 — calm'), 'vf69244b6');
+      // a course with its own coach (Master Wei) namespaces its keys; the app coach's never change
+      expect(voiceKey('Breathe in', variant: 'master'), 'v80b33dc5');
+      expect(voiceKey('Breathe in', variant: ''), 'v1c9247bd');
     });
     test('every line the players speak has a natural-voice clip or recorded provider refusal', () {
       final blockedFile =
@@ -1086,8 +1106,9 @@ void main() {
       expect(shouldUseRemoteContent(5, 4, 1), isFalse);
     });
     test('ignores a newer layout or a missing manifest', () {
-      expect(shouldUseRemoteContent(1, 2, 3), isFalse);
-      expect(shouldUseRemoteContent(1, 2, 2), isTrue);
+      expect(shouldUseRemoteContent(1, 2, kContentSchema + 1), isFalse);
+      expect(shouldUseRemoteContent(1, 2, kContentSchema), isTrue);
+      expect(shouldUseRemoteContent(1, 2, 2), isTrue); // older layouts stay readable
       expect(shouldUseRemoteContent(1, null, 1), isFalse);
     });
   });
@@ -1161,6 +1182,14 @@ void main() {
       expect(newSkillItems(const [SessionItem('x', 1, 'New today'), SessionItem('x', 1, 'New today')]).map((it) => it.e).toList(), ['x']);
       expect(formsLearned(guided), 3);
     });
+    test('Day 1 lists its two new skills in every language, even with translated phase labels', () {
+      for (final lang in ['en', 'de', 'ja']) {
+        final j = jsonDecode(File(lang == 'en' ? 'assets/data/content.json' : 'assets/data/i18n/content.$lang.json').readAsStringSync()) as Map<String, dynamic>;
+        final plan = (j['plans'] as List).cast<Map<String, dynamic>>().firstWhere((p) => p['id'] == 'tai-chi-journey-30');
+        final items = (((plan['days'] as List).first as Map)['items'] as List).map((x) => SessionItem.fromJson(x as Map<String, dynamic>)).toList();
+        expect(newSkillItems(items).map((it) => it.e).toList(), ['commencement-opening-form-standing', 'parting-the-wild-horses-mane-standing'], reason: lang);
+      }
+    });
     test('the coach says Watch first / Your turn only on the first two demo steps', () {
       expect([for (var k = 0; k < guided.length; k++) announcesTurn(guided, k)], [true, true, false, false]);
       expect(announcesTurn(const [SessionItem('a', 1), SessionItem('b', 1, null, null, null, null, 10), SessionItem('c', 1, null, null, null, null, 10)], 2), isTrue);
@@ -1175,6 +1204,83 @@ void main() {
         for (var k = 0; k < d.items.length; k++) {
           if (!announcesTurn(d.items, k)) expect((d.items[k].go ?? '').startsWith('Your turn'), isFalse, reason: d.title);
         }
+      }
+    });
+  });
+
+  // Mirrors the "meditation & breathing timeline" describe in src/lib/logic.test.ts
+  group('meditation & breathing timeline', () {
+    int cycleOf(List<int> p) => p.fold(0, (a, b) => a + b);
+
+    test('box breathing starts with an audible breath in and moves through every phase', () {
+      expect(breathAt([4, 4, 4, 4], 0), (phase: 0, left: 4, start: true, cycle: 0));
+      expect(breathAt([4, 4, 4, 4], 3), (phase: 0, left: 1, start: false, cycle: 0));
+      expect(breathAt([4, 4, 4, 4], 4), (phase: 1, left: 4, start: true, cycle: 0));
+      expect(breathAt([4, 4, 4, 4], 16), (phase: 0, left: 4, start: true, cycle: 1));
+    });
+
+    test('4-7-8 skips the empty rest phase and goes straight back to breathing in', () {
+      expect(breathAt([4, 7, 8, 0], 11), (phase: 2, left: 8, start: true, cycle: 0));
+      expect(breathAt([4, 7, 8, 0], 19), (phase: 0, left: 4, start: true, cycle: 1));
+    });
+
+    test('the breathing coach runs whole cycles for the chosen minutes', () {
+      expect(breathingCycles([4, 4, 4, 4], 3), 11);
+      expect(breathingCycles([4, 7, 8, 0], 1), 3);
+      expect(breathingCycles([4, 0, 6, 0], 5), 30);
+      expect(breathingCycles([4, 7, 8, 0], 0), 1);
+    });
+
+    test('a skip lands mid-line: the voice resumes that line from the same point', () {
+      final m = Meditation.fromJson({
+        'id': 't', 'title': 't', 'subtitle': 't', 'category': 'Breath', 'image': 'x', 'track': 'music-bamboo',
+        'theme': 'calm', 'minutes': 1, 'premium': false, 'breath': [4, 0, 4, 0],
+        'rounds': [{'t': 30, 'n': 2}],
+        'script': [{'t': 3, 'd': 5, 'text': 'a'}, {'t': 20, 'd': 4, 'text': 'b'}],
+      });
+      var at = meditationAt(m, 0);
+      expect((at.shown, at.starts, at.speaking, at.breath), (-1, -1, null, null));
+      at = meditationAt(m, 3);
+      expect((at.shown, at.starts, at.speaking), (0, 0, (index: 0, offset: 0.0)));
+      at = meditationAt(m, 6);
+      expect((at.shown, at.starts, at.speaking), (0, -1, (index: 0, offset: 3.0)));
+      at = meditationAt(m, 10);
+      expect((at.shown, at.speaking), (0, null));
+      expect(meditationAt(m, 30).breath, (round: 0, phase: 0, left: 4, start: true, cycle: 0));
+      final b34 = meditationAt(m, 34).breath!;
+      expect((b34.phase, b34.start), (2, true));
+      expect(meditationAt(m, 46).breath, isNull);
+      expect(resumesLine((index: 0, offset: 4.0), m), isTrue);
+      expect(resumesLine((index: 0, offset: 4.5), m), isFalse);
+    });
+
+    test('every meditation has its own script, ends in time and never talks over itself or a breath round', () {
+      final all = Content.i.meditations;
+      expect(all.map((m) => m.script.first.text).toSet().length, all.length);
+      for (final m in all) {
+        final total = m.minutes * 60;
+        for (var i = 0; i < m.script.length; i++) {
+          final l = m.script[i];
+          expect(l.d, greaterThan(0), reason: '${m.id} line $i has a clip length');
+          if (i + 1 < m.script.length) {
+            expect(l.t + l.d, lessThanOrEqualTo(m.script[i + 1].t), reason: '${m.id} line $i overlaps the next');
+          }
+          expect(l.t + l.d, lessThanOrEqualTo(total), reason: '${m.id} ends late');
+        }
+        for (final r in m.rounds ?? const <BreathRound>[]) {
+          final end = r.t + r.n * cycleOf(m.breath!);
+          expect(end, lessThanOrEqualTo(total));
+          for (final l in m.script) {
+            expect(l.t + l.d <= r.t || l.t >= end, isTrue, reason: '${m.id}: "${l.text}" talks over a breath round');
+          }
+        }
+      }
+    });
+
+    test('breath meditations explain the exercise before the first breath', () {
+      for (final m in Content.i.meditations.where((x) => x.breath != null)) {
+        final first = m.rounds!.first;
+        expect(m.script.where((l) => l.t < first.t).length, greaterThanOrEqualTo(3), reason: m.id);
       }
     });
   });

@@ -35,6 +35,12 @@ class Content {
       soundscapes = (j['soundscapes'] as List)
           .map((e) => Soundscape.fromJson(e))
           .toList(),
+      music = (j['music'] as List? ?? const [])
+          .map((e) => Soundscape.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      natureSounds = (j['natureSounds'] as List? ?? const [])
+          .map((e) => Soundscape.fromJson(e as Map<String, dynamic>))
+          .toList(),
       achievements = (j['achievements'] as List)
           .map((e) => Achievement.fromJson(e))
           .toList(),
@@ -158,7 +164,19 @@ class Content {
   final List<String> dailyPlanIds;
   final List<String> meditationCategories;
   final List<Meditation> meditations;
+  /// Every sound older builds list; current screens show [music] then [natureSounds].
   final List<Soundscape> soundscapes;
+
+  /// Zen music (Zen Garden ships in the app, the rest stream from the media server and are cached).
+  final List<Soundscape> music;
+  final List<Soundscape> natureSounds;
+
+  /// Music first, then nature sounds: what Meditate and the music pickers offer.
+  List<Soundscape> get sounds => music.isEmpty ? soundscapes : [...music, ...natureSounds];
+
+  /// Display entry for a track id, including retired sounds someone may still have picked.
+  Soundscape? sound(String id) =>
+      [...music, ...natureSounds, ...soundscapes].where((s) => s.id == id).firstOrNull;
   final List<Achievement> achievements;
   final List<DailyChallenge> dailyChallenges;
   final List<Quote> quotes;

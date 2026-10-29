@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../logic/logic.dart';
 import '../logic/coach.dart';
@@ -40,81 +41,137 @@ class BreatheScreen extends StatefulWidget {
   State<BreatheScreen> createState() => _BreatheScreenState();
 }
 
-class _BreatheScreenState extends State<BreatheScreen> {
+enum _Stage { setup, intro, breathing, closing }
+
+class _BreatheScreenState extends State<BreatheScreen> with WidgetsBindingObserver {
   String pid = 'box';
   int mins = 3;
-  bool running = false;
-  int left = 0;
-  Timer? _t;
-  late BreathCycle cycle = _makeCycle();
+  _Stage stage = _Stage.setup;
+
+  /// Seconds into the breathing part, and how many whole cycles it runs.
+  int sec = 0, cycles = 0;
+  Timer? _t, _safety;
+  late BreathCycle cycle = BreathCycle(pattern.p);
   late final AppState app = context.read<AppState>();
+
+  /// Calm music only (no bells or singing bowls): the composed breathing track, Zen Garden offline.
+  static const _music = 'zen-breath';
 
   ({String id, String name, String desc, List<int> p}) get pattern =>
       _patterns.firstWhere((x) => x.id == pid);
 
-  BreathCycle _makeCycle() => BreathCycle(
-    _patterns.firstWhere((x) => x.id == pid).p,
-    onPhase: (ph) {
-      Haptics.light();
-      if (app.audio.voice) {
-        Voice.say(
-          CoachLines.breath(
-            ph == BreathPhase.inhale
-                ? CoachBreath.inhale
-                : (ph == BreathPhase.exhale
-                      ? CoachBreath.exhale
-                      : CoachBreath.hold),
-          ),
-        );
-      }
-    },
-  );
+  int get _cycleLen => pattern.p.fold<int>(0, (a, b) => a + b);
+  bool get active => stage != _Stage.setup;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  // Minimised or screen locked: stop the session (the person starts again when back).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if ((state == AppLifecycleState.paused || state == AppLifecycleState.hidden) && active) _stop();
+  }
 
   @override
   void dispose() {
     _t?.cancel();
+    _safety?.cancel();
     cycle.dispose();
     Ambient.stop();
     Voice.stop();
+    WakelockPlus.disable();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   void _select(String id) {
-    if (running) return;
+    if (active) return;
     setState(() {
       pid = id;
       cycle.dispose();
-      cycle = _makeCycle();
+      cycle = BreathCycle(pattern.p);
     });
   }
 
+  /// Begin: a short spoken explanation (what, how, posture), then the first breath in.
   void _start() {
-    cycle.dispose();
-    cycle = _makeCycle();
     setState(() {
-      left = mins * 60;
-      running = true;
+      stage = _Stage.intro;
+      sec = 0;
+      cycles = breathingCycles(pattern.p, mins);
     });
-    cycle.setRunning(true);
-    Sfx.play('sfx-bell-start', 0.5);
-    Ambient.play('ambient-bowls', 0.35);
+    cycle.show(0, pattern.p[0]);
+    WakelockPlus.enable();
+    Ambient.play(_music, app.audio.musicVolume * 0.6);
+    if (app.audio.voice) {
+      Voice.say(CoachLines.breathIntro(pid), onDone: _beginBreathing);
+      _safety = Timer(const Duration(seconds: 40), _beginBreathing); // never wait forever on audio
+    } else {
+      _safety = Timer(const Duration(seconds: 6), _beginBreathing);
+    }
+  }
+
+  void _skipIntro() {
+    Voice.stop();
+    _beginBreathing();
+  }
+
+  void _beginBreathing() {
+    if (!mounted || stage != _Stage.intro) return;
+    _safety?.cancel();
+    setState(() {
+      stage = _Stage.breathing;
+      sec = 0;
+    });
+    _show(0);
     _t = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() => left--);
-      if (left <= 0) _complete();
+      if (sec + 1 >= cycles * _cycleLen) {
+        _finish();
+        return;
+      }
+      setState(() => sec++);
+      _show(sec);
     });
+  }
+
+  /// Orb + spoken cue for second [s]: the first second of every phase says it, starting with "Breathe in".
+  void _show(int s) {
+    final at = breathAt(pattern.p, s);
+    cycle.show(at.phase, at.left);
+    if (!at.start) return;
+    Haptics.light();
+    if (app.audio.voice) {
+      Voice.say(CoachLines.breath(const [CoachBreath.inhale, CoachBreath.hold, CoachBreath.exhale, CoachBreath.hold][at.phase]));
+    }
+  }
+
+  void _finish() {
+    _t?.cancel();
+    setState(() => stage = _Stage.closing);
+    if (app.audio.voice) {
+      Voice.say(CoachLines.breathClose(), onDone: _complete);
+      _safety = Timer(const Duration(seconds: 12), _complete);
+    } else {
+      _safety = Timer(const Duration(seconds: 3), _complete);
+    }
   }
 
   void _stop() {
     _t?.cancel();
-    cycle.setRunning(false);
-    setState(() => running = false);
+    _safety?.cancel();
+    setState(() => stage = _Stage.setup);
     Ambient.stop();
     Voice.stop();
+    WakelockPlus.disable();
   }
 
   void _complete() {
+    if (!mounted || stage != _Stage.closing) return;
+    final seconds = cycles * _cycleLen;
     _stop();
-    Sfx.play('sfx-bell-end', 0.6);
     final entry = HistoryEntry(
       id: '${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}${math.Random().nextInt(1 << 30).toRadixString(36)}',
       sessionId: 'breath:$pid',
@@ -122,12 +179,18 @@ class _BreatheScreenState extends State<BreatheScreen> {
       kind: 'meditation',
       image: 'med-mountains',
       completedAt: DateTime.now(),
-      durationSec: mins * 60,
+      durationSec: seconds,
       kcal: 0,
     );
     app.completeSession(entry);
     context.pushReplacement('/complete?id=${entry.id}');
   }
+
+  String get _subtitle => switch (stage) {
+    _Stage.intro => '${tr('coach.breathIntro${pid == 'box' ? 'Box' : (pid == '478' ? '478' : 'Calm')}')} ${tr('coach.breathPosture')}',
+    _Stage.closing => tr('coach.breathClose'),
+    _ => pattern.desc,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -170,14 +233,14 @@ class _BreatheScreenState extends State<BreatheScreen> {
                               : context.go('/meditate'),
                         ),
                         const Spacer(),
-                        if (running)
+                        if (active)
                           Glass(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 6,
                             ),
                             child: Text(
-                              formatClock(left),
+                              formatClock(math.max(0, cycles * _cycleLen - sec)),
                               style: T.label
                                   .copyWith(
                                     fontWeight: FontWeight.w700,
@@ -193,10 +256,14 @@ class _BreatheScreenState extends State<BreatheScreen> {
                     SizedBox(height: compact ? 8 : 16),
                     Text(tr('breathe.title'), style: T.displayLg.c(C.ivory)),
                     const SizedBox(height: 4),
-                    Text(
-                      pattern.desc,
-                      textAlign: TextAlign.center,
-                      style: T.bodySm.c(C.ivory.withValues(alpha: 0.65)),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      child: Text(
+                        _subtitle,
+                        key: ValueKey(_subtitle),
+                        textAlign: TextAlign.center,
+                        style: T.bodySm.c(C.ivory.withValues(alpha: 0.65)),
+                      ),
                     ),
                     SizedBox(
                       height: compact
@@ -205,12 +272,17 @@ class _BreatheScreenState extends State<BreatheScreen> {
                       child: Center(
                         child: BreathOrb(
                           cycle: cycle,
-                          running: running,
+                          running: stage == _Stage.breathing,
                           size: orbSize,
+                          idleLabel: switch (stage) {
+                            _Stage.intro => tr('breathOrb.getReady'),
+                            _Stage.closing => tr('breathOrb.breatheNaturally'),
+                            _ => null,
+                          },
                         ),
                       ),
                     ),
-                    if (!running) ...[
+                    if (!active) ...[
                       Row(
                         children: [
                           for (final (i, x) in _patterns.indexed) ...[
@@ -292,12 +364,29 @@ class _BreatheScreenState extends State<BreatheScreen> {
                         variant: BtnVariant.ivory,
                         onTap: _start,
                       ),
-                    ] else
+                    ] else ...[
+                      if (stage == _Stage.intro) ...[
+                        Pressable(
+                          onTap: _skipIntro,
+                          semanticLabel: tr('breathe.skipIntro'),
+                          child: Container(
+                            constraints: const BoxConstraints(minHeight: 44),
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              tr('breathe.skipIntro'),
+                              style: T.label.copyWith(fontWeight: FontWeight.w700, color: C.ivory.withValues(alpha: 0.85)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                       EnsoButton(
                         label: tr('breathe.stop'),
                         variant: BtnVariant.glass,
                         onTap: _stop,
                       ),
+                    ],
                   ],
                 ),
               ),

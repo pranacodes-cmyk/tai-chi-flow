@@ -46,7 +46,8 @@ void main() {
     '/movements', '/reminders', '/settings', '/edit-profile', '/plan/$starter', '/plan/$premium',
     '/category/${c.categories.first.id}', '/exercise/${c.exercises.first.id}', '/guide/${c.guides.first.id}',
     '/legal/privacy', '/paywall?from=onboarding&offer=regular', '/paywall?offer=gift', '/paywall?offer=exit',
-    '/session/quick:$quick', '/plan-ready',
+    '/session/quick:$quick', '/plan-ready', '/breathe', '/meditation/${c.meditations.first.id}',
+    '/meditation/${c.meditations.firstWhere((m) => m.breath != null).id}',
   ];
   // English at both widths; every other language (longer German/French words, Japanese glyphs)
   // at the tightest width.

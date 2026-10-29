@@ -168,6 +168,9 @@ class Session {
   /// Guided lessons: tutor welcome / congratulations films and the calm check-in.
   final LessonTutor? intro, outro;
   final bool check;
+
+  /// Coach voice of the course (Plan.voice), spoken by the player.
+  final String? voice;
   const Session({
     required this.id,
     required this.kind,
@@ -182,6 +185,7 @@ class Session {
     this.intro,
     this.outro,
     this.check = false,
+    this.voice,
   });
 }
 
@@ -421,13 +425,17 @@ int formsLearned(List<SessionItem> items) => items.fold(
   (n, it) => it.u?.k == 'form' && it.u?.n != null ? math.max(n, it.u!.n!) : n,
 );
 
-/// The new skills a lesson teaches, once each: guided steps at teaching level 1, else
-/// legacy steps labelled "New today" (English content), without repeats.
+/// The new skills a lesson teaches, once each: guided steps at teaching level 1, else steps that
+/// unlock a skill (single-pass lessons; works in every language), else legacy steps labelled
+/// "New today" (English content), without repeats.
 List<SessionItem> newSkillItems(List<SessionItem> items) {
   final guided = items.where((it) => it.lv?.n == 1).toList();
+  final unlocked = items.where((it) => it.u != null).toList();
   final pick = guided.isNotEmpty
       ? guided
-      : items.where((it) => it.p == 'New today').toList();
+      : unlocked.isNotEmpty
+          ? unlocked
+          : items.where((it) => it.p == 'New today').toList();
   final seen = <String>{};
   return [
     for (final it in pick)
@@ -594,6 +602,7 @@ Session? resolveSession(String id) {
       baseKcal: day.kcal,
       intro: day.intro,
       outro: day.outro,
+      voice: plan.voice,
       check: day.check,
       planId: plan.id,
       day: day.day,
@@ -650,6 +659,80 @@ bool isMeditationLocked(String id, bool premium) {
   final m = Content.i.meditation(id);
   return m != null && m.premium && !premium;
 }
+
+// ------------------------------------------------------------ meditation & breathing timeline
+
+/// Breath phase [sec] whole seconds into a round of [pattern] (`[in, hold, out, rest]`, zero-length
+/// phases skipped): phase index 0–3, whole seconds left in it, whether [sec] is its first second
+/// (when the cue is spoken) and which cycle it belongs to (web `breathAt`).
+({int phase, int left, bool start, int cycle}) breathAt(List<int> pattern, int sec) {
+  final cycleLen = pattern.fold<int>(0, (a, b) => a + b);
+  if (cycleLen <= 0) return (phase: 0, left: 0, start: false, cycle: 0);
+  final s = math.max(0, sec);
+  var o = s % cycleLen;
+  for (var i = 0; i < 4 && i < pattern.length; i++) {
+    final p = pattern[i];
+    if (o < p) return (phase: i, left: p - o, start: o == 0, cycle: s ~/ cycleLen);
+    o -= p;
+  }
+  return (phase: 0, left: pattern.first, start: false, cycle: s ~/ cycleLen);
+}
+
+/// Whole breath cycles the breathing coach runs for [minutes] (at least one, rounded to the nearest
+/// cycle so a session always ends after a full breath out).
+int breathingCycles(List<int> pattern, int minutes) {
+  final cycleLen = pattern.fold<int>(0, (a, b) => a + b);
+  if (cycleLen <= 0) return 0;
+  return math.max(1, (minutes * 60 / cycleLen).round());
+}
+
+/// Breath rounds of a meditation; breath content without rounds (older content) breathes throughout.
+List<BreathRound> meditationRounds(Meditation m) {
+  final b = m.breath;
+  if (b == null) return const [];
+  if (m.rounds != null) return m.rounds!;
+  final cycleLen = b.fold<int>(0, (a, x) => a + x);
+  return cycleLen <= 0 ? const [] : [BreathRound(0, (m.minutes * 60 / cycleLen).ceil())];
+}
+
+/// What a meditation is doing [sec] seconds in (web `meditationAt`): the latest line that has started
+/// (its words stay on screen), the line that starts exactly now, the line still being spoken with how
+/// far into its clip, and the breath round in progress with its phase.
+({
+  int shown,
+  int starts,
+  ({int index, double offset})? speaking,
+  ({int round, int phase, int left, bool start, int cycle})? breath,
+}) meditationAt(Meditation m, int sec) {
+  var shown = -1, starts = -1;
+  ({int index, double offset})? speaking;
+  for (var i = 0; i < m.script.length; i++) {
+    final l = m.script[i];
+    if (l.t > sec) break;
+    shown = i;
+    if (l.t == sec) starts = i;
+    if (sec < l.t + l.d) speaking = (index: i, offset: (sec - l.t).toDouble());
+  }
+  ({int round, int phase, int left, bool start, int cycle})? breath;
+  final pattern = m.breath;
+  if (pattern != null) {
+    final rounds = meditationRounds(m);
+    final cycleLen = pattern.fold<int>(0, (a, b) => a + b);
+    for (var r = 0; r < rounds.length; r++) {
+      final o = sec - rounds[r].t;
+      if (o >= 0 && o < rounds[r].n * cycleLen) {
+        final at = breathAt(pattern, o);
+        breath = (round: r, phase: at.phase, left: at.left, start: at.start, cycle: at.cycle);
+        break;
+      }
+    }
+  }
+  return (shown: shown, starts: starts, speaking: speaking, breath: breath);
+}
+
+/// A line resumed or skipped into is played from its middle only while enough of it is left to follow.
+bool resumesLine(({int index, double offset})? speaking, Meditation m) =>
+    speaking != null && m.script[speaking.index].d - speaking.offset >= 0.8;
 
 /// Player-entry guard: direct routes obey the same day gate as program screens.
 bool isSessionLocked(String sessionId, bool premium) {
@@ -880,8 +963,8 @@ String? paywallSurveyOffer(String? reason, {bool trialAvailable = true}) => swit
   _ => null,
 };
 
-/// Content file layout version this app build understands; bump only when the shape changes incompatibly (2 = guided lessons).
-const int kContentSchema = 2;
+/// Content file layout version this app build understands; bump only when the shape changes incompatibly (2 = guided lessons, 3 = timed meditations with breath rounds and streamed music, 4 = courses with their own coach voice).
+const int kContentSchema = 4;
 
 /// Whether a published remote content update should replace the content the app shipped with:
 /// only a strictly newer revision, in a layout this build can read, so an old remote update never

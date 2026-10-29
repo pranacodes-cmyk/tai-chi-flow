@@ -99,6 +99,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (session == null) return;
+    voiceVariant = session!.voice; // a course with its own coach (Master Wei) speaks in his voice
     WakelockPlus.enable();
     AnalyticsService.capture('lesson_started', {'session_id': widget.sessionId, 'items': items.length});
     Sfx.play('sfx-bell-start', 0.6);
@@ -116,6 +117,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     // A finished session hands over to the completion screen while the
     // closing line is still playing; stopping here would cut it mid-word.
     if (!finished) Voice.stop();
+    voiceVariant = null;
     Ambient.stop();
     WakelockPlus.disable();
     WidgetsBinding.instance.removeObserver(this);
@@ -872,24 +874,25 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             ],
           ),
         ),
+        // Compact coaching block (Oct 29: ~40 px slimmer, so the film gains 10-15% on short phones).
         Padding(
-          padding: EdgeInsets.fromLTRB(24, 16, 24, bottom + 12),
+          padding: EdgeInsets.fromLTRB(24, 10, 24, bottom + 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Always reserve the phase line so every course's film is the same height.
               Eyebrow(it.p ?? '\u00a0', color: C.sage),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 it.t ?? ex.name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: T.title.copyWith(fontSize: 24, color: C.ivory),
+                style: T.title.copyWith(fontSize: 22, color: C.ivory),
               ),
               Container(
-                constraints: const BoxConstraints(minHeight: 84),
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                constraints: const BoxConstraints(minHeight: 72),
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 alignment: Alignment.center,
                 child: Text(
                   _guidance(ex),
@@ -901,9 +904,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
               ),
               Text(
                 formatClock(remaining),
-                style: T.displayMd.copyWith(fontSize: 32, color: C.ivory).tab,
+                style: T.displayMd.copyWith(fontSize: 28, color: C.ivory).tab,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -919,12 +922,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     onTap: _togglePlay,
                     semanticLabel: running ? tr('common.pause') : tr('common.play'),
                     child: Container(
-                      width: 64,
-                      height: 64,
+                      width: 56,
+                      height: 56,
                       decoration: const BoxDecoration(color: C.ivory, shape: BoxShape.circle),
                       child: Icon(
                         running ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                        size: 34,
+                        size: 30,
                         color: C.ink,
                       ),
                     ),
@@ -939,7 +942,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               ClipRRect(
                 borderRadius: BorderRadius.circular(2),
                 child: LinearProgressIndicator(
@@ -1155,7 +1158,7 @@ class _SoundSheet extends StatelessWidget {
             crossAxisSpacing: 8,
             childAspectRatio: 1.35,
             children: [
-              for (final s in Content.i.soundscapes)
+              for (final s in Content.i.sounds)
                 Pressable(
                   onTap: () {
                     app.setAudio((x) {

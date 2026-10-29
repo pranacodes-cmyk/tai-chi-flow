@@ -202,9 +202,7 @@ class NowPlayingPill extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: Ambient.state,
       builder: (context, st, _) {
-        final scape = Content.i.soundscapes
-            .where((s) => s.id == st.key)
-            .firstOrNull;
+        final scape = Content.i.sound(st.key);
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 320),
           switchInCurve: Curves.easeOutBack,

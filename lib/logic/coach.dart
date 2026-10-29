@@ -12,10 +12,17 @@ import '../i18n/i18n.dart';
 String normalizeLine(String text) =>
     text.trim().replaceAll(RegExp(r'\s+'), ' ');
 
-/// FNV-1a (32-bit) over the UTF-8 bytes of the normalised line → "v" + 8 hex chars.
-String voiceKey(String text) {
+/// The coach voice the lesson player is speaking with: null = the app coach, `master` = Master Wei
+/// (set by the player for a course with its own voice, cleared when it closes).
+String? voiceVariant;
+
+/// FNV-1a (32-bit) over the UTF-8 bytes of the normalised line → "v" + 8 hex chars. A course voice
+/// ([variant], default [voiceVariant]; '' forces the app coach) hashes "<variant>|<line>", so the same
+/// words in another voice get their own clip.
+String voiceKey(String text, {String? variant}) {
+  final v = variant ?? voiceVariant ?? '';
   var h = 0x811c9dc5;
-  for (final b in utf8.encode(normalizeLine(text))) {
+  for (final b in utf8.encode(v.isEmpty ? normalizeLine(text) : '$v|${normalizeLine(text)}')) {
     h ^= b;
     h = (h * 0x01000193) & 0xFFFFFFFF;
   }
@@ -91,6 +98,16 @@ class CoachLines {
   ];
 
   static List<String> finish() => [tr('coach.finish')];
+
+  /// Breathing coach, before the first breath: what the pattern does, how to breathe it, posture,
+  /// then the first breath out (web `breathIntro`).
+  static List<String> breathIntro(String pattern) {
+    final k = pattern == 'box' ? 'Box' : (pattern == '478' ? '478' : 'Calm');
+    return [tr('coach.breathIntro$k'), tr('coach.breathHow$k'), tr('coach.breathPosture'), tr('coach.breathBegin')];
+  }
+
+  /// Breathing coach, after the last breath.
+  static List<String> breathClose() => [tr('coach.breathClose')];
 
   static List<String> breath(CoachBreath phase) => [
     phase == CoachBreath.inhale

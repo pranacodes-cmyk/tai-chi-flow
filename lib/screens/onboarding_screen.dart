@@ -85,9 +85,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _timers.clear();
   }
 
-  bool _speak(List<String> lines, {VoidCallback? onDone}) {
+  bool _speak(
+    List<String> lines, {
+    VoidCallback? onDone,
+    bool interrupt = true,
+  }) {
     if (!sound || lines.isEmpty) return false;
-    Voice.say(lines, onDone: onDone);
+    Voice.say(lines, onDone: onDone, interrupt: interrupt);
     return true;
   }
 
@@ -138,7 +142,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _speak(CoachLines.onbBreath(CoachBreath.inhale));
     }
     if (phase == BreathPhase.exhale) {
-      _speak(CoachLines.onbBreath(CoachBreath.exhale));
+      // The inhale clip (~4.1 s + load time) outlasts the 4 s inhale; queue the
+      // exhale after it instead of cutting the last words off.
+      _speak(CoachLines.onbBreath(CoachBreath.exhale), interrupt: false);
     }
   }
 

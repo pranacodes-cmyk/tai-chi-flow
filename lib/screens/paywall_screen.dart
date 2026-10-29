@@ -227,8 +227,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         padding: const EdgeInsets.only(top: 8),
                         child: _OfferCard(offer: o, compact: false, selected: selected == o.id, onTap: busy ? null : () { setState(() => selected = o.id); AnalyticsService.capture('plan_selected', {'plan': o.id, 'variant': variant}); }),
                       ),
-                      Wrap(alignment: WrapAlignment.center, children: [
-                        if ((variant == 'standard' || variant == 'regular') && widget.from == 'onboarding') EnsoButton(label: tr('paywall.viewAllPlans'), variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () => context.push('/paywall?from=${widget.from}&offer=gift')),
+                       Wrap(alignment: WrapAlignment.center, children: [
                         EnsoButton(label: tr('paywall.restorePurchase'), variant: BtnVariant.ghost, size: BtnSize.sm, expand: false, onTap: busy ? null : () async {
                           final app = context.read<AppState>();
                           final restored = await PurchaseService.restore();

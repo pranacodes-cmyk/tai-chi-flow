@@ -48,9 +48,13 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> with Wi
   int elapsed = 0;
   bool running = false, downloading = false, done = false;
   int? sleepAt;
-  final spoken = <int>{};
   Timer? _t;
+
+  /// Display model of the breath orb, driven from the timeline (`meditationAt`), never its own timer.
   BreathCycle? cycle;
+
+  /// Whether the timeline is inside a breath round right now (breath meditations only).
+  bool inRound = false;
 
   int get total => m!.minutes * 60;
 
@@ -59,25 +63,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> with Wi
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     AnalyticsService.capture('meditation_opened', {'meditation_id': widget.meditationId});
-    if (m?.breath != null) {
-      cycle = BreathCycle(
-        m!.breath!,
-        onPhase: (p) {
-          Haptics.light();
-          if (app.audio.voice && elapsed < 60) {
-            Voice.say(
-              CoachLines.breath(
-                p == BreathPhase.inhale
-                    ? CoachBreath.inhale
-                    : (p == BreathPhase.exhale
-                          ? CoachBreath.exhale
-                          : CoachBreath.hold),
-              ),
-            );
-          }
-        },
-      );
-    }
+    if (m?.breath != null) cycle = BreathCycle(m!.breath!);
   }
 
   @override
@@ -108,12 +94,12 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> with Wi
 
   void _setRunning(bool v) {
     setState(() => running = v);
-    cycle?.setRunning(v);
     _t?.cancel();
     if (v) {
       WakelockPlus.enable();
-      Ambient.play(m!.track, app.audio.musicVolume * 0.8);
+      Ambient.play(m!.music, app.audio.musicVolume * 0.8);
       _t = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+      _sync(); // carry on mid-line where it paused
     } else {
       WakelockPlus.disable();
       Ambient.pause();
@@ -121,16 +107,38 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> with Wi
     }
   }
 
+  /// Orb follows the breath round at the current second (or rests between rounds).
+  void _showBreath(({int round, int phase, int left, bool start, int cycle})? b) {
+    if (cycle == null) return;
+    inRound = b != null;
+    if (b != null) cycle!.show(b.phase, b.left);
+  }
+
+  /// Re-aligns voice and orb with [elapsed] after a skip, a pause or a fresh start: the line being
+  /// spoken at this second continues from the same point of its clip.
+  void _sync() {
+    final at = meditationAt(m!, elapsed);
+    _showBreath(at.breath);
+    Voice.stop();
+    if (!running || !app.audio.voice) return;
+    final sp = at.speaking;
+    if (resumesLine(sp, m!)) {
+      Voice.say([m!.script[sp!.index].text], startAt: Duration(milliseconds: (sp.offset * 1000).round()));
+    }
+  }
+
   void _tick() {
+    if (elapsed >= total) return;
     setState(() => elapsed = math.min(total, elapsed + 1));
-    final due = m!.script
-        .where(
-          (l) => l.t <= elapsed && !spoken.contains(l.t) && elapsed - l.t < 3,
-        )
-        .firstOrNull;
-    if (due != null && m!.breath == null) {
-      spoken.add(due.t);
-      if (app.audio.voice) Voice.say([due.text]);
+    final at = meditationAt(m!, elapsed);
+    _showBreath(at.breath);
+    if (at.starts >= 0) {
+      if (app.audio.voice) Voice.say([m!.script[at.starts].text]);
+    } else if (at.breath != null && at.breath!.start) {
+      Haptics.light();
+      if (app.audio.voice) {
+        Voice.say(CoachLines.breath(const [CoachBreath.inhale, CoachBreath.hold, CoachBreath.exhale, CoachBreath.hold][at.breath!.phase]));
+      }
     }
     if (sleepAt != null && elapsed >= sleepAt!) {
       sleepAt = null;
@@ -140,9 +148,8 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> with Wi
     if (elapsed >= total && !done) {
       done = true;
       _setRunning(false);
-      Sfx.play('sfx-bell-end', 0.6);
       final id = _save(total);
-      Future.delayed(const Duration(milliseconds: 900), () {
+      Future.delayed(const Duration(milliseconds: 1200), () {
         if (mounted) context.pushReplacement('/complete?id=$id');
       });
     }
@@ -155,13 +162,13 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> with Wi
       context.push('/paywall?from=meditation');
       return;
     }
-    if (!running && elapsed == 0) Sfx.play('sfx-bell-start', 0.5);
     _setRunning(!running);
   }
 
+  /// ±15 s moves the whole timeline: subtitles, the voice (mid-line if needed) and the breath orb.
   void _seek(int d) {
     setState(() => elapsed = (elapsed + d).clamp(0, total - 1));
-    spoken.clear();
+    _sync();
   }
 
   Future<void> _close() async {
@@ -327,9 +334,9 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> with Wi
     final watch = context.watch<AppState>();
     final downloaded = watch.downloads.contains(m!.id);
     final fav = watch.favorites.contains('med:${m!.id}');
-    final line =
-        m!.script.reversed.where((l) => l.t <= elapsed).firstOrNull?.text ??
-        m!.subtitle;
+    // during a breath round the orb leads, so the words step back to the meditation's own subtitle
+    final at = meditationAt(m!, elapsed);
+    final line = at.breath != null || at.shown < 0 ? m!.subtitle : m!.script[at.shown].text;
     final top = topInset(context);
 
     return PopScope(
@@ -440,7 +447,12 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> with Wi
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (cycle != null)
-                          BreathOrb(cycle: cycle!, running: running, size: 270)
+                          BreathOrb(
+                            cycle: cycle!,
+                            running: running && inRound,
+                            size: 270,
+                            idleLabel: running ? tr('breathOrb.breatheNaturally') : null,
+                          )
                         else
                           CalmOrb(running: running, size: 270),
                         const SizedBox(height: 24),

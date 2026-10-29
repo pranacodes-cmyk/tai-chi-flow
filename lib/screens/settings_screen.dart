@@ -182,7 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisSpacing: 12,
                     childAspectRatio: 1.7,
                     children: [
-                      for (final s in Content.i.soundscapes)
+                      for (final s in Content.i.sounds)
                         Pressable(
                           onTap: () {
                             app.setAudio((x) {

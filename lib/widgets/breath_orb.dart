@@ -13,7 +13,7 @@ String _phaseLabel(BreathPhase phase) => switch (phase) {
   BreathPhase.inhale => tr('breathOrb.breatheIn'),
   BreathPhase.hold => tr('breathOrb.hold'),
   BreathPhase.exhale => tr('breathOrb.breatheOut'),
-  BreathPhase.rest => tr('breathOrb.rest'),
+  BreathPhase.rest => tr('breathOrb.hold'), // the empty-lungs pause is spoken as "Hold", so it reads the same
 };
 
 /// Drives an [inhale, hold, exhale, hold] cycle once per second (web useBreathCycle).
@@ -49,6 +49,17 @@ class BreathCycle extends ChangeNotifier {
     });
   }
 
+  /// Show a phase chosen by the caller (players that derive the breath from their timeline with
+  /// `breathAt`, so skipping and resuming keep the orb in step with the voice).
+  void show(int phaseIndex, int secondsLeft) {
+    _t?.cancel();
+    final p = BreathPhase.values[phaseIndex.clamp(0, 3)];
+    if (p == phase && secondsLeft == left) return;
+    phase = p;
+    left = secondsLeft;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _t?.cancel();
@@ -62,10 +73,14 @@ class BreathOrb extends StatelessWidget {
     required this.cycle,
     required this.running,
     this.size = 260,
+    this.idleLabel,
   });
   final BreathCycle cycle;
   final bool running;
   final double size;
+
+  /// Shown instead of "Paused" while the orb rests (e.g. "Get ready", "Breathe naturally").
+  final String? idleLabel;
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -119,7 +134,8 @@ class BreathOrb extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    running ? cycle.label : tr('breathOrb.paused'),
+                    running ? cycle.label : (idleLabel ?? tr('breathOrb.paused')),
+                    textAlign: TextAlign.center,
                     style: T.title.c(C.ivory),
                   ),
                   if (running)

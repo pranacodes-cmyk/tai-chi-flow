@@ -11,13 +11,18 @@ const String kMediaBase =
 
 String filmPath(String film) => 'video/$film.mp4';
 
+/// Music loops (`audio/<key>.mp3`): Zen Garden ships in the app, composed zen tracks are streamed and cached.
+String musicPath(String key) => 'audio/$key.mp3';
+
 /// Fingerprint of a media path in a content `mediaRev` map: films by key, refreshed voice clips
-/// as `voice:<key>` (null otherwise; web `filmRev`).
+/// as `voice:<key>`, music as `audio:<key>` (null otherwise; web `filmRev`).
 String? filmRev(Map<String, String> revs, String path) =>
     path.startsWith('video/') && path.endsWith('.mp4')
     ? revs[path.substring(6, path.length - 4)]
     : path.startsWith('voice/') && path.endsWith('.m4a')
     ? revs['voice:${path.substring(6, path.length - 4)}']
+    : path.startsWith('audio/') && path.endsWith('.mp3')
+    ? revs['audio:${path.substring(6, path.length - 4)}']
     : null;
 
 /// Whether a bundled or saved copy with fingerprint [have] is the film content wants ([want]);
@@ -39,6 +44,7 @@ List<String> sessionMediaPaths(
   Set<String> available, {
   LessonTutor? intro,
   LessonTutor? outro,
+  String? voice,
 }) {
   final out = <String>[];
   void add(String p) {
@@ -47,7 +53,7 @@ List<String> sessionMediaPaths(
 
   void say(Iterable<String> lines) {
     for (final l in lines) {
-      final k = voiceKey(l);
+      final k = voiceKey(l, variant: voice ?? '');
       if (available.contains(k)) add(voicePath(k));
     }
   }
@@ -89,10 +95,11 @@ List<String> sessionMediaPaths(
   return out;
 }
 
-/// Narration clips of a meditation.
+/// Narration clips of a meditation, then its music (callers drop what ships in the app).
 List<String> meditationMediaPaths(Meditation m, Set<String> available) => [
-  for (final k in {for (final l in m.script) voiceKey(l.text)})
+  for (final k in {for (final l in m.script) voiceKey(l.text, variant: '')})
     if (available.contains(k)) voicePath(k),
+  musicPath(m.music),
 ];
 
 /// Share of a download that is complete, as a whole percent (0 when nothing is needed is 100).

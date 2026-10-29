@@ -51,8 +51,11 @@ class _LessonPrepareState extends State<LessonPrepare> {
         if (ph == BreathPhase.exhale) Voice.say(CoachLines.breath(CoachBreath.exhale));
       },
     )..setRunning(true);
-    // Soft music while the lesson gets ready, so the wait feels like part of the practice.
-    if (app.audio.music) Ambient.play(app.audio.musicTrack, app.audio.musicVolume * 0.6);
+    // Soft music while the lesson gets ready, so the wait feels like part of the practice. Started
+    // after the first frame: the now-playing listeners elsewhere must not rebuild during this build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_ready && app.audio.music) Ambient.play(app.audio.musicTrack, app.audio.musicVolume * 0.6);
+    });
     Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted && app.audio.voice && !_ready) {
         Voice.say(CoachLines.breath(CoachBreath.inhale));

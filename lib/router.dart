@@ -283,6 +283,7 @@ List<String> sessionPaths(String id) {
     Content.i.voice,
     intro: session.intro,
     outro: session.outro,
+    voice: session.voice,
   );
 }
 

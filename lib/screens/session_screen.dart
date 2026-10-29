@@ -42,10 +42,7 @@ class SessionScreen extends StatelessWidget {
         plan != null && isDayLocked(plan, session.day ?? 1, app.premium.active);
     final fav = app.favorites.contains(sessionId);
     final trackName =
-        Content.i.soundscapes
-            .where((s) => s.id == audio.musicTrack)
-            .firstOrNull
-            ?.name ??
+        Content.i.sound(audio.musicTrack)?.name ??
         'Zen Garden';
 
     return EnsoScaffold(

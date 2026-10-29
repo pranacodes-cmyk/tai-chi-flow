@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
@@ -21,9 +20,6 @@ Size filmBox(VideoPlayerController c, {required bool square}) =>
 /// 1.2 trims about 8% of plain wall per side; every film keeps at least 11% side margin.
 const double kFilmMaxZoom = 1.2;
 
-/// Seconds of cross-fade at the loop seam (web `LOOP_FADE`).
-const double kLoopFade = 0.6;
-
 /// Opens one of our films: bundled → downloaded lesson copy → streamed from the media server.
 /// [rel] is the media path (`video/<key>.mp4`); [network] is a licensed film URL instead.
 VideoPlayerController openFilm({String? rel, String? network}) {
@@ -45,7 +41,8 @@ VideoPlayerController openFilm({String? rel, String? network}) {
 /// Muted looping demo film for an exercise (web `DemoFilm`): licensed network media first,
 /// then our bundled demo asset. [film] names a dedicated lesson film (`lf-*`) to play instead,
 /// with its own poster. Shows the pose photo until the film is ready, and keeps it on failure.
-/// The loop seam cross-fades between two copies, so a restart never jumps back to the first pose.
+/// Films loop natively: each one is encoded with its own seamless seam (scripts/media/encode-film.py),
+/// so the player never blends two moments of the film (that blend double-exposed the instructor).
 class DemoFilm extends StatefulWidget {
   const DemoFilm({
     super.key,
@@ -73,16 +70,9 @@ class DemoFilm extends StatefulWidget {
   State<DemoFilm> createState() => _DemoFilmState();
 }
 
-class _DemoFilmState extends State<DemoFilm> with SingleTickerProviderStateMixin {
-  /// [_c] is the copy on top; [_back] waits at the start for the next seam.
-  VideoPlayerController? _c, _back;
+class _DemoFilmState extends State<DemoFilm> {
+  VideoPlayerController? _c;
   bool _ready = false;
-  Timer? _seam;
-  late final AnimationController _fade = AnimationController(
-    vsync: this,
-    duration: Duration(milliseconds: (kLoopFade * 1000).round()),
-  );
-  VideoPlayerController? _fadingOut;
 
   String? get _rel {
     if (widget.film != null) return 'video/${widget.film}.mp4';
@@ -112,59 +102,10 @@ class _DemoFilmState extends State<DemoFilm> with SingleTickerProviderStateMixin
           if (!mounted) return;
           setState(() => _ready = true);
           if (widget.playing) c.play();
-          // local films get a second copy for the seamless seam; streams keep native looping
-          if (rel != null && (MediaStore.isBundled(rel) || MediaStore.cached(rel) != null)) {
-            _prepareSeam(rel);
-          }
         })
         .catchError((Object _) {
           // photo stays visible
         });
-  }
-
-  void _prepareSeam(String rel) {
-    final b = openFilm(rel: rel);
-    b.setVolume(0);
-    b
-        .initialize()
-        .then((_) {
-          if (!mounted) {
-            b.dispose();
-            return;
-          }
-          final dur = b.value.duration.inMilliseconds / 1000;
-          if (dur < kLoopFade * 3) {
-            b.dispose();
-            return;
-          }
-          _back = b;
-          _c?.setLooping(false);
-          _seam = Timer.periodic(const Duration(milliseconds: 80), (_) => _checkSeam());
-        })
-        .catchError((Object _) {
-          b.dispose();
-        });
-  }
-
-  void _checkSeam() {
-    final cur = _c, next = _back;
-    if (cur == null || next == null || !widget.playing || _fade.isAnimating) return;
-    final dur = cur.value.duration.inMilliseconds / 1000;
-    final pos = cur.value.position.inMilliseconds / 1000;
-    if (dur <= 0 || pos < dur - kLoopFade) return;
-    next.seekTo(Duration.zero);
-    next.play();
-    setState(() {
-      _fadingOut = cur;
-      _c = next;
-      _back = cur;
-    });
-    _fade.forward(from: 0).whenComplete(() {
-      if (!mounted) return;
-      cur.pause();
-      cur.seekTo(Duration.zero);
-      setState(() => _fadingOut = null);
-    });
   }
 
   @override
@@ -176,39 +117,20 @@ class _DemoFilmState extends State<DemoFilm> with SingleTickerProviderStateMixin
       c.play();
     } else {
       c.pause();
-      _fadingOut?.pause();
     }
   }
 
   @override
   void dispose() {
-    _seam?.cancel();
-    _fade.dispose();
     _c?.dispose();
-    _back?.dispose();
     super.dispose();
   }
 
-  /// The film layer: the copy on top, with the outgoing copy underneath while the seam fades.
-  Widget _video(VideoPlayerController c, BoxFit fit, Alignment alignment) {
-    Widget layer(VideoPlayerController v) => FittedBox(
-      fit: fit,
-      alignment: alignment,
-      child: SizedBox.fromSize(
-        size: filmBox(v, square: _square),
-        child: VideoPlayer(v),
-      ),
-    );
-    final out = _fadingOut;
-    if (out == null) return layer(c);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        layer(out),
-        FadeTransition(opacity: _fade, child: layer(c)),
-      ],
-    );
-  }
+  Widget _video(VideoPlayerController c, BoxFit fit, Alignment alignment) => FittedBox(
+    fit: fit,
+    alignment: alignment,
+    child: SizedBox.fromSize(size: filmBox(c, square: _square), child: VideoPlayer(c)),
+  );
 
   @override
   Widget build(BuildContext context) {

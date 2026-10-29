@@ -232,9 +232,13 @@ class Plan {
   final int freeDays;
   final List<String> benefits;
   final List<PlanDay> days;
+
+  /// Coach voice of this course's lessons (e.g. `master` for Master Wei); null = the app coach.
+  final String? voice;
   bool get isSingleSession => days.length == 1;
   Plan.fromJson(Map<String, dynamic> j)
     : id = j['id'],
+      voice = j['voice'] as String?,
       kind = j['kind'] ?? 'challenge',
       premium = j['premium'] as bool? ?? false,
       freeDays = (j['freeDays'] as num? ?? 0).toInt(),
@@ -255,17 +259,37 @@ class Plan {
 class ScriptLine {
   final int t;
   final String text;
+
+  /// Length of this line's voice clip in seconds (0 in content from before timed narration).
+  final double d;
+  const ScriptLine(this.t, this.text, [this.d = 0]);
   ScriptLine.fromJson(Map<String, dynamic> j)
     : t = (j['t'] as num).toInt(),
-      text = j['text'];
+      text = j['text'],
+      d = (j['d'] as num?)?.toDouble() ?? 0;
+}
+
+/// A round of [n] whole breath cycles starting [t] seconds into a breath meditation.
+class BreathRound {
+  final int t, n;
+  const BreathRound(this.t, this.n);
+  BreathRound.fromJson(Map<String, dynamic> j)
+    : t = (j['t'] as num).toInt(),
+      n = (j['n'] as num).toInt();
 }
 
 class Meditation {
   final String id, title, subtitle, category, image, track, theme;
+
+  /// Zen music this meditation plays (content before the music list only had [track]).
+  final String music;
   final int minutes;
   final bool premium;
   final List<int>? breath;
   final List<ScriptLine> script;
+
+  /// Breath rounds of a breath meditation (null for other meditations and older content).
+  final List<BreathRound>? rounds;
   Meditation.fromJson(Map<String, dynamic> j)
     : id = j['id'],
       title = j['title'],
@@ -273,6 +297,10 @@ class Meditation {
       category = j['category'],
       image = j['image'],
       track = j['track'],
+      music = (j['music'] as String?) ?? j['track'],
+      rounds = (j['rounds'] as List?)
+          ?.map((e) => BreathRound.fromJson(e as Map<String, dynamic>))
+          .toList(),
       theme = j['theme'],
       minutes = (j['minutes'] as num).toInt(),
       premium = j['premium'] as bool,

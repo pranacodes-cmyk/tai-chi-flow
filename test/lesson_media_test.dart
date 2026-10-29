@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:enso/data/content.dart';
+import 'package:enso/data/models.dart';
 import 'package:enso/logic/coach.dart';
 import 'package:enso/logic/lesson_media.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,29 +16,33 @@ void main() {
     );
   });
 
-  test('journey Day 1 downloads its 12 films and 77 coach clips, tutor welcome first, no duplicates', () {
+  test('journey Day 1 downloads its 11 films and 65 coach clips, tutor welcome first, no duplicates', () {
     final day = Content.i.plan('tai-chi-journey-30')!.days.first;
     final paths = sessionMediaPaths(day.items, Content.i.exercise, Content.i.voice, intro: day.intro, outro: day.outro);
     final films = paths.where((p) => p.startsWith('video/')).toList();
-    expect(paths.length, 89);
-    expect(films.length, 12);
+    expect(paths.length, 76);
+    expect(films.length, 11);
     expect(paths.first, 'video/lf-tutor-welcome.mp4');
     expect(films.last, 'video/lf-tutor-congrats.mp4');
-    expect(films, contains('video/lf-qi-rub.mp4'));
+    expect(films, contains('video/mv-standing-parting-the-wild-horses-mane.mp4'));
+    expect(films, isNot(contains('video/lf-qi-rub.mp4')));
     expect(films, isNot(contains('video/lf-link-open-horse.mp4')));
     expect(paths.toSet().length, paths.length);
   });
 
   test("a step with its own lesson film never downloads the movement's usual film too", () {
-    final day = Content.i.plan('tai-chi-journey-30')!.days.first;
-    final qi = day.items.firstWhere((i) => i.f == 'lf-qi-rub');
-    final paths = sessionMediaPaths([qi], Content.i.exercise, Content.i.voice);
-    expect(paths.where((p) => p.startsWith('video/')).toList(), ['video/lf-qi-rub.mp4']);
+    final first = Content.i.plan('tai-chi-journey-30')!.days.first.items.first;
+    final own = SessionItem(first.e, first.s, first.p, first.g, first.t, first.lv, first.w, first.wl, first.go, first.c, 'lf-tutor-welcome');
+    final paths = sessionMediaPaths([own], Content.i.exercise, Content.i.voice);
+    expect(paths.where((p) => p.startsWith('video/')).toList(), ['video/lf-tutor-welcome.mp4']);
   });
 
-  test('Evening Wind-Down downloads its 13 narration clips', () {
+  test('Evening Wind-Down downloads each narration clip once, then its music', () {
     final m = Content.i.meditation('evening-wind-down')!;
-    expect(meditationMediaPaths(m, Content.i.voice).length, 13);
+    final paths = meditationMediaPaths(m, Content.i.voice);
+    expect(paths.length, {for (final l in m.script) voiceKey(l.text)}.length + 1);
+    expect(paths.toSet().length, paths.length);
+    expect(paths.last, 'audio/${m.music}.mp3');
   });
 
   test('the breathing cues spoken while a lesson downloads stay inside the app', () {

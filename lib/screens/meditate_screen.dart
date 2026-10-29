@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../data/content.dart';
+import '../data/models.dart';
 import '../logic/logic.dart';
 import '../services/audio_service.dart';
 import '../state/app_state.dart';
@@ -60,14 +61,105 @@ class _MeditateScreenState extends State<MeditateScreen> {
     }
   }
 
+  Widget _soundGrid(List<Soundscape> items) =>
+Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.45,
+                children: [
+                  for (final s in items)
+                    Pressable(
+                      onTap: () => _toggleSound(s.id),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: S.soft,
+                          border: Border.all(
+                            color: playing == s.id
+                                ? C.jade
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            EImage(img(s.image)),
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    const Color(0xFF111A15)
+                                        .withValues(alpha: 0.8),
+                                  ],
+                                  stops: const [0.2, 1],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              right: 12,
+                              top: 12,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: C.ivory.withValues(alpha: 0.9),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  playing == s.id
+                                      ? Icons.pause_rounded
+                                      : Icons.play_arrow_rounded,
+                                  size: 20,
+                                  color: C.ink,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: 14,
+                              bottom: 12,
+                              child: Row(
+                                children: [
+                                  if (playing == s.id) ...[
+                                    const _Equalizer(),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  Text(
+                                    s.name,
+                                    style: T.label.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: C.ivory,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
     final premium = app.premium.active;
     final c = Content.i;
-    final list = c.meditations
-        .where((m) => cat == 'All' || m.category == cat)
-        .toList();
+    final groups = [
+      for (final g in c.meditationCategories.where((g) => g != 'All' && (cat == 'All' || cat == g)))
+        (cat: g, items: c.meditations.where((m) => m.category == g).toList()),
+    ].where((g) => g.items.isNotEmpty).toList();
     final featured = c.meditation(
       featuredMeditationId(DateTime.now().hour, app.premium.active),
     )!;
@@ -241,113 +333,52 @@ class _MeditateScreenState extends State<MeditateScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final (i, m) in list.indexed)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Reveal(
-                        key: ValueKey('$cat-${m.id}'),
-                        delay: 0.04 + i * 0.025,
-                        child: MeditationRow(
-                          m,
-                          locked: isMeditationLocked(m.id, premium),
-                          onTap: () => _open(m.id, premium),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 26),
-            SectionHeader(tr('meditate.soundscapes')),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.45,
-                children: [
-                  for (final s in c.soundscapes)
-                    Pressable(
-                      onTap: () => _toggleSound(s.id),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: S.soft,
-                          border: Border.all(
-                            color: playing == s.id
-                                ? C.jade
-                                : Colors.transparent,
-                            width: 3,
-                          ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Stack(
-                          fit: StackFit.expand,
+                  // "All" is grouped by theme (catalogue order, free sessions lead each theme);
+                  // a picked theme is one list.
+                  for (final g in groups) ...[
+                    if (cat == 'All')
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(4, g == groups.first ? 4 : 18, 4, 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
                           children: [
-                            EImage(img(s.image)),
-                            DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.transparent,
-                                    const Color(0xFF111A15)
-                                        .withValues(alpha: 0.8),
-                                  ],
-                                  stops: const [0.2, 1],
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              right: 12,
-                              top: 12,
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: C.ivory.withValues(alpha: 0.9),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  playing == s.id
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                  size: 20,
-                                  color: C.ink,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              left: 14,
-                              bottom: 12,
-                              child: Row(
-                                children: [
-                                  if (playing == s.id) ...[
-                                    const _Equalizer(),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  Text(
-                                    s.name,
-                                    style: T.label.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: C.ivory,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            Expanded(child: Text(trTag(g.cat), style: T.title)),
+                            const SizedBox(width: 8),
+                            Text(
+                              tr('meditate.count', {'n': g.items.length}),
+                              style: T.caption.c(C.muted),
                             ),
                           ],
                         ),
                       ),
-                    ),
+                    for (final (i, m) in g.items.indexed)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Reveal(
+                          key: ValueKey('$cat-${m.id}'),
+                          delay: 0.04 + i * 0.025,
+                          child: MeditationRow(
+                            m,
+                            locked: isMeditationLocked(m.id, premium),
+                            onTap: () => _open(m.id, premium),
+                          ),
+                        ),
+                      ),
+                  ],
                 ],
               ),
             ),
+            const SizedBox(height: 26),
+            SectionHeader(tr(c.music.isEmpty ? 'meditate.soundscapes' : 'meditate.music')),
+            _soundGrid(c.music.isEmpty ? c.soundscapes : c.music),
+            if (c.natureSounds.isNotEmpty) ...[
+              const SizedBox(height: 26),
+              SectionHeader(tr('meditate.natureSounds')),
+              _soundGrid(c.natureSounds),
+            ],
             if (offline.isNotEmpty) ...[
               const SizedBox(height: 36),
               SectionHeader(tr('meditate.availableOffline')),

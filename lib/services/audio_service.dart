@@ -8,7 +8,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../data/content.dart';
 import '../i18n/i18n.dart';
 import '../logic/coach.dart';
-import '../logic/lesson_media.dart' show voicePath;
+import '../logic/lesson_media.dart' show musicPath, voicePath;
 import '../logic/logic.dart' show fallbackVoiceLocales, fallbackVoiceRank;
 import 'media_store.dart';
 
@@ -113,7 +113,14 @@ class Ambient {
         await _player.setReleaseMode(ReleaseMode.loop);
         _volume = 0;
         await _player.setVolume(0);
-        await _player.setSource(AssetSource(audioAsset(key)));
+        try {
+          await _player.setSource(_source(key));
+        } catch (e) {
+          // a streamed track that cannot load (offline, first use) falls back to bundled Zen Garden
+          debugPrint('TaiChi Flow music $key unavailable, playing Zen Garden: $e');
+          if (key == fallbackTrack) rethrow;
+          await _player.setSource(AssetSource(audioAsset(fallbackTrack)));
+        }
         _loaded = key;
       }
       if (g != _gen) return;
@@ -195,6 +202,19 @@ class Ambient {
 
   static bool isPlaying([String? key]) =>
       _playing && (key == null || key == _key);
+
+  /// Bundled loop that always works offline (the user's favourite, Zen Garden).
+  static const fallbackTrack = 'music-bamboo';
+
+  /// Bundled loop → downloaded copy → streamed from the media server (and saved for next time).
+  static Source _source(String key) {
+    final rel = musicPath(key);
+    if (MediaStore.isBundled(rel)) return AssetSource(audioAsset(key));
+    final saved = MediaStore.cached(rel);
+    if (saved != null) return DeviceFileSource(saved.path);
+    MediaStore.cacheInBackground(rel);
+    return UrlSource(MediaStore.url(rel));
+  }
 }
 
 class Sfx {
@@ -226,10 +246,13 @@ class Voice {
   static StreamSubscription<void>? _sub;
   static final ValueNotifier<bool> speaking = ValueNotifier(false);
   static List<String> _queue = [];
+  /// Course voice captured when the lines were queued, so closing the player mid-line keeps the voice.
+  static String _queueVoice = '';
   static bool _busy = false;
   static int _token = 0;
   static double _rate = 0.95;
   static VoidCallback? _onDone;
+  static int _sayGen = 0;
 
   static Future<void> _init() async {
     if (_ready) return;
@@ -290,27 +313,38 @@ class Voice {
 
   static bool hasClip(String line) => Content.i.voice.contains(voiceKey(line));
 
+  /// Speak [lines] in order. [startAt] starts the first clip part-way through (a meditation resumed
+  /// or skipped into the middle of a line), so the voice stays in sync with the timeline.
   static Future<void> say(
     List<String> lines, {
     bool interrupt = true,
     double rate = 0.95,
     VoidCallback? onDone,
+    Duration startAt = Duration.zero,
   }) async {
     final clean = lines.where((l) => l.trim().isNotEmpty).toList();
     if (clean.isEmpty) return;
+    final my = ++_sayGen;
     await _init();
+    if (my != _sayGen) return; // a newer line arrived while we were waking up
     if (!interrupt && _busy) {
       _queue = clean;
+      _queueVoice = voiceVariant ?? '';
       _rate = rate;
       if (onDone != null) _onDone = onDone;
       return;
     }
     await stop();
+    if (my != _sayGen) return; // never let two overlapping calls both start a clip
     _queue = clean;
+    _queueVoice = voiceVariant ?? '';
     _rate = rate;
     _onDone = onDone;
+    _startAt = startAt;
     _next(_token);
   }
+
+  static Duration _startAt = Duration.zero;
 
   static void _finish() {
     _busy = false;
@@ -328,8 +362,11 @@ class Voice {
     _busy = true;
     speaking.value = true;
     Ambient.duck(true);
-    final key = voiceKey(line);
-    if (!Content.i.voice.contains(key)) return _fallback(line, t);
+    final key = voiceKey(line, variant: _queueVoice);
+    if (!Content.i.voice.contains(key)) {
+      _startAt = Duration.zero; // the device voice cannot start mid-line: it reads the whole line
+      return _fallback(line, t);
+    }
     try {
       await _player.setPlaybackRate((_rate / 0.95).clamp(0.8, 1.25));
       // downloaded lesson clip → bundled clip → streamed from the media server (then saved)
@@ -344,7 +381,9 @@ class Voice {
         MediaStore.cacheInBackground(rel);
         src = UrlSource(MediaStore.url(rel));
       }
-      await _player.play(src, volume: 1.0);
+      final from = _startAt;
+      _startAt = Duration.zero;
+      await _player.play(src, volume: 1.0, position: from > Duration.zero ? from : null);
     } catch (e) {
       debugPrint('TaiChi Flow voice clip: $e');
       if (t == _token) await _fallback(line, t);
