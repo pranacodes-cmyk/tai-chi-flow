@@ -177,11 +177,11 @@ class TrackingService {
 
   static Future<void> _enableIds() async {
     try {
-      // On iPhone the advertising ID only exists after ATT is authorised.
+      // On iPhone the advertising ID only exists after ATT is authorised; the SDK
+      // reads that consent itself, so only advertiser ID collection is set here.
       final idsAllowed =
           !isIOS || await attStatus() == TrackingStatus.authorized;
       await _fb.setAdvertiserIdCollectionEnabled(idsAllowed);
-      if (isIOS) await _fb.setAdvertiserTracking(enabled: idsAllowed);
     } catch (_) {}
   }
 
