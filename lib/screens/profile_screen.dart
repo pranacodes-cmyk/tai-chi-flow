@@ -587,6 +587,18 @@ class ProfileScreen extends StatelessWidget {
                     ],
                   ),
                   _Group(
+                    title: tr('profile.moreFromUs'),
+                    children: [
+                      for (final a in _otherApps)
+                        _AppRow(
+                          image: a.$1,
+                          name: a.$2,
+                          tagline: tr(a.$3),
+                          onTap: () => AppLinks.openOtherApp(a.$4),
+                        ),
+                    ],
+                  ),
+                  _Group(
                     title: tr('profile.about'),
                     children: [
                       _Row(
@@ -897,6 +909,97 @@ class _Group extends StatelessWidget {
           ),
         ),
       ],
+    ),
+  );
+}
+
+/// Cross-promotion: (icon asset, store name, tagline key, Play package). Mirrors web `OTHER_APPS`.
+const _otherApps = [
+  (
+    'assets/images/app-life-calendar.png',
+    'Life Calendar',
+    'profile.appLifeCalendarTagline',
+    'com.mylifecalendar.app',
+  ),
+  (
+    'assets/images/app-prayly.png',
+    'Prayly',
+    'profile.appPraylyTagline',
+    'com.jesuswallpaperbible.app',
+  ),
+  (
+    'assets/images/app-kizuki.png',
+    'Kizuki',
+    'profile.appKizukiTagline',
+    'com.kizukijapan.app',
+  ),
+];
+
+class _AppRow extends StatelessWidget {
+  const _AppRow({
+    required this.image,
+    required this.name,
+    required this.tagline,
+    required this.onTap,
+  });
+  final String image;
+  final String name;
+  final String tagline;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Pressable(
+    onTap: onTap,
+    scale: 0.985,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.asset(image, width: 52, height: 52),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: T.label.c(C.ink),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tagline,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: T.caption.c(C.muted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+            alignment: Alignment.center,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: C.jadeDeep,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                tr('profile.getApp'),
+                style: T.tiny.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: C.ivory,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }

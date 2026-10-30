@@ -35,6 +35,17 @@ class AppLinks {
     return _version!;
   }
 
+  /// Opens one of our other apps in the store (Play app first, web listing as fallback).
+  static Future<void> openOtherApp(String package) async {
+    if (!_ios &&
+        await _open(Uri.parse('market://details?id=$package'))) {
+      return;
+    }
+    await _open(
+      Uri.parse('https://play.google.com/store/apps/details?id=$package'),
+    );
+  }
+
   static Future<bool> _open(Uri uri) async {
     try {
       return await launchUrl(uri, mode: LaunchMode.externalApplication);
