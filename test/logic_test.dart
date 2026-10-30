@@ -97,7 +97,7 @@ void main() {
         }
       },
     );
-    test('free offer: 3 quick sessions + journey Days 1–2 + 4 meditations, everything else fully paid', () {
+    test('free offer includes Journey Days 1–2 and Warrior Day 1', () {
       final c = Content.i;
       for (final p in c.plans) {
         final quick = c.quickSessions.any((q) => q.id == p.id);
@@ -105,6 +105,8 @@ void main() {
           expect([p.premium, p.freeDays], [false, p.days.length]);
         } else if (p.id == journeyId) {
           expect([p.premium, p.freeDays, p.days.length], [true, 2, 30]);
+        } else if (p.id == 'tai-chi-warrior-30') {
+          expect([p.premium, p.freeDays, p.days.length], [true, 1, 30]);
         } else {
           expect([p.premium, p.freeDays], [true, 0], reason: p.id);
         }
@@ -241,8 +243,13 @@ void main() {
       expect(p.level, 'Expert');
       expect(p.group, 'Tai Chi');
       expect(p.premium, isTrue);
-      expect(p.freeDays, 0);
+      expect(p.freeDays, 1);
       expect(p.voice, 'master');
+      expect(isDayLocked(p, 1, false), isFalse);
+      for (var day = 2; day <= 30; day++) {
+        expect(isDayLocked(p, day, false), isTrue, reason: 'day $day');
+        expect(isDayLocked(p, day, true), isFalse, reason: 'day $day');
+      }
       expect(resolveSession('plan:tai-chi-warrior-30:1')!.voice, 'master');
       expect(resolveSession('plan:tai-chi-journey-30:1')!.voice, isNull);
       for (final d in p.days) {
@@ -370,10 +377,10 @@ void main() {
         expect(plan.days[pair[0]].items.where((it) => forms.contains(it.e)).map((it) => it.e).toList(), forms.take(pair[1]).toList());
       }
     });
-    test('28-Day Wall Pilates uses 34 movements and never repeats one inside a workout', () {
+    test('28-Day Wall Pilates uses 38 movements and never repeats one inside a workout', () {
       final days = Content.i.plan('wall-pilates-28')!.days;
       expect(days.length, 28);
-      expect(days.expand((d) => d.items.map((it) => it.e)).toSet().length, 34);
+      expect(days.expand((d) => d.items.map((it) => it.e)).toSet().length, 38);
       for (final d in days) {
         final work = d.items
             .where((it) => it.p == 'Workout')
@@ -965,16 +972,26 @@ void main() {
       expect(defaultPlanId, journeyId);
       expect(Content.i.plan(defaultPlanId), isNotNull);
     });
-    test('Today preserves an accessible personal plan and otherwise shows the journey', () {
-      String pick(bool locked) => todayPlanId(
-        'standing-qigong-14',
-        activeLocked: locked,
-      );
-      expect(pick(false), 'standing-qigong-14');
-      expect(pick(true), journeyId);
+    test('Today keeps the 30-day journey primary after Plus unlocks the personal course', () {
+      final personal = Content.i.plan('standing-qigong-14');
+      expect(personal, isNotNull);
+      if (personal == null) return;
+      expect(isDayLocked(personal, 1, true), false);
+      expect(todayPlanId(), journeyId);
+      expect(Content.i.plan(todayPlanId())?.days.length, 30);
+    });
+    test('Today offers a different personal course without duplicating the Journey', () {
+      expect(todaySecondaryPlanId('standing-qigong-14'), 'standing-qigong-14');
+      expect(todaySecondaryPlanId(journeyId), null);
+    });
+    test('Plus keeps independent Journey Day 3 and personal Day 6 progress', () {
+      final progress = {journeyId: [1, 2], 'standing-qigong-14': [1, 2, 3, 4, 5]};
+      expect(nextPlanDay(30, progress[todayPlanId()] ?? []), 3);
+      expect(nextPlanDay(14, progress[todaySecondaryPlanId('standing-qigong-14')] ?? []), 6);
+      expect(progress[journeyId], [1, 2]);
     });
     test('after free Days 1 and 2 Today keeps journey progress and locked Day 3, not Chair Yoga', () {
-      final selected = todayPlanId('chair-yoga-weight-loss', activeLocked: true);
+      final selected = todayPlanId();
       expect(selected, journeyId);
       final plan = Content.i.plan(selected);
       expect(plan, isNotNull);

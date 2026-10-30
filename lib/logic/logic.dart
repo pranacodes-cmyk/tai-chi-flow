@@ -274,14 +274,12 @@ String freePickQuickId(int hour) {
   return 'desk-break-routine';
 }
 
-/// Keep the journey on Today while the personal plan is locked, including after the free days.
-/// An accessible personal plan still leads; selecting the hero never changes saved progress.
-String todayPlanId(
-  String activePlanId, {
-  required bool activeLocked,
-}) {
-  return activeLocked ? journeyId : activePlanId;
-}
+/// Plus unlocks the Journey; it never replaces it or changes saved progress.
+String todayPlanId() => journeyId;
+
+/// A different selected course stays available without duplicating the Journey.
+String? todaySecondaryPlanId(String activePlanId) =>
+    activePlanId == journeyId ? null : activePlanId;
 
 /// After finishing a plan day: the next day when it exists and is locked for this person (the finish
 /// screen previews it with a Plus offer), else null.

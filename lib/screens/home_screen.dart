@@ -12,6 +12,7 @@ import '../theme/text.dart';
 import '../theme/tokens.dart';
 import '../services/purchase_service.dart';
 import '../widgets/cards.dart';
+import '../widgets/demo_film.dart';
 import '../widgets/scaffold.dart';
 import '../widgets/tab_shell.dart';
 import '../widgets/ui.dart';
@@ -31,24 +32,15 @@ class HomeScreen extends StatelessWidget {
     final name = app.profile.name;
     final premium = app.premium.active;
 
-    // Keep the journey's next lesson visible even after its free days are completed.
+    // Journey stays primary; a different selected plan has its own compact slot.
     final active = app.activePlan;
-    final activeDone = app.activeCompleted;
-    final activeLocked =
-        activeDone.length < active.days.length &&
-        isDayLocked(
-          active,
-          nextPlanDay(active.days.length, activeDone),
-          premium,
-        );
-    final plan =
-        c.plan(
-          todayPlanId(
-            active.id,
-            activeLocked: activeLocked,
-          ),
-        ) ??
-        active;
+    final plan = c.plan(todayPlanId()) ?? active;
+    final secondaryId = todaySecondaryPlanId(active.id);
+    final secondary = secondaryId == null ? null : c.plan(secondaryId);
+    final warrior = c.plan('tai-chi-warrior-30');
+    final secondaryDone = secondary == null
+        ? const <int>[]
+        : app.planProgress[secondary.id]?.completedDays ?? const <int>[];
     final completed =
         app.planProgress[plan.id]?.completedDays ?? const <int>[];
     final dayNumber = nextPlanDay(plan.days.length, completed);
@@ -124,6 +116,65 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (secondary != null) ...[
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Eyebrow(tr('planReady.personalized'), color: C.jade),
+                    const SizedBox(height: 8),
+                    Pressable(
+                      onTap: () => context.push('/plan/${secondary.id}'),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: C.ivory, borderRadius: BorderRadius.circular(24), boxShadow: S.card),
+                        child: Row(children: [
+                          ClipRRect(borderRadius: BorderRadius.circular(16), child: SizedBox(width: 76, height: 88, child: EImage(img(secondary.image)))),
+                          const SizedBox(width: 12),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(secondary.title, style: T.label, maxLines: 2, overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 4),
+                            Text(tr('home.doneOfTotalDays', {'done': secondaryDone.length, 'total': secondary.days.length}), style: T.caption.c(C.muted)),
+                            const SizedBox(height: 4),
+                            Text(secondaryDone.length >= secondary.days.length ? tr('courses.completed') : tr('courses.nextDayOfTotal', {'day': nextPlanDay(secondary.days.length, secondaryDone), 'total': secondary.days.length}), style: T.tiny.c(C.jadeDeep)),
+                          ])),
+                          const SizedBox(width: 8),
+                          const Icon(LucideIcons.chevronRight, size: 20, color: C.jadeDeep),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (warrior != null && secondary?.id != warrior.id) ...[
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Pressable(
+                  onTap: () => context.push('/plan/${warrior.id}'),
+                  child: Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(color: C.ivory, borderRadius: BorderRadius.circular(24), boxShadow: S.card),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      AspectRatio(aspectRatio: 16 / 9, child: DemoFilm.lesson(film: 'lf-master-welcome-showcase')),
+                      Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(warrior.title, style: T.title),
+                        const SizedBox(height: 4),
+                        Text(warrior.subtitle, style: T.caption.c(C.muted)),
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          Expanded(child: Text(tr('cards.daysFree', {'n': warrior.freeDays}), style: T.label.c(C.jadeDeep))),
+                          const Icon(LucideIcons.arrowRight, color: C.jadeDeep, size: 20),
+                        ]),
+                      ])),
+                    ]),
+                  ),
+                ),
+              ),
+            ],
             if (!premium) ...[
               const SizedBox(height: 14),
               Reveal(
