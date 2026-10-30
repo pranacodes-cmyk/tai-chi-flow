@@ -97,7 +97,7 @@ void main() {
         }
       },
     );
-    test('free offer includes Journey Days 1–2 and Warrior Day 1', () {
+    test('free offer includes Journey Days 1–2 and Warrior Days 1–2', () {
       final c = Content.i;
       for (final p in c.plans) {
         final quick = c.quickSessions.any((q) => q.id == p.id);
@@ -106,7 +106,7 @@ void main() {
         } else if (p.id == journeyId) {
           expect([p.premium, p.freeDays, p.days.length], [true, 2, 30]);
         } else if (p.id == 'tai-chi-warrior-30') {
-          expect([p.premium, p.freeDays, p.days.length], [true, 1, 30]);
+          expect([p.premium, p.freeDays, p.days.length], [true, 2, 30]);
         } else {
           expect([p.premium, p.freeDays], [true, 0], reason: p.id);
         }
@@ -243,10 +243,11 @@ void main() {
       expect(p.level, 'Expert');
       expect(p.group, 'Tai Chi');
       expect(p.premium, isTrue);
-      expect(p.freeDays, 1);
+      expect(p.freeDays, 2);
       expect(p.voice, 'master');
       expect(isDayLocked(p, 1, false), isFalse);
-      for (var day = 2; day <= 30; day++) {
+      expect(isDayLocked(p, 2, false), isFalse);
+      for (var day = 3; day <= 30; day++) {
         expect(isDayLocked(p, day, false), isTrue, reason: 'day $day');
         expect(isDayLocked(p, day, true), isFalse, reason: 'day $day');
       }

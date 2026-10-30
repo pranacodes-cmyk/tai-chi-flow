@@ -569,8 +569,9 @@ class ProfileScreen extends StatelessWidget {
                         onTap: () => showFeedbackSheet(context),
                       ),
                       _Row(
-                        icon: LucideIcons.circleHelp,
-                        label: tr('profile.helpFeedback'),
+                        icon: LucideIcons.mail,
+                        label: tr('profile.contactUs'),
+                        subtitle: Content.i.legal.contact,
                         onTap: () async {
                           if (!await AppLinks.contact()) {
                             await Clipboard.setData(
@@ -922,11 +923,13 @@ class _Row extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.value,
+    this.subtitle,
     this.danger = false,
   });
   final IconData icon;
   final String label;
   final String? value;
+  final String? subtitle;
   final VoidCallback onTap;
   final bool danger;
   @override
@@ -940,7 +943,16 @@ class _Row extends StatelessWidget {
           _RowIcon(icon, danger: danger),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(label, style: T.label.c(danger ? C.danger : C.ink)),
+            child: subtitle == null
+                ? Text(label, style: T.label.c(danger ? C.danger : C.ink))
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: T.label.c(danger ? C.danger : C.ink)),
+                      const SizedBox(height: 2),
+                      Text(subtitle!, style: T.caption.c(C.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
           ),
           if (value != null) ...[
             Text(value!, style: T.caption.s(14)),

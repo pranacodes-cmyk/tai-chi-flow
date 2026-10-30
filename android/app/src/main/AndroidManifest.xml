@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Lesson films, voice and course updates download from the content server -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Daily practice reminders -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />

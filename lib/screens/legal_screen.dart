@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../data/content.dart';
+import '../services/app_links.dart';
 import '../theme/text.dart';
 import '../theme/tokens.dart';
 import '../widgets/scaffold.dart';
@@ -72,9 +73,20 @@ class LegalScreen extends StatelessWidget {
                   ],
                   const SizedBox(height: 18),
                   EnsoButton(
+                    label: tr('legal.emailUs'),
+                    icon: LucideIcons.mail,
+                    onTap: () async {
+                      if (!await AppLinks.contact()) {
+                        await Clipboard.setData(ClipboardData(text: legal.contact));
+                        Toast.show(tr('legal.emailCopied'), description: legal.contact);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  EnsoButton(
                     label: tr('legal.copyContactEmail'),
                     variant: BtnVariant.secondary,
-                    icon: LucideIcons.mail,
+                    icon: LucideIcons.copy,
                     onTap: () async {
                       await Clipboard.setData(ClipboardData(text: legal.contact));
                       Toast.show(tr('legal.emailCopied'), description: legal.contact);

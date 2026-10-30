@@ -116,7 +116,8 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            if (secondary != null) ...[
+            // Warrior as the personal pick uses its big film card below instead.
+            if (secondary != null && secondary.id != warrior?.id) ...[
               const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -149,28 +150,64 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ],
-            if (warrior != null && secondary?.id != warrior.id) ...[
+            if (warrior != null) ...[
               const SizedBox(height: 20),
+              if (secondary?.id == warrior.id) ...[
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Eyebrow(tr('planReady.personalized'), color: C.jade)),
+                const SizedBox(height: 8),
+              ],
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Pressable(
                   onTap: () => context.push('/plan/${warrior.id}'),
                   child: Container(
                     clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(color: C.ivory, borderRadius: BorderRadius.circular(24), boxShadow: S.card),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      AspectRatio(aspectRatio: 16 / 9, child: DemoFilm.lesson(film: 'lf-master-welcome-showcase')),
-                      Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(warrior.title, style: T.title),
-                        const SizedBox(height: 4),
-                        Text(warrior.subtitle, style: T.caption.c(C.muted)),
-                        const SizedBox(height: 10),
-                        Row(children: [
-                          Expanded(child: Text(tr('cards.daysFree', {'n': warrior.freeDays}), style: T.label.c(C.jadeDeep))),
-                          const Icon(LucideIcons.arrowRight, color: C.jadeDeep, size: 20),
-                        ]),
-                      ])),
-                    ]),
+                    decoration: BoxDecoration(color: C.forest, borderRadius: BorderRadius.circular(30), boxShadow: S.float),
+                    child: AspectRatio(
+                      aspectRatio: 4 / 5,
+                      child: Stack(children: [
+                        Positioned.fill(child: DemoFilm.lesson(film: 'lf-master-welcome-showcase')),
+                        Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: G.scrim))),
+                        Positioned(
+                          left: 16,
+                          top: 16,
+                          right: 16,
+                          child: Row(children: [
+                            Flexible(
+                              child: Glass(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                  const Icon(LucideIcons.crown, size: 14, color: C.gold),
+                                  const SizedBox(width: 6),
+                                  Flexible(child: Text(trTag(warrior.level), overflow: TextOverflow.ellipsis, style: T.label.c(C.ivory))),
+                                ]),
+                              ),
+                            ),
+                          ]),
+                        ),
+                        Positioned(
+                          left: 20,
+                          right: 20,
+                          bottom: 20,
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(warrior.title, style: T.displayMd.c(C.ivory)),
+                            const SizedBox(height: 6),
+                            Text(warrior.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: T.body.c(C.ivory.withValues(alpha: .85))),
+                            const SizedBox(height: 16),
+                            Container(
+                              height: 52,
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              decoration: BoxDecoration(gradient: G.gold, borderRadius: BorderRadius.circular(999)),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                const Icon(LucideIcons.play, size: 18, color: C.ink),
+                                const SizedBox(width: 8),
+                                Flexible(child: Text(tr('home.startDay', {'day': nextPlanDay(warrior.days.length, app.planProgress[warrior.id]?.completedDays ?? const <int>[])}), overflow: TextOverflow.ellipsis, style: T.label.c(C.ink))),
+                              ]),
+                            ),
+                          ]),
+                        ),
+                      ]),
+                    ),
                   ),
                 ),
               ),
