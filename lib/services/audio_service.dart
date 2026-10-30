@@ -253,6 +253,24 @@ class Voice {
   static double _rate = 0.95;
   static VoidCallback? _onDone;
   static int _sayGen = 0;
+  static double _speed = 1.0;
+  static bool _warmed = false;
+
+  /// Copies every bundled voice clip into the player's file cache once, in the background.
+  /// Without this the first play of each clip unpacks it from the app bundle first, which made
+  /// onboarding lines start ~1 s late.
+  static Future<void> warmUp() async {
+    if (_warmed) return;
+    _warmed = true;
+    final files = MediaStore.bundledVoice;
+    if (files.isEmpty) return;
+    try {
+      await _player.audioCache.loadAll(files);
+    } catch (e) {
+      debugPrint('TaiChi Flow voice warm-up: $e');
+    }
+  }
+
 
   static Future<void> _init() async {
     if (_ready) return;
@@ -261,6 +279,7 @@ class Voice {
       await AudioSetup.ensure(_player);
       await _player.setReleaseMode(ReleaseMode.stop);
       _sub = _player.onPlayerComplete.listen((_) => _next(_token));
+      warmUp();
       await _tts.setPitch(1.0);
       await _tts.setVolume(1.0);
       await _tts.awaitSpeakCompletion(false);
@@ -368,7 +387,11 @@ class Voice {
       return _fallback(line, t);
     }
     try {
-      await _player.setPlaybackRate((_rate / 0.95).clamp(0.8, 1.25));
+      final speed = (_rate / 0.95).clamp(0.8, 1.25).toDouble();
+      if (speed != _speed) {
+        _speed = speed;
+        await _player.setPlaybackRate(speed);
+      }
       // downloaded lesson clip → bundled clip → streamed from the media server (then saved)
       final rel = voicePath(key);
       final saved = MediaStore.cached(rel);

@@ -66,6 +66,12 @@ kotlin {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Meta SDK + RevenueCat read the Play install referrer (ad click → install), also on
+    // phones without a Google advertising ID.
+    implementation("com.android.installreferrer:installreferrer:2.2")
+    // Meta SDK + RevenueCat read the Google advertising ID through this; without it Meta can
+    // only match installs carrying a Play referrer and RevenueCat cannot attach the ad ID.
+    implementation("com.google.android.gms:play-services-ads-identifier:18.2.0")
 }
 
 flutter {

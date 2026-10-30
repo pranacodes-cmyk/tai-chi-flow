@@ -8,6 +8,10 @@
     <!-- Keep the screen awake during guided sessions -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="com.android.vending.BILLING" />
+    <!-- Android 13+: lets Meta read the Google advertising ID (otherwise all zeros) for ad
+         attribution. Only read once TrackingService allows ad measurement. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+
 
     <application
         android:label="TaiChi Flow"
@@ -61,6 +65,18 @@
             android:value="2" />
     </application>
     <queries>
+        <!-- Meta attribution: Android 11+ hides these apps/providers without this, so installs
+             from Facebook/Instagram ads could not be matched to the campaign. -->
+        <package android:name="com.facebook.katana" />
+        <package android:name="com.facebook.wakizashi" />
+        <package android:name="com.facebook.lite" />
+        <package android:name="com.instagram.android" />
+        <provider android:authorities="com.facebook.katana.provider.AttributionIdProvider" />
+        <provider android:authorities="com.facebook.wakizashi.provider.AttributionIdProvider" />
+        <!-- Google Play services advertising ID service -->
+        <intent>
+            <action android:name="com.google.android.gms.ads.identifier.service.START" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

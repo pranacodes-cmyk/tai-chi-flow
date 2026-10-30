@@ -47,6 +47,12 @@ class MediaStore {
     }
   }
 
+  /// Bundled voice clips as player asset paths (`voice/x.m4a`), for warming the player cache.
+  static List<String> get bundledVoice => [
+    for (final a in _bundled)
+      if (a.startsWith('assets/voice/') && a.endsWith('.m4a')) a.substring(7),
+  ];
+
   /// `video/x.mp4` → bundled asset path `assets/video/x.mp4` when it ships in the app and is
   /// still the film the content wants (a re-made film is downloaded instead).
   static bool isBundled(String path) =>

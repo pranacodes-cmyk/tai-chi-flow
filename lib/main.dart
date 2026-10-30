@@ -29,6 +29,7 @@ Future<void> main() async {
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   await Content.load();
   await MediaStore.init();
+  Voice.warmUp(); // background: ready onboarding voice clips so lines start on time
   await initializeDateFormatting();
   await PurchaseService.init();
   final app = await AppState.load();

@@ -18,9 +18,11 @@ import '../state/app_state.dart';
 /// health or mobility details, names, practice history.
 ///
 /// The Meta SDK stays uninitialised (auto-init, auto-logging and advertising
-/// ID collection are off in the native manifests) until sharing is allowed.
-/// On iPhone it also waits for the ATT answer, so the first app-open event
-/// carries the right tracking status.
+/// ID collection are off in the native manifests) until sharing is allowed;
+/// then it reads the Google advertising ID / IDFA (iPhone: only after ATT
+/// allows), the Play install referrer and the Facebook app attribution ID, and
+/// sends every event immediately. On iPhone it also waits for the ATT answer,
+/// so the first app-open event carries the right tracking status.
 class TrackingService {
   TrackingService._();
 
@@ -139,7 +141,10 @@ class TrackingService {
     }
     if (isIOS && _attPending) return; // start once ATT is answered
     if (_sdkReady || _starting) {
-      if (_sdkReady) await _enableIds();
+      if (_sdkReady) {
+        await _enableIds();
+        await _linkPurchases(); // ad ID may only now be readable (ATT / opt-in)
+      }
       return;
     }
     _starting = true;
@@ -154,6 +159,9 @@ class TrackingService {
       for (final send in pending) {
         await send();
       }
+      // Push the install/open event now: people who quit during onboarding
+      // never open a later session, so a buffered event would never reach Meta.
+      await _flush();
     } catch (e) {
       debugPrint('TaiChi Flow: Meta SDK unavailable ($e)');
     } finally {
@@ -161,12 +169,19 @@ class TrackingService {
     }
   }
 
+  static Future<void> _flush() async {
+    try {
+      await _fb.flush();
+    } catch (_) {}
+  }
+
   static Future<void> _enableIds() async {
     try {
       // On iPhone the advertising ID only exists after ATT is authorised.
-      await _fb.setAdvertiserIdCollectionEnabled(
-        !isIOS || await attStatus() == TrackingStatus.authorized,
-      );
+      final idsAllowed =
+          !isIOS || await attStatus() == TrackingStatus.authorized;
+      await _fb.setAdvertiserIdCollectionEnabled(idsAllowed);
+      if (isIOS) await _fb.setAdvertiserTracking(enabled: idsAllowed);
     } catch (_) {}
   }
 
@@ -202,6 +217,7 @@ class TrackingService {
     }
     try {
       await send();
+      await _flush(); // funnel events are few; send now so an app close cannot drop them
     } catch (e) {
       debugPrint('TaiChi Flow: event not sent ($e)');
     }
