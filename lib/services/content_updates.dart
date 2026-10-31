@@ -18,7 +18,7 @@ class ContentUpdates {
   ContentUpdates._();
 
   static const String base =
-      'https://pub-6b6ccbaa2b5946dd851b43b1f1219507.r2.dev/content';
+      'https://media.pranacodes.in/content';
 
   static Future<Directory?> _dir() async {
     try {

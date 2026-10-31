@@ -7,7 +7,7 @@ import 'logic.dart';
 /// Paths are relative to the versioned media root: `video/<film>.mp4`, `voice/<key>.m4a`.
 /// Onboarding, UI and breathing media stay bundled; callers drop paths already in the app.
 const String kMediaBase =
-    'https://pub-6b6ccbaa2b5946dd851b43b1f1219507.r2.dev/v1';
+    'https://media.pranacodes.in/v1';
 
 String filmPath(String film) => 'video/$film.mp4';
 

@@ -78,8 +78,9 @@ class MediaStore {
   static List<String> missing(Iterable<String> paths) =>
       [for (final p in paths) if (!isBundled(p) && cached(p) == null) p];
 
-  /// Downloads [paths] (4 at a time) with real per-file progress. Throws on the first failure
-  /// after one retry per file; files already finished stay saved, so a retry resumes.
+  /// Downloads [paths] (12 at a time, films first so only small clips remain at the end) with
+  /// real per-file progress. A stuck file is abandoned after a short, size-aware timeout and
+  /// retried up to 3 times; files already finished stay saved, so a retry resumes.
   static Future<void> download(
     List<String> paths, {
     required void Function(int done, int total) onProgress,
@@ -87,21 +88,25 @@ class MediaStore {
   }) async {
     final d = _dir;
     if (d == null) throw StateError('media storage unavailable');
+    final order = [
+      ...paths.where((p) => p.startsWith('video/')),
+      ...paths.where((p) => !p.startsWith('video/')),
+    ];
     final client = http.Client();
     var done = 0, next = 0;
-    onProgress(0, paths.length);
+    onProgress(0, order.length);
     Future<void> worker() async {
-      while (next < paths.length) {
+      while (next < order.length) {
         if (cancelled()) return;
-        final p = paths[next++];
+        final p = order[next++];
         await _fetch(client, d, p);
         done++;
-        if (!cancelled()) onProgress(done, paths.length);
+        if (!cancelled()) onProgress(done, order.length);
       }
     }
 
     try {
-      await Future.wait([for (var i = 0; i < 8; i++) worker()]);
+      await Future.wait([for (var i = 0; i < 12; i++) worker()]);
     } finally {
       client.close();
     }
@@ -109,11 +114,10 @@ class MediaStore {
 
   static Future<void> _fetch(http.Client client, Directory d, String p) async {
     Object? last;
-    for (var attempt = 0; attempt < 2; attempt++) {
+    final limit = Duration(seconds: p.startsWith('video/') ? 30 : 12);
+    for (var attempt = 0; attempt < 3; attempt++) {
       try {
-        final res = await client
-            .get(Uri.parse(url(p)))
-            .timeout(const Duration(seconds: 45));
+        final res = await client.get(Uri.parse(url(p))).timeout(limit);
         if (res.statusCode != 200 || res.bodyBytes.isEmpty) {
           throw HttpException('HTTP ${res.statusCode} for $p');
         }
@@ -133,6 +137,7 @@ class MediaStore {
         return;
       } catch (e) {
         last = e;
+        if (attempt < 2) await Future.delayed(Duration(milliseconds: 400 * (attempt + 1)));
       }
     }
     throw last ?? HttpException('download failed: $p');
