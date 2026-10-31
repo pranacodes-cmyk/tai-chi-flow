@@ -185,6 +185,27 @@ jobs:
             -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             archive | tail -n 60
+      - name: Fix and verify privacy manifests (ITMS-91064)
+        run: |
+          set -euo pipefail
+          # Every bundled privacy manifest that lists tracking domains must declare tracking=true,
+          # otherwise App Store Connect rejects the binary. Fix inside the archive, then fail if any remain.
+          bad=0
+          while IFS= read -r -d '' f; do
+            n=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyTrackingDomains" "$f" 2>/dev/null | grep -vc '^Array {$\|^}$' || true)
+            t=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyTracking" "$f" 2>/dev/null || echo missing)
+            echo "$f domains=$n tracking=$t"
+            if [ "$n" -gt 0 ] && [ "$t" != "true" ]; then
+              plutil -replace NSPrivacyTracking -bool YES "$f"
+              echo "  patched -> true"
+            fi
+          done < <(find "$RUNNER_TEMP/Runner.xcarchive" -name '*.xcprivacy' -print0)
+          while IFS= read -r -d '' f; do
+            n=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyTrackingDomains" "$f" 2>/dev/null | grep -vc '^Array {$\|^}$' || true)
+            t=$(/usr/libexec/PlistBuddy -c "Print :NSPrivacyTracking" "$f" 2>/dev/null || echo missing)
+            if [ "$n" -gt 0 ] && [ "$t" != "true" ]; then echo "STILL INVALID: $f"; bad=1; fi
+          done < <(find "$RUNNER_TEMP/Runner.xcarchive" -name '*.xcprivacy' -print0)
+          [ "$bad" = 0 ]
       - name: Export IPA (cloud-signed for App Store)
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
