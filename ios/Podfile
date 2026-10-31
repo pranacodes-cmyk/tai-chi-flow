@@ -46,4 +46,17 @@ post_install do |installer|
       config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
     end
   end
+
+  # Apple ITMS-91064: a bundled privacy manifest that lists NSPrivacyTrackingDomains must
+  # also declare NSPrivacyTracking=true. Meta's FBSDKCoreKit ships domains with tracking
+  # set to false, which Apple rejects at upload, so patch any such SDK manifest here.
+  Dir.glob(File.join(installer.sandbox.root, '**', 'PrivacyInfo.xcprivacy')).each do |manifest|
+    text = File.read(manifest)
+    domains = text[/<key>NSPrivacyTrackingDomains<\/key>\s*<array>(.*?)<\/array>/m, 1]
+    next if domains.nil? || domains.strip.empty?
+    fixed = text.sub(/(<key>NSPrivacyTracking<\/key>\s*)<false\/>/, "\\1<true/>")
+    next if fixed == text
+    File.write(manifest, fixed)
+    puts "Patched NSPrivacyTracking=true in #{manifest}"
+  end
 end
