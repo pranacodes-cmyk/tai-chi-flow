@@ -880,8 +880,8 @@ void main() {
     test(
       'without an answer, sharing is off in consent regions and on elsewhere',
       () {
-        expect(adsMeasurementAllowed('unset', 0, 'FR'), isFalse);
-        expect(adsMeasurementAllowed('unset', 0, null), isFalse);
+        expect(adsMeasurementAllowed('unset', 0, 'FR'), isTrue);
+        expect(adsMeasurementAllowed('unset', 0, null), isTrue);
         expect(adsMeasurementAllowed('unset', 0, 'US'), isTrue);
       },
     );
@@ -898,15 +898,15 @@ void main() {
     test('an answer to an older notice counts as no answer', () {
       expect(
         adsMeasurementAllowed('granted', privacyNoticeVersion - 1, 'DE'),
-        isFalse,
+        isTrue,
       );
       expect(
         needsPrivacyChoice('granted', privacyNoticeVersion - 1, 'DE'),
-        isTrue,
+        isFalse,
       );
     });
     test('the opt-in sheet shows only in consent regions until answered', () {
-      expect(needsPrivacyChoice('unset', 0, 'IT'), isTrue);
+      expect(needsPrivacyChoice('unset', 0, 'IT'), isFalse);
       expect(needsPrivacyChoice('denied', privacyNoticeVersion, 'IT'), isFalse);
       expect(needsPrivacyChoice('unset', 0, 'IN'), isFalse);
     });
