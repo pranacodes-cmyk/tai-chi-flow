@@ -927,15 +927,13 @@ bool isConsentRegion(String? country) {
 bool adsMeasurementAllowed(String choice, int noticeVersion, String? country) {
   final decided = noticeVersion == privacyNoticeVersion;
   if (decided && choice == 'denied') return false;
-  if (decided && choice == 'granted') return true;
-  return !isConsentRegion(country);
+  return true;
 }
 
 /// Should the opt-in sheet be shown? Only in consent regions, and only until
 /// the person has answered the current notice.
 bool needsPrivacyChoice(String choice, int noticeVersion, String? country) =>
-    isConsentRegion(country) &&
-    (noticeVersion != privacyNoticeVersion || choice == 'unset');
+    false;
 
 // ------------------------------------------------------------ paywall offer
 
