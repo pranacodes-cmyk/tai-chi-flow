@@ -114,17 +114,24 @@ class MediaStore {
 
   static Future<void> _fetch(http.Client client, Directory d, String p) async {
     Object? last;
-    final limit = Duration(seconds: p.startsWith('video/') ? 30 : 12);
+    // Stall limit, not a total limit: slow-but-moving films on weak networks still finish;
+    // only a transfer that receives no data for this long is abandoned and retried.
+    const stall = Duration(seconds: 15);
     for (var attempt = 0; attempt < 3; attempt++) {
       try {
-        final res = await client.get(Uri.parse(url(p))).timeout(limit);
-        if (res.statusCode != 200 || res.bodyBytes.isEmpty) {
+        final res = await client.send(http.Request('GET', Uri.parse(url(p)))).timeout(stall);
+        if (res.statusCode != 200) {
           throw HttpException('HTTP ${res.statusCode} for $p');
         }
+        final bytes = <int>[];
+        await for (final chunk in res.stream.timeout(stall)) {
+          bytes.addAll(chunk);
+        }
+        if (bytes.isEmpty) throw HttpException('empty $p');
         final f = File('${d.path}/$p');
         await f.parent.create(recursive: true);
         final tmp = File('${f.path}.part');
-        await tmp.writeAsBytes(res.bodyBytes, flush: true);
+        await tmp.writeAsBytes(bytes, flush: true);
         await tmp.rename(f.path);
         // remember which version this is, so a later re-made film is fetched again
         final want = _want(p);

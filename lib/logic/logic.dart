@@ -914,10 +914,32 @@ const consentCountries = {
   'SE', 'IS', 'LI', 'NO', 'GB', 'CH',
 };
 
-/// Consent regions — and unknown regions, to be safe — get the opt-in sheet.
-bool isConsentRegion(String? country) {
+/// The same consent countries as ISO alpha-3 codes (store accounts may report these).
+const consentCountriesAlpha3 = {
+  'AUT', 'BEL', 'BGR', 'HRV', 'CYP', 'CZE', 'DNK', 'EST', 'FIN', 'FRA', 'DEU', 'GRC', 'HUN',
+  'IRL', 'ITA', 'LVA', 'LTU', 'LUX', 'MLT', 'NLD', 'POL', 'PRT', 'ROU', 'SVK', 'SVN', 'ESP',
+  'SWE', 'ISL', 'LIE', 'NOR', 'GBR', 'CHE',
+};
+
+String? _countryCode(String? country) {
   final c = country?.trim().toUpperCase() ?? '';
-  return c.isEmpty || c.length != 2 || consentCountries.contains(c);
+  return RegExp(r'^[A-Z]{2,3}$').hasMatch(c) ? c : null;
+}
+
+/// Country used for the ad-measurement rule: the Play / App Store account
+/// country when the store reports one (the real country), otherwise the
+/// phone's region setting.
+String? adsCountry(String? storeCountry, String? deviceCountry) =>
+    _countryCode(storeCountry) ?? _countryCode(deviceCountry);
+
+/// Consent regions — and unknown regions, to be safe — get the opt-in sheet.
+/// Accepts ISO alpha-2 or alpha-3 codes.
+bool isConsentRegion(String? country) {
+  final c = _countryCode(country);
+  if (c == null) return true;
+  return c.length == 2
+      ? consentCountries.contains(c)
+      : consentCountriesAlpha3.contains(c);
 }
 
 /// May app activity (installs, onboarding finished, purchases) be shared with

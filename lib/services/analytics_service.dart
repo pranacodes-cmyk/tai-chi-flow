@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:posthog_flutter/posthog_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../state/app_state.dart';
@@ -15,8 +16,8 @@ import 'tracking_service.dart';
 ///
 /// Sends funnel events (screens, onboarding steps, paywall, survey, checkout,
 /// purchases, lessons, ratings) with a random install ID. Gated by the same
-/// privacy choice as ad measurement, so consent regions stay silent until the
-/// person opts in. Never sends onboarding answers, health details, name or email.
+/// privacy choice as ad measurement. Android replay masks content and excludes
+/// sensitive screens. Never sends onboarding answers, health details, name or email.
 class AnalyticsService {
   AnalyticsService._();
 
@@ -36,6 +37,35 @@ class AnalyticsService {
   static int _history = 0;
   static String? _language;
   static String _screen = '';
+  static bool _replayReady = false;
+  static String _privacyKey = '';
+  static Future<void> _replaySync = Future.value();
+
+  /// Exclude whole sensitive screens: masking text alone cannot hide answers
+  /// inferred from selection highlights or keypad touch coordinates.
+  static bool replaySafeScreen(String path) =>
+      path.isNotEmpty &&
+      !const ['/onboarding', '/plan-ready', '/profile', '/edit-profile',
+        '/history', '/complete', '/achievements', '/reminders', '/settings']
+          .contains(path);
+
+  static PostHogConfig replayConfig(String installId, bool allowed) {
+    final config = PostHogConfig(_token)
+      ..host = _host
+      ..optOut = !allowed
+      ..captureApplicationLifecycleEvents = false
+      ..sendFeatureFlagEvent = false
+      ..surveys = false
+      ..sessionReplay = true
+      ..bootstrap = PostHogBootstrapConfig(distinctId: installId, isIdentifiedId: true);
+    config.sessionReplayConfig
+      ..maskAllTexts = true
+      ..maskAllImages = true
+      ..maskCustomPaint = true
+      ..maskAllPlatformViews = true
+      ..captureNativeScreens = false;
+    return config;
+  }
 
   static bool get _native => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
   static bool get _allowed => _native && TrackingService.allowed;
@@ -52,12 +82,26 @@ class AnalyticsService {
       _id = p.getString(_idKey);
       if (_id == null) {
         _id = _uuid();
-        await p.setString(_idKey, _id!);
+        final id = _id;
+        if (id != null) await p.setString(_idKey, id);
       }
       _version = (await PackageInfo.fromPlatform()).version;
     } catch (_) {
       _id ??= _uuid();
     }
+    final id = _id;
+    if (_native && Platform.isAndroid && id != null) {
+      try {
+        await Posthog().setup(replayConfig(id, _allowed));
+        _replayReady = true;
+        // Never produce an extra anonymous person alongside the historical ID.
+        if (_allowed) await Posthog().identify(userId: id);
+        await Posthog().stopSessionRecording();
+      } catch (_) {
+        _replayReady = false; // Existing HTTP analytics still works if SDK fails.
+      }
+    }
+    _privacyKey = '${app.privacy.ads}:${app.privacy.version}';
     app.addListener(_onState);
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 15), (_) => flush());
@@ -68,6 +112,12 @@ class AnalyticsService {
   static void _onState() {
     final a = _app;
     if (a == null) return;
+    final privacyKey = '${a.privacy.ads}:${a.privacy.version}';
+    if (_privacyKey != privacyKey) {
+      _privacyKey = privacyKey;
+      if (!_allowed) _queue.clear();
+      _syncReplay();
+    }
     if (!_wasOnboarded && a.onboarded) capture('onboarding_completed');
     _wasOnboarded = a.onboarded;
     if (a.history.length > _history && a.history.isNotEmpty) {
@@ -110,11 +160,36 @@ class AnalyticsService {
   static void screen(String path) {
     if (path == _screen) return;
     _screen = path;
+    _syncReplay();
     capture(r'$screen', {r'$screen_name': path});
+  }
+
+  static void _syncReplay() {
+    if (!_replayReady) return;
+    _replaySync = _replaySync.then((_) async {
+      try {
+        if (!_allowed) {
+          await Posthog().stopSessionRecording();
+          await Posthog().optOut();
+          return;
+        }
+        await Posthog().optIn();
+        if (replaySafeScreen(_screen)) {
+          await Posthog().startSessionRecording();
+        } else {
+          await Posthog().stopSessionRecording();
+        }
+      } catch (_) {}
+    });
   }
 
   static void capture(String event, [Map<String, Object?> props = const {}]) {
     if (!_allowed || _id == null) return;
+    if (_replayReady) {
+      // SDK adds its own session ID to events, linking funnel activity to replay.
+      unawaited(_captureWithReplay(event, props));
+      return;
+    }
     final now = DateTime.now();
     if (now.difference(_lastActive).inMinutes >= 30) _newSession();
     _lastActive = now;
@@ -139,8 +214,28 @@ class AnalyticsService {
     if (_queue.length >= 20 || event == 'purchase_completed') flush();
   }
 
+  static Future<void> _captureWithReplay(String event, Map<String, Object?> props) async {
+    await _replaySync;
+    if (!_allowed) return;
+    try {
+      await Posthog().capture(eventName: event, properties: {
+        for (final entry in props.entries)
+          if (entry.value != null) entry.key: entry.value as Object,
+        r'$screen_name': _screen,
+        r'$app_version': _version,
+        'platform': 'android',
+        'language': _app?.language ?? 'auto',
+        'plus': _app?.premium.active ?? false,
+      });
+      if (event == 'purchase_completed') await Posthog().flush();
+    } catch (_) {}
+  }
+
   /// Send queued events; kept for retry if offline.
   static Future<void> flush() async {
+    if (_replayReady && _allowed) {
+      try { await Posthog().flush(); } catch (_) {}
+    }
     if (_queue.isEmpty) return;
     if (!_allowed) {
       _queue.clear();

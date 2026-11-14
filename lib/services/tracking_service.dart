@@ -39,9 +39,16 @@ class TrackingService {
   static bool get _native => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
   static bool get isIOS => !kIsWeb && Platform.isIOS;
 
-  /// Region the device reports (from the phone's language & region setting).
-  static String? get deviceCountry =>
-      PlatformDispatcher.instance.locale.countryCode;
+  /// Play / App Store account country, read once at launch (null until known).
+  static String? _storeCountry;
+
+  /// Country for the ad-measurement rule: the store account country (the real
+  /// country) when known, otherwise the phone's language & region setting —
+  /// which is often wrong (e.g. an en-GB phone outside the UK).
+  static String? get deviceCountry => adsCountry(
+    _storeCountry,
+    PlatformDispatcher.instance.locale.countryCode,
+  );
 
   /// Whether app activity may be shared with Meta right now.
   static bool get allowed {
@@ -65,10 +72,21 @@ class TrackingService {
     _consentKey = _keyOf(app);
     app.addListener(_onStateChange);
     if (!_native) return;
+    await _loadStoreCountry();
     if (isIOS) {
       _attPending = await attStatus() == TrackingStatus.notDetermined;
     }
     await _sync();
+  }
+
+  /// Reads the store account country from RevenueCat (Google Play billing
+  /// country on Android). Waits at most 3 s; on failure the phone region is used.
+  static Future<void> _loadStoreCountry() async {
+    try {
+      final sf = await Purchases.storefront.timeout(const Duration(seconds: 3));
+      final code = sf?.countryCode.trim();
+      if (code != null && code.isNotEmpty) _storeCountry = code;
+    } catch (_) {}
   }
 
   static String _keyOf(AppState a) => '${a.privacy.ads}:${a.privacy.version}';

@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
+import 'package:posthog_flutter/posthog_flutter.dart';
 
 import 'data/content.dart';
 import 'logic/logic.dart' show resolveLanguage, supportedLanguages;
@@ -44,7 +45,7 @@ Future<void> main() async {
   unawaited(MediaStore.prefetchVoicePack(lang));
   Haptics.enabled = app.audio.haptics;
   unawaited(TrackingService.init(app));
-  unawaited(AnalyticsService.init(app));
+  await AnalyticsService.init(app);
   unawaited(
     PurchaseService.syncEntitlement(
       isActive: () => app.premium.active,
@@ -55,7 +56,7 @@ Future<void> main() async {
   runApp(
     ChangeNotifierProvider.value(
       value: app,
-      child: EnsoApp(app: app),
+      child: PostHogWidget(child: EnsoApp(app: app)),
     ),
   );
   _bootstrapReminders(app);
@@ -86,6 +87,7 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
   void _trackScreen() {
     final uri = _router.routerDelegate.currentConfiguration.uri;
     AnalyticsService.screen(uri.path);
+    if (mounted) setState(() {});
   }
 
   @override
@@ -94,6 +96,7 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     widget.app.addListener(_syncHaptics);
     widget.app.addListener(_syncLanguage);
+    _trackScreen();
     unawaited(
       PrivacyPrompts.runOnLaunch(
         () => _router.routerDelegate.navigatorKey.currentContext,
@@ -211,7 +214,12 @@ class _EnsoAppState extends State<EnsoApp> with WidgetsBindingObserver {
         final mq = MediaQuery.of(context);
         return MediaQuery(
           data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.3)),
-          child: _Splash(child: child ?? const SizedBox.shrink()),
+          child: _Splash(
+            child: AnalyticsService.replaySafeScreen(
+              _router.routerDelegate.currentConfiguration.uri.path,
+            ) ? (child ?? const SizedBox.shrink())
+              : PostHogMaskWidget(child: child ?? const SizedBox.shrink()),
+          ),
         );
       },
     );

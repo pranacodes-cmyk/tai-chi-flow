@@ -877,6 +877,20 @@ void main() {
       expect(isConsentRegion('US'), isFalse);
       expect(isConsentRegion('IN'), isFalse);
     });
+    test('store alpha-3 codes follow the same rule', () {
+      expect(isConsentRegion('GBR'), isTrue);
+      expect(isConsentRegion('deu'), isTrue);
+      expect(isConsentRegion('USA'), isFalse);
+      expect(isConsentRegion('AUS'), isFalse);
+    });
+    test('the store account country wins over the phone region', () {
+      expect(adsCountry('AU', 'GB'), 'AU');
+      expect(adsCountry('GBR', 'US'), 'GBR');
+      expect(adsCountry(null, 'NZ'), 'NZ');
+      expect(adsCountry('', null), isNull);
+      expect(adsMeasurementAllowed('unset', 0, adsCountry('IN', 'GB')), isTrue);
+      expect(adsMeasurementAllowed('unset', 0, adsCountry('GB', 'US')), isTrue);
+    });
     test(
       'without an answer, sharing is off in consent regions and on elsewhere',
       () {
