@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../services/tracking_service.dart';
+import '../data/content.dart';
 import '../state/app_state.dart';
 import '../theme/text.dart';
 import '../theme/tokens.dart';
@@ -61,6 +62,8 @@ class _PrivacyChoice extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
     final on = TrackingService.allowed;
+    final quizSections = Content.i.legal.privacy.sections.where((s) => s.heading == 'Optional quiz-answer analytics');
+    final quiz = quizSections.isEmpty ? null : quizSections.first;
     void choose(String choice) {
       app.setAdsChoice(choice, TrackingService.deviceCountry);
       Navigator.of(context).pop();
@@ -107,12 +110,19 @@ class _PrivacyChoice extends StatelessWidget {
           _Point(
             icon: LucideIcons.lock,
             tone: C.terracotta,
-            text: tr('privacy.neverSharedPoint'),
+            text: 'Meta: ${tr('privacy.neverSharedPoint')}',
           ),
           _Point(
             icon: LucideIcons.rotateCcw,
             tone: C.muted,
             text: tr('privacy.changeMindPoint'),
+          ),
+          if (quiz != null) SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            value: app.audienceConsent,
+            onChanged: app.setAudienceConsent,
+            title: Text(quiz.heading, style: T.label),
+            subtitle: Text(quiz.paragraphs.first, style: T.caption),
           ),
           if (fromSettings) ...[
             const SizedBox(height: 6),

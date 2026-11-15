@@ -735,6 +735,8 @@ bool resumesLine(({int index, double offset})? speaking, Meditation m) =>
 /// Player-entry guard: direct routes obey the same day gate as program screens.
 bool isSessionLocked(String sessionId, bool premium) {
   final parts = sessionId.split(':');
+  // style sessions and single-movement practice belong to the Plus library
+  if (parts[0] == 'cat' || parts[0] == 'ex') return !premium;
   if (parts.length != 3 || parts[0] != 'plan') return false;
   final plan = Content.i.plan(parts[1]);
   final day = int.tryParse(parts[2]);

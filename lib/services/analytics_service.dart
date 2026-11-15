@@ -11,13 +11,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../state/app_state.dart';
 import 'tracking_service.dart';
+import 'audience_properties.dart';
 
 /// Product analytics (PostHog). Mirrors src/lib/analytics.ts.
 ///
 /// Sends funnel events (screens, onboarding steps, paywall, survey, checkout,
 /// purchases, lessons, ratings) with a random install ID. Gated by the same
 /// privacy choice as ad measurement. Android replay masks content and excludes
-/// sensitive screens. Never sends onboarding answers, health details, name or email.
+/// sensitive screens. Quiz categories require separate explicit permission; no name or email.
 class AnalyticsService {
   AnalyticsService._();
 
@@ -40,6 +41,34 @@ class AnalyticsService {
   static bool _replayReady = false;
   static String _privacyKey = '';
   static Future<void> _replaySync = Future.value();
+  static String _audienceKey = '';
+  static bool _dailyTimeAnswered = false;
+
+  static Map<String, Object> _audience() {
+    final a = _app;
+    if (a == null) return {};
+    final p = a.profile;
+    return audienceProperties({
+      'ageGroup': p.ageGroup, 'gender': p.gender, 'style': p.style,
+      if (a.onboarded || _dailyTimeAnswered) 'dailyMinutes': p.dailyMinutes,
+      if (a.onboarded) ...{
+        'goals': p.goals, 'limitations': p.limitations, 'activity': p.activity,
+        'balanceCheck': p.balanceCheck, 'flexibilityCheck': p.flexibilityCheck,
+        'bodyType': p.bodyType, 'zones': p.zones, 'stress': p.stress,
+      },
+    }, quizConsent: a.audienceConsent);
+  }
+
+  static void audienceSnapshot({bool dailyTimeAnswered = false}) {
+    if (dailyTimeAnswered) _dailyTimeAnswered = true;
+    if (!_allowed) return;
+    final props = _audience();
+    final key = jsonEncode(props);
+    if (props.isEmpty || key == _audienceKey) return;
+    _audienceKey = key;
+    capture('audience_profile_updated', props);
+    identify();
+  }
 
   /// Exclude whole sensitive screens: masking text alone cannot hide answers
   /// inferred from selection highlights or keypad touch coordinates.
@@ -72,6 +101,8 @@ class AnalyticsService {
 
   static Future<void> init(AppState app) async {
     _app = app;
+    _audienceKey = '';
+    _dailyTimeAnswered = app.onboarded;
     _wasOnboarded = app.onboarded;
     _wasPremium = app.premium.active;
     _history = app.history.length;
@@ -101,22 +132,24 @@ class AnalyticsService {
         _replayReady = false; // Existing HTTP analytics still works if SDK fails.
       }
     }
-    _privacyKey = '${app.privacy.ads}:${app.privacy.version}';
+    _privacyKey = '${app.privacy.ads}:${app.privacy.version}:${app.audienceConsent}';
     app.addListener(_onState);
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 15), (_) => flush());
     capture('app_opened', {'first_open': app.history.isEmpty && !app.onboarded});
     identify();
+    audienceSnapshot();
   }
 
   static void _onState() {
     final a = _app;
     if (a == null) return;
-    final privacyKey = '${a.privacy.ads}:${a.privacy.version}';
+    final privacyKey = '${a.privacy.ads}:${a.privacy.version}:${a.audienceConsent}';
     if (_privacyKey != privacyKey) {
       _privacyKey = privacyKey;
       if (!_allowed) _queue.clear();
       _syncReplay();
+      if (_allowed) audienceSnapshot();
     }
     if (!_wasOnboarded && a.onboarded) capture('onboarding_completed');
     _wasOnboarded = a.onboarded;
@@ -139,6 +172,7 @@ class AnalyticsService {
     if (_wasPremium != a.premium.active || _language != a.language) identify();
     _wasPremium = a.premium.active;
     _language = a.language;
+    audienceSnapshot();
   }
 
   /// Person properties used to segment funnels (no personal data).
@@ -153,8 +187,34 @@ class AnalyticsService {
         'onboarded': a.onboarded,
         'sessions_total': a.history.length,
         'paywall_offer': a.paywallOffer,
+        ..._audience(),
       },
     });
+  }
+
+  static final Set<String> _errorKeys = {};
+
+  /// Short, non-personal error summary: type, first 200 chars and the first app stack frame.
+  static Map<String, Object> errorReport(Object error, StackTrace? stack, {required String source, bool fatal = false}) {
+    final text = error.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+    final frames = (stack?.toString() ?? '').split('\n');
+    final at = frames.firstWhere((f) => f.contains('package:enso/'), orElse: () => frames.isEmpty ? '' : frames.first).trim();
+    return {
+      'error_type': error.runtimeType.toString(),
+      'message': text.length > 200 ? text.substring(0, 200) : text,
+      'location': at.length > 160 ? at.substring(0, 160) : at,
+      'source': source,
+      'fatal': fatal,
+    };
+  }
+
+  /// Sends each distinct error once per launch (max 25), so a loop cannot flood PostHog.
+  static void error(Object error, StackTrace? stack, {required String source, bool fatal = false}) {
+    final r = errorReport(error, stack, source: source, fatal: fatal);
+    final key = '${r['error_type']}|${r['location']}|${r['message']}';
+    if (_errorKeys.contains(key) || _errorKeys.length >= 25) return;
+    _errorKeys.add(key);
+    capture('app_error', r);
   }
 
   static void screen(String path) {
@@ -200,6 +260,7 @@ class AnalyticsService {
       'timestamp': now.toUtc().toIso8601String(),
       'properties': {
         ...props,
+        ..._audience(),
         r'$session_id': _session,
         r'$os': Platform.isIOS ? 'iOS' : 'Android',
         r'$app_version': _version,
@@ -221,6 +282,7 @@ class AnalyticsService {
       await Posthog().capture(eventName: event, properties: {
         for (final entry in props.entries)
           if (entry.value != null) entry.key: entry.value as Object,
+        ..._audience(),
         r'$screen_name': _screen,
         r'$app_version': _version,
         'platform': 'android',

@@ -300,12 +300,17 @@ class PurchaseService {
   /// cancelled or it succeeded).
   static String? lastError;
 
+  /// Store error code of the last failed purchase, for analytics (null when cancelled/succeeded).
+  static String? lastErrorCode;
+
   static Future<bool> purchase(String plan) async {
     lastError = null;
+    lastErrorCode = null;
     lastPurchaseWasTrial = false;
     if (!_ready) {
       if (!kDebugMode) {
         lastError = tr('purchase.genericError');
+        lastErrorCode = 'store_not_ready';
         return false;
       }
       await Future<void>.delayed(const Duration(milliseconds: 1400));
@@ -315,6 +320,7 @@ class PurchaseService {
     if (_cache == null) await warmUp();
     final pkg = _packageFor(plan);
     if (pkg == null) {
+      lastErrorCode = 'plan_not_loaded';
       lastError = tr('purchase.plansLoadError', {'store': Platform.isIOS ? 'the App Store' : 'Google Play'});
       return false;
     }
@@ -351,6 +357,7 @@ class PurchaseService {
       return ok;
     } on PlatformException catch (e) {
       final code = PurchasesErrorHelper.getErrorCode(e);
+      if (code != PurchasesErrorCode.purchaseCancelledError) lastErrorCode = code.name;
       lastError = switch (code) {
         PurchasesErrorCode.purchaseCancelledError => null,
         PurchasesErrorCode.paymentPendingError =>
@@ -364,8 +371,9 @@ class PurchaseService {
         _ => tr('purchase.genericError'),
       };
       return false;
-    } catch (_) {
+    } catch (e) {
       lastError = tr('purchase.genericError');
+      lastErrorCode = e.runtimeType.toString();
       return false;
     }
   }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'services/analytics_service.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +26,17 @@ import 'widgets/privacy_sheet.dart';
 import 'i18n/i18n.dart';
 
 Future<void> main() async {
+  final startup = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
+  final flutterOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    AnalyticsService.error(details.exception, details.stack, source: 'flutter');
+    flutterOnError?.call(details);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    AnalyticsService.error(error, stack, source: 'async', fatal: true);
+    return false;
+  };
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   await Content.load();
@@ -59,6 +70,9 @@ Future<void> main() async {
       child: PostHogWidget(child: EnsoApp(app: app)),
     ),
   );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    AnalyticsService.capture('app_performance', {'startup_ms': startup.elapsedMilliseconds});
+  });
   _bootstrapReminders(app);
 }
 

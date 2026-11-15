@@ -133,7 +133,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     setState(() => busy = false);
     if (!ok) {
       final error = PurchaseService.lastError;
-      AnalyticsService.capture(error == null ? 'purchase_cancelled' : 'purchase_failed', {'plan': selected, 'variant': variant, 'from': widget.from});
+      AnalyticsService.capture(error == null ? 'purchase_cancelled' : 'purchase_failed', {'plan': selected, 'variant': variant, 'from': widget.from, if (error != null) 'error_code': PurchaseService.lastErrorCode ?? 'unknown'});
       if (error != null) {
         Toast.show(tr('paywall.purchaseFailed'), description: error);
       }

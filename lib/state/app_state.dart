@@ -167,6 +167,9 @@ class AppState extends ChangeNotifier {
   /// Chosen app language code, or null to follow the device language.
   String? language;
 
+  /// Separate explicit permission for health-related quiz analytics.
+  bool audienceConsent = false;
+
   Timer? _saveTimer;
 
   static Future<AppState> load() async {
@@ -207,6 +210,7 @@ class AppState extends ChangeNotifier {
     'downloads': downloads,
     'privacy': privacy.toJson(),
     'language': language,
+    'audienceConsent': audienceConsent,
   };
 
   void _fromJson(Map<String, dynamic> j) {
@@ -256,6 +260,7 @@ class AppState extends ChangeNotifier {
       (j['privacy'] as Map?)?.cast<String, dynamic>() ?? {},
     );
     language = j['language'] as String?;
+    audienceConsent = j['audienceConsent'] == true;
   }
 
   void _commit() {
@@ -417,6 +422,11 @@ class AppState extends ChangeNotifier {
       decidedAt: DateTime.now(),
       country: country,
     );
+    _commit();
+  }
+
+  void setAudienceConsent(bool allowed) {
+    audienceConsent = allowed;
     _commit();
   }
 

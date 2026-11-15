@@ -569,6 +569,10 @@ void main() {
       expect(isSessionLocked('plan:wall-pilates-28:4', false), true);
       expect(isSessionLocked('plan:wall-pilates-28:4', true), false);
       expect(isSessionLocked('quick:desk-break-routine', false), false);
+      expect(isSessionLocked('cat:tai-chi', false), true);
+      expect(isSessionLocked('ex:any-move', false), true);
+      expect(isSessionLocked('cat:tai-chi', true), false);
+      expect(isSessionLocked('ex:any-move', true), false);
     });
     test('audited course equipment matches its actual practice', () {
       expect(Content.i.plan('desk-break-routine')!.equipment, 'none');

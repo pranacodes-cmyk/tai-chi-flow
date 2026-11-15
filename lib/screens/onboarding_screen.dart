@@ -206,6 +206,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void next() {
     if (!mounted) return;
+    AnalyticsService.audienceSnapshot(dailyTimeAnswered: steps[index].id == 'dailyMinutes');
     FocusScope.of(context).unfocus();
     if (index < steps.length - 1) {
       setState(() {

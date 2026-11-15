@@ -1,3 +1,4 @@
+import '../services/analytics_service.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -65,6 +66,8 @@ class _LessonPrepareState extends State<LessonPrepare> {
   }
 
   Future<void> _run() async {
+    final watch = Stopwatch()..start();
+    final files = _missing.length;
     setState(() {
       _failed = false;
       _done = 0;
@@ -83,7 +86,10 @@ class _LessonPrepareState extends State<LessonPrepare> {
       _cycle?.setRunning(false);
       setState(() => _missing = MediaStore.missing(widget.paths));
       if (!_ready) setState(() => _failed = true);
-    } catch (_) {
+      AnalyticsService.capture('media_download', {'result': _ready ? 'ok' : 'incomplete', 'files': files, 'missing': _missing.length, 'duration_ms': watch.elapsedMilliseconds});
+    } catch (e, st) {
+      AnalyticsService.capture('media_download', {'result': 'failed', 'files': files, 'duration_ms': watch.elapsedMilliseconds});
+      AnalyticsService.error(e, st, source: 'media_download');
       if (!mounted) return;
       Voice.stop();
       setState(() {
