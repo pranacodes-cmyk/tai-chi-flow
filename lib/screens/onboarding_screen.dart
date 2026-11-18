@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../data/content.dart';
 import '../data/models.dart';
@@ -1905,9 +1906,11 @@ class _WeightStepState extends State<_WeightStep> {
             }),
           ),
           const SizedBox(height: 24),
-          if (!widget.target)
-            _BmiCard(value: currentBmi)
-          else
+          if (!widget.target) ...[
+            _BmiCard(value: currentBmi),
+            const SizedBox(height: 12),
+            const BmiSources(),
+          ] else
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -1967,6 +1970,10 @@ class _WeightStepState extends State<_WeightStep> {
                 ],
               ),
             ),
+          if (widget.target) ...[
+            const SizedBox(height: 12),
+            const BmiSources(),
+          ],
         ],
       ),
     );
@@ -2744,6 +2751,51 @@ class _NameStepState extends State<_NameStep> {
           Text(tr('onboarding.cheerYouOn'), style: T.caption),
         ],
       ),
+    );
+  }
+}
+
+
+/// Visible citations for the BMI figures (App Store guideline 1.4.1); web `BmiSources`.
+class BmiSources extends StatelessWidget {
+  const BmiSources({super.key});
+  static const who = 'https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight';
+  static const cdc = 'https://www.cdc.gov/bmi/adult-calculator/bmi-categories.html';
+  @override
+  Widget build(BuildContext context) {
+    Widget link(String label, String url) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Row(
+              children: [
+                const Icon(LucideIcons.externalLink, size: 14, color: C.jadeDeep),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: T.caption.copyWith(
+                      fontSize: 13,
+                      color: C.jadeDeep,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(tr('onboarding.bmiSourcesNote'), style: T.caption.copyWith(fontSize: 12, height: 1.45)),
+        const SizedBox(height: 4),
+        Text(tr('onboarding.bmiSourcesTitle'), style: T.caption.copyWith(fontSize: 12, fontWeight: FontWeight.w700, color: C.ink)),
+        link(tr('onboarding.bmiSourceWho'), who),
+        link(tr('onboarding.bmiSourceCdc'), cdc),
+      ],
     );
   }
 }
